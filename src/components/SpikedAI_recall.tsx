@@ -49,7 +49,6 @@ import {
   HelpCircle,
   BookOpenCheck,
   ChevronRight,
-  Eye,
 } from "lucide-react";
 import { platform } from "os";
 import { useAuth } from "../AuthContext";
@@ -509,7 +508,6 @@ const SpikedAI = () => {
   const [hotMicMeetingId, setHotMicMeetingId] = useState<string>("");
   const [lastTranscriptText, setLastTranscriptText] = useState("");
 
-  const navigate = useNavigate();
   const micTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const answerRef = useRef<HTMLDivElement>(null);
@@ -1315,10 +1313,14 @@ const SpikedAI = () => {
   };
 
   const fetchParticipantCardsOnly = async () => {
+    if (!session) return [];
     // Remove platform extraction since we don't need it
     try {
       const response = await fetch(
-        `${service_url_recall}/sentiment/participants`
+        `${service_url_recall}/sentiment/participants`,
+        {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }
       );
       if (response.ok) {
         const data = await response.json();
@@ -1332,8 +1334,11 @@ const SpikedAI = () => {
   };
 
   const fetchConversationHealthOnly = async () => {
+    if (!session) return null;
     try {
-      const response = await fetch(`${service_url_recall}/sentiment/health`);
+      const response = await fetch(`${service_url_recall}/sentiment/health`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
       if (response.ok) {
         const data = await response.json();
         return data.conversation_health || null;
@@ -1346,9 +1351,12 @@ const SpikedAI = () => {
   };
 
   const fetchSentimentAnalysis = async () => {
+    if (!session) return;
     try {
       console.log("Fetching comprehensive sentiment analysis");
-      const response = await fetch(`${service_url_recall}/sentiment/analysis`);
+      const response = await fetch(`${service_url_recall}/sentiment/analysis`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
       if (response.ok) {
         const data = await response.json();
         console.log("Sentiment analysis received:", data);
@@ -1364,28 +1372,15 @@ const SpikedAI = () => {
   };
 
   const acknowledgeAlert = async (alertId: string) => {
+    if (!session) return;
     try {
       await fetch(
         `${service_url_recall}/sentiment/alerts/${alertId}/acknowledge`,
         {
           method: "POST",
+          headers: { Authorization: `Bearer ${session.access_token}` },
         }
       );
-      
-      // Remove from visible alerts
-      setVisibleAlerts(prev => prev.filter(alert => alert.id !== alertId));
-      
-      // Clear timer if exists
-      if (alertTimers[alertId]) {
-        clearTimeout(alertTimers[alertId]);
-        setAlertTimers(prev => {
-          const newTimers = { ...prev };
-          delete newTimers[alertId];
-          return newTimers;
-        });
-      }
-      
-      // Update sentiment data
       setSentimentData((prev) => ({
         ...prev,
         critical_alerts: prev.critical_alerts.map((alert) =>
@@ -1400,8 +1395,11 @@ const SpikedAI = () => {
   const fetchCriticalAlertsOnly = async (
     meetingUrl: string
   ): Promise<CriticalAlert[]> => {
+    if (!session) return [];
     try {
-      const response = await fetch(`${service_url_recall}/sentiment/alerts`);
+      const response = await fetch(`${service_url_recall}/sentiment/alerts`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
       if (response.ok) {
         const data = await response.json();
         return data.critical_alerts || [];
@@ -1427,9 +1425,13 @@ const SpikedAI = () => {
   const fetchEngagementScoresOnly = async (
     meetingUrl: string
   ): Promise<ParticipantEngagement[]> => {
+    if (!session) return [];
     try {
       const response = await fetch(
-        `${service_url_recall}/sentiment/engagement`
+        `${service_url_recall}/sentiment/engagement`,
+        {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }
       );
       if (response.ok) {
         const data = await response.json();
@@ -1445,13 +1447,17 @@ const SpikedAI = () => {
   const fetchMedpicProgressOnly = async (
     meetingUrl: string
   ): Promise<MedpicProgress | null> => {
+    if (!session) return null;
     const { meetingId } = extractMeetingIdAndPlatform(meetingUrl);
     if (!meetingId) return null;
 
     try {
       // ✅ FIXED: Added platform parameter
       const response = await fetch(
-        `${service_url_recall}/sentiment/medpic/${meetingId}`
+        `${service_url_recall}/sentiment/medpic/${meetingId}`,
+        {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }
       );
       if (response.ok) {
         const data = await response.json();
@@ -1465,13 +1471,17 @@ const SpikedAI = () => {
   };
 
   const fetchBuyingSignalsOnly = async (meetingUrl: string): Promise<any> => {
+    if (!session) return null;
     const { meetingId } = extractMeetingIdAndPlatform(meetingUrl);
     if (!meetingId) return null;
 
     try {
       // ✅ FIXED: Added platform parameter
       const response = await fetch(
-        `${service_url_recall}/sentiment/buying-signals/${meetingId}`
+        `${service_url_recall}/sentiment/buying-signals/${meetingId}`,
+        {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }
       );
       if (response.ok) {
         const data = await response.json();
@@ -1489,6 +1499,7 @@ const SpikedAI = () => {
     category: MedpicCategoryKey,
     direction: "next" | "prev"
   ): Promise<number | undefined> => {
+    if (!session) return undefined;
     const { meetingId } = extractMeetingIdAndPlatform(meetingUrl);
     if (!meetingId) {
       console.error("❌ No meeting ID for MEDPIC navigation");
@@ -1502,6 +1513,7 @@ const SpikedAI = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
           },
         }
       );
@@ -1529,52 +1541,53 @@ const SpikedAI = () => {
     direction: "next" | "prev"
   ) => {
     if (!meetingUrl) return;
-  
-    console.log(`🔄 Manually navigating ${direction} in ${category}`);
-  
+
+    console.log(`🔄 Navigating ${direction} in ${category}`);
+
     try {
-      // Get current category data
-      const categoryData = sentimentData.medpic_progress[category];
-      if (!categoryData || !categoryData.qna_list.length) return;
-  
-      const currentIndex = categoryData.current_qna_index;
-      let newIndex = currentIndex;
-  
-      if (direction === "next" && currentIndex < categoryData.qna_list.length - 1) {
-        newIndex = currentIndex + 1;
-      } else if (direction === "prev" && currentIndex > 0) {
-        newIndex = currentIndex - 1;
-      }
-  
-      if (newIndex !== currentIndex) {
-        // Store manual navigation state to prevent auto-revert
-        setMedpicManualNavigation(prev => ({
-          ...prev,
-          [category]: newIndex
-        }));
-  
-        // Update UI immediately
-        setSentimentData((prev) => ({
-          ...prev,
-          medpic_progress: {
-            ...prev.medpic_progress,
-            [category]: {
-              ...categoryData,
-              current_qna_index: newIndex,
+      // Call backend navigation endpoint
+      const response = await navigateMedpicQnABackend(
+        meetingUrl,
+        category,
+        direction
+      );
+
+      if (response !== undefined) {
+        // ✅ IMMEDIATE UI UPDATE: Update local state immediately for better UX
+        setSentimentData((prev) => {
+          const categoryData = prev.medpic_progress[category];
+          if (!categoryData || !categoryData.qna_list.length) return prev;
+
+          const newIndex = response;
+          console.log(
+            `✅ Navigation successful: ${category} index ${categoryData.current_qna_index} → ${newIndex}`
+          );
+
+          return {
+            ...prev,
+            medpic_progress: {
+              ...prev.medpic_progress,
+              [category]: {
+                ...categoryData,
+                current_qna_index: newIndex,
+              },
             },
-          },
-          last_updated: new Date().toISOString(),
-        }));
-  
-        console.log(`✅ Manual navigation: ${category} index ${currentIndex} → ${newIndex}`);
+            last_updated: new Date().toISOString(),
+          };
+        });
+
+        // ✅ FORCE REFRESH: Get fresh MEDPIC data after navigation
+        setTimeout(async () => {
+          await fetchSentimentComponent("medpic");
+        }, 500);
       }
     } catch (error) {
-      console.error(`❌ Manual navigation failed for ${category}:`, error);
+      console.error(`❌ Navigation failed for ${category}:`, error);
     }
   };
 
   const getMedpicSummary = async () => {
-    if (!meetingUrl) return;
+    if (!meetingUrl || !session) return;
 
     const { meetingId } = extractMeetingIdAndPlatform(meetingUrl);
     if (!meetingId) return;
@@ -1584,7 +1597,10 @@ const SpikedAI = () => {
     try {
       // ✅ FIXED: Added platform parameter
       const response = await fetch(
-        `${service_url_recall}/sentiment/medpic/${meetingId}/summary`
+        `${service_url_recall}/sentiment/medpic/${meetingId}/summary`,
+        {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }
       );
 
       if (response.ok) {
@@ -1608,10 +1624,13 @@ const SpikedAI = () => {
   };
 
   const fetchSentimentComponent = async (component: string) => {
+    if (!session) return;
     try {
       let url = `${service_url_recall}/sentiment/${component}`;
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
       if (!response.ok) {
         console.error(`Failed to fetch ${component}: ${response.status}`);
         return;
@@ -1648,27 +1667,11 @@ const SpikedAI = () => {
 
         case "medpic":
           if (data.medpic_progress) {
-            setSentimentData((prev) => {
-              // Preserve manual navigation states
-              const updatedProgress = { ...data.medpic_progress };
-              
-              // Apply manual navigation indices if they exist and haven't been overridden
-              Object.keys(medpicManualNavigation).forEach(category => {
-                if (updatedProgress[category] && updatedProgress[category].qna_list.length > 0) {
-                  const manualIndex = medpicManualNavigation[category];
-                  if (manualIndex >= 0 && manualIndex < updatedProgress[category].qna_list.length) {
-                    updatedProgress[category].current_qna_index = manualIndex;
-                  }
-                }
-              });
-              
-              return {
-                ...prev,
-                medpic_progress: updatedProgress,
-                last_updated: new Date().toISOString(),
-              };
-            });
-            setLastMedpicUpdate(new Date().toISOString());
+            setSentimentData((prev) => ({
+              ...prev,
+              medpic_progress: data.medpic_progress,
+              last_updated: new Date().toISOString(),
+            }));
           }
           break;
 
@@ -1708,9 +1711,13 @@ const SpikedAI = () => {
   const fetchAlertSuggestion = async (
     alertId: string
   ): Promise<string | null> => {
+    if (!session) return null;
     try {
       const response = await fetch(
-        `${service_url_recall}/sentiment/alerts/${alertId}/suggestion`
+        `${service_url_recall}/sentiment/alerts/${alertId}/suggestion`,
+        {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }
       );
       if (response.ok) {
         const data = await response.json();
@@ -1724,12 +1731,14 @@ const SpikedAI = () => {
   };
 
   const acknowledgeAlertWithSuggestion = async (alertId: string) => {
+    if (!session) return null;
     try {
       const suggestion = await fetchAlertSuggestion(alertId);
       await fetch(
         `${service_url_recall}/sentiment/alerts/${alertId}/acknowledge`,
         {
           method: "POST",
+          headers: { Authorization: `Bearer ${session.access_token}` },
         }
       );
       setSentimentData((prev) => ({
@@ -1751,31 +1760,7 @@ const SpikedAI = () => {
     }
   };
 
-  // Add this component definition
-  const EyeButton = ({ onClick, isExpanded, isLoading = false }: { 
-    onClick: () => void; 
-    isExpanded: boolean; 
-    isLoading?: boolean; 
-  }) => (
-    <button
-      onClick={onClick}
-      disabled={isLoading}
-      className={`p-1.5 rounded-full transition-colors ${
-        isExpanded 
-          ? "bg-blue-500/20 text-blue-500" 
-          : isDarkMode
-          ? "hover:bg-slate-600/50 text-slate-400"
-          : "hover:bg-slate-200 text-slate-500"
-      }`}
-      title={isExpanded ? "Hide details" : "Show details"}
-    >
-      {isLoading ? (
-        <Loader className="w-3.5 h-3.5 animate-spin" />
-      ) : (
-        <Eye className="w-3.5 h-3.5" />
-      )}
-    </button>
-  );
+  // Replace the existing fetchSentimentDataStaggered function with this corrected version
 
   const fetchSentimentDataStaggered = async () => {
     try {
@@ -1783,23 +1768,28 @@ const SpikedAI = () => {
 
       // Always fetch critical alerts (highest priority)
       await fetchSentimentComponent("alerts");
-      await fetchSentimentComponent("medpic");
+
       const now = Date.now();
 
       // Cycle through different components to avoid overwhelming the backend
-      const cycleIndex = Math.floor(now / 2000) % 3; // 3-second cycles
+      const cycleIndex = Math.floor(now / 3000) % 5; // 3-second cycles
 
       switch (cycleIndex) {
         case 0:
           await fetchSentimentComponent("medpic");
           break;
         case 1:
-          await fetchSentimentComponent("buying-signals");
+          await fetchSentimentComponent("engagement");
           break;
         case 2:
+          await fetchSentimentComponent("buying-signals");
+          break;
+        case 3:
           await fetchSentimentComponent("participants");
           break;
-        
+        case 4:
+          await fetchSentimentComponent("health");
+          break;
       }
     } catch (error) {
       console.error("Error in staggered sentiment fetching:", error);
@@ -1820,8 +1810,11 @@ const SpikedAI = () => {
   };
 
   const fetchDocuments = async () => {
+    if (!session) return;
     try {
-      const response = await fetch(`${BASE_URL_PROD}/documents`);
+      const response = await fetch(`${BASE_URL_PROD}/documents`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
       if (response.ok) {
         const docs = await response.json();
         setDocuments(docs);
@@ -1832,6 +1825,7 @@ const SpikedAI = () => {
   };
 
   const uploadDocument = async (file: File) => {
+    if (!session) throw new Error("User not authenticated");
     setIsUploading(true);
     const formData = new FormData();
     formData.append("file", file);
@@ -1839,6 +1833,7 @@ const SpikedAI = () => {
     try {
       const response = await fetch(`${service_url_base}/upload`, {
         method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
         body: formData,
       });
       if (response.ok) {
@@ -1857,9 +1852,11 @@ const SpikedAI = () => {
   };
 
   const deleteDocument = async (filename: string) => {
+    if (!session) return;
     try {
       const response = await fetch(`${BASE_URL_PROD}/documents/${filename}`, {
         method: "DELETE",
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (response.ok) {
         await fetchDocuments();
@@ -1870,8 +1867,30 @@ const SpikedAI = () => {
   };
 
   const downloadDocument = async (filename: string) => {
+    if (!session) return;
     const url = `${service_url_base}/download/${encodeURIComponent(filename)}`;
-    window.open(url, "_blank");
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error("Download failed");
+      }
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error("Download error:", error);
+      alert("Failed to download document.");
+    }
   };
 
   // HOT MIC FUNCTIONS
@@ -1901,6 +1920,7 @@ const SpikedAI = () => {
       });
 
       recorder.ondataavailable = async (event) => {
+        if (!session) return;
         if (event.data.size < 1024) {
           return;
         }
@@ -1916,7 +1936,10 @@ const SpikedAI = () => {
               `${service_url_base}/hotmic/transcribe`,
               {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${session.access_token}`,
+                },
                 body: JSON.stringify({
                   audio_data: base64Audio,
                   meeting_url: `hotmic://${meetingId}`,
@@ -1949,11 +1972,11 @@ const SpikedAI = () => {
 
       setHotMicInterval(interval);
 
-      const transcriptInterval = setInterval(
+      const localTranscriptInterval = setInterval(
         () => fetchHotMicTranscript(meetingId),
         2000
       );
-      setTranscriptInterval(transcriptInterval);
+      // setTranscriptInterval(localTranscriptInterval);
     } catch (error) {
       console.error("Error starting Hot Mic:", error);
       alert("Could not access microphone. Please check permissions.");
@@ -1975,10 +1998,10 @@ const SpikedAI = () => {
       setHotMicInterval(null);
     }
 
-    if (transcriptInterval) {
-      clearInterval(transcriptInterval);
-      setTranscriptInterval(null);
-    }
+    // if (transcriptInterval) {
+    //   clearInterval(transcriptInterval);
+    //   setTranscriptInterval(null);
+    // }
 
     setIsHotMicActive(false);
     setHotMicRecorder(null);
@@ -1987,12 +2010,16 @@ const SpikedAI = () => {
   };
 
   const fetchHotMicTranscript = async (currentMeetingId?: string) => {
+    if (!session) return;
     const idToFetch = currentMeetingId || hotMicMeetingId;
     if (!idToFetch) return;
 
     try {
       const response = await fetch(
-        `${service_url_base}/hotmic/transcript/${idToFetch}`
+        `${service_url_base}/hotmic/transcript/${idToFetch}`,
+        {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }
       );
       if (response.ok) {
         const transcriptData = await response.json();
@@ -2069,6 +2096,7 @@ const SpikedAI = () => {
   };
 
   const askBeyondQuestion = async (question: string) => {
+    if (!session) return;
     setChatHistory((prev) => [
       {
         question: question,
@@ -2090,7 +2118,10 @@ const SpikedAI = () => {
     try {
       const response = await fetch(`${BASE_URL_PROD}/askBeyond`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ question }),
       });
 
@@ -2163,6 +2194,7 @@ const SpikedAI = () => {
     question: string,
     isAutoGenerated: boolean = false
   ) => {
+    if (!session) return;
     setShowAskBeyondButton(false);
     setLastQuestion(question);
     setChatHistory((prev) => [
@@ -2187,7 +2219,10 @@ const SpikedAI = () => {
       // Fire off follow-up request in parallel
       const followUpsPromise = fetch(`${BASE_URL_PROD}/followup`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ question }),
       }).then((res) => {
         if (!res.ok) return null;
@@ -2197,7 +2232,10 @@ const SpikedAI = () => {
       // Handle streaming /ask request
       const response = await fetch(`${BASE_URL_PROD}/ask`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ question }),
       });
 
@@ -2275,6 +2313,7 @@ const SpikedAI = () => {
   };
 
   const askGraph = async (question: string) => {
+    if (!session) return;
     setChatHistory((prev) => [
       {
         question: question,
@@ -2296,7 +2335,10 @@ const SpikedAI = () => {
     try {
       const response = await fetch(`${service_url_base}/graph/ask`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ query: question }),
       });
 
@@ -2360,15 +2402,31 @@ const SpikedAI = () => {
     await askBeyondQuestion(lastQuestion);
   };
 
-  
+  const toggleTranscription = () => {
+    setIsTranscribing(!isTranscribing);
+  };
 
   const getTranscript = async (meetingUrl: string): Promise<Transcript> => {
+    if (!session)
+      return {
+        id: 0,
+        platform: "",
+        native_meeting_id: "",
+        constructed_meeting_url: "",
+        segments: [],
+        status: "error",
+        start_time: "",
+        end_time: "",
+      };
     try {
       const { meetingId, platform } = extractMeetingIdAndPlatform(meetingUrl);
       if (!meetingId)
         throw new Error("No valid meeting ID for transcript fetch");
       const response = await fetch(
-        `${service_url_base}/transcript/${platform}/${meetingId}`
+        `${service_url_base}/transcript/${platform}/${meetingId}`,
+        {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }
       );
       if (!response.ok) {
         throw new Error("Failed to fetch transcript");
@@ -2390,64 +2448,51 @@ const SpikedAI = () => {
   };
 
   const startBotWithGranularSentiment = async () => {
-    if (!meetingUrl) return;
+    if (!meetingUrl || !session) return;
 
     try {
-      setIsBotRunning(true);
       setBotStatus("starting");
-      setIsConnected(true);
-      setIsTranscribing(true);
-      await startBot();
-      setBotStatus("running");
 
-      const enhancedTranscriptFetchInterval = setInterval(async () => {
-        try {
-          const transcriptRaw = await getTranscript(meetingUrl);
-          const transcriptData = processTranscript(transcriptRaw);
-          console.log(
-            `%c[1] TRANSCRIPT RECEIVED from Vexa @ ${new Date().toLocaleTimeString()}`,
-            "color: dodgerblue;",
-            transcriptData.slice(-1)[0]
-          );
-          if (transcriptData && transcriptData.length > 0) {
-            setTranscript(transcriptRaw.segments || []);
-            setProcessedTranscript(transcriptData);
+      const formData = new FormData();
+      formData.append("meeting_url", meetingUrl);
 
-            await fetchSentimentDataStaggered();
-
-            const now = new Date();
-            const sixtySecondsAgo = new Date(now.getTime() - 60000);
-            const recentSegments = transcriptData.filter(
-              (segment: TranscriptSegment) =>
-                new Date(segment.absolute_start_time).getTime() >
-                sixtySecondsAgo.getTime()
-            );
-            setTranscriptContextWindow(recentSegments);
-            setSlidingWindowTranscript(
-              recentSegments.map((s: TranscriptSegment) => s.text)
-            );
-          }
-        } catch (error) {
-          console.error("Error fetching transcript:", error);
-        }
-      }, 1000);
-
-      setTranscriptInterval(enhancedTranscriptFetchInterval);
-
-      setTranscript((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          start: 0,
-          end: 0,
-          text: "Bot connected successfully. Real-time transcription active.",
-          language: "en",
-          created_at: new Date().toISOString(),
-          speaker: "Spiked",
-          absolute_start_time: new Date().toISOString(),
-          absolute_end_time: new Date().toISOString(),
+      const response = await fetch(`${service_url_recall}/start`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
         },
-      ]);
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to start bot via Vexa backend");
+      }
+
+      const newBotId = await response.json(); // Assumes startVexaBot returns { id: "..." }
+
+      if (newBotId) {
+        setBotId(newBotId); // This will trigger the main useEffect to connect
+        setBotStatus("running");
+        setIsBotRunning(true);
+        setIsConnected(true);
+        setIsTranscribing(true);
+
+        setTranscript([
+          {
+            id: Date.now(),
+            start: 0,
+            end: 0,
+            text: "Bot connected successfully. Real-time transcription active.",
+            language: "en",
+            created_at: new Date().toISOString(),
+            speaker: "Spiked",
+            absolute_start_time: new Date().toISOString(),
+            absolute_end_time: new Date().toISOString(),
+          },
+        ]);
+      } else {
+        throw new Error("Failed to get a valid bot ID from the backend.");
+      }
     } catch (error) {
       console.error("Error starting bot:", error);
       setBotStatus("error");
@@ -2618,6 +2663,7 @@ const SpikedAI = () => {
   };
 
   const generateMeetingSummary = async () => {
+    if (!session) return;
     try {
       setDownloadStatus({
         filename: "meeting-summary.pdf",
@@ -2629,6 +2675,7 @@ const SpikedAI = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
             transcript: processedTranscript,
@@ -2732,73 +2779,19 @@ const SpikedAI = () => {
 
   useEffect(() => {
     checkApiHealth();
-    fetchDocuments();
+    if (session) {
+      fetchDocuments();
+    }
     const interval = setInterval(checkApiHealth, 30000);
     return () => {
       clearInterval(interval);
-      if (transcriptInterval) {
-        clearInterval(transcriptInterval);
-      }
     };
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     const cleanupInterval = setInterval(clearOldQuestionData, 10 * 60 * 1000); // Every 10 minutes
     return () => clearInterval(cleanupInterval);
   }, []);
-  // Add to useEffect in SpikedAI component
-  useEffect(() => {
-    const handleBeforeUnload = async () => {
-      if (isBotRunning) {
-        // Quick cleanup call
-        navigator.sendBeacon(
-          `${service_url_recall}/cleanup-bot-session`,
-          JSON.stringify({})
-        );
-      }
-    };
-
-    const handleUnload = () => {
-      if (isBotRunning) {
-        // Synchronous cleanup
-        fetch(`${service_url_recall}/cleanup-bot-session`, {
-          method: 'POST',
-          keepalive: true
-        });
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('unload', handleUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('unload', handleUnload);
-    };
-  }, [isBotRunning]);
-
-  // Add to useEffect in SpikedAI component
-useEffect(() => {
-  const validateSession = async () => {
-    try {
-      const response = await fetch(`${service_url_recall}/validate-session`);
-      const data = await response.json();
-      
-      if (!data.valid) {
-        // Clean up frontend state if session is invalid
-        setSentimentData(initialSentimentData);
-        setTranscript([]);
-        setIsBotRunning(false);
-        setIsConnected(false);
-        sessionStorage.clear();
-      }
-    } catch (error) {
-      console.log("Session validation failed:", error);
-    }
-  };
-  
-  validateSession();
-}, []);
 
   const [isAutoMode, setIsAutoMode] = useState(false);
   const [slidingWindowTranscript, setSlidingWindowTranscript] = useState<
@@ -2942,11 +2935,15 @@ useEffect(() => {
   const detectQuestionFromTranscript = async (
     message: string
   ): Promise<QuestionResponse | null> => {
+    if (!session) return null;
     if (!message || message.trim().length < 10) return null; // Basic filter
     try {
       const response = await fetch(`${service_url_base}/detect-question-new`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ message }),
       });
       if (!response.ok) {
@@ -3109,37 +3106,6 @@ useEffect(() => {
       processQuestionFromQueue();
     }
   }, [questionProcessingQueue, isProcessingQuestions, autoAnswerEnabled]);
-  
-  // Add this useEffect to manage alert visibility and auto-dismiss
-  useEffect(() => {
-    const newAlerts = sentimentData.critical_alerts.filter(alert => 
-      !alert.acknowledged && 
-      !seenAlerts.has(alert.id)
-    );
-
-    // Add new alerts to visible list and set timers
-    newAlerts.forEach(alert => {
-      setSeenAlerts(prev => new Set([...prev, alert.id]));
-      setVisibleAlerts(prev => [...prev, alert]);
-
-      // Set timer to auto-dismiss after 20 seconds
-      const timer = setTimeout(() => {
-        setVisibleAlerts(prev => prev.filter(a => a.id !== alert.id));
-        setAlertTimers(prev => {
-          const newTimers = { ...prev };
-          delete newTimers[alert.id];
-          return newTimers;
-        });
-      }, 20000);
-
-      setAlertTimers(prev => ({ ...prev, [alert.id]: timer }));
-    });
-
-    // Cleanup timers on unmount
-    return () => {
-      Object.values(alertTimers).forEach(timer => clearTimeout(timer));
-    };
-  }, [sentimentData.critical_alerts]);
 
   const isQuestionInCooldown = (
     question: string,
@@ -3258,28 +3224,6 @@ useEffect(() => {
   };
 
   const renderSmartSuggestions = () => {
-    // --- LOGIC to separate answered vs unanswered questions ---
-    const answeredMeetingQuestionTexts = useMemo(
-      () =>
-        new Set(
-          chatHistory
-            .filter((h) => meetingQuestions.includes(h.question))
-            .map((h) => h.question)
-        ),
-      [chatHistory, meetingQuestions]
-    );
-
-    const unansweredMeetingQuestions = useMemo(
-      () =>
-        meetingQuestions.filter((q) => !answeredMeetingQuestionTexts.has(q)),
-      [meetingQuestions, answeredMeetingQuestionTexts]
-    );
-
-    const answeredMeetingQuestions = useMemo(
-      () => Array.from(answeredMeetingQuestionTexts).reverse(),
-      [answeredMeetingQuestionTexts]
-    );
-
     const hasSuggestions =
       currentSources.length > 0 ||
       currentFollowUps.length > 0 ||
@@ -3458,8 +3402,9 @@ useEffect(() => {
             </div>
           )}
 
-        {/* START: UPDATED CRITICAL ALERTS SECTION */}
-        {visibleAlerts.length > 0 && (
+        {/* START: ADDED CRITICAL ALERTS SECTION */}
+        {sentimentData.critical_alerts.filter((alert) => !alert.acknowledged)
+          .length > 0 && (
           <div className="space-y-4">
             <h4
               className={`text-base font-semibold mb-3 flex items-center space-x-2 ${
@@ -3470,64 +3415,66 @@ useEffect(() => {
               <span>Alerts</span>
             </h4>
             <div className="space-y-3">
-              {visibleAlerts.map((alert) => (
-                <div
-                  key={alert.id}
-                  className={`p-4 rounded-xl border-l-4 shadow-md transition-all ${
-                    alert.severity === "negative_high"
-                      ? "border-red-500 bg-red-50 dark:bg-red-900/20"
-                      : alert.alert_type === "positive"
-                      ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                      : "border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20"
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p
-                        className={`font-bold text-sm ${
-                          alert.severity === "negative_high"
-                            ? "text-red-700 dark:text-red-300"
-                            : "text-yellow-700 dark:text-green-300"
+              {sentimentData.critical_alerts
+                .filter((alert) => !alert.acknowledged)
+                .map((alert) => (
+                  <div
+                    key={alert.id}
+                    className={`p-4 rounded-xl border-l-4 shadow-md transition-all ${
+                      alert.severity === "negative_high"
+                        ? "border-red-500 bg-red-50 dark:bg-red-900/20"
+                        : alert.alert_type === "positive"
+                        ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                        : "border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p
+                          className={`font-bold text-sm ${
+                            alert.severity === "negative_high"
+                              ? "text-red-700 dark:text-red-300"
+                              : "text-yellow-700 dark:text-green-300"
+                          }`}
+                        >
+                          {alert.phrase}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Speaker:{" "}
+                          <span className="font-medium">{alert.speaker}</span>
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-300 mt-2 italic">
+                          "{alert.context}"
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => acknowledgeAlert(alert.id)}
+                        className={`ml-2 p-1.5 rounded-full transition-colors ${
+                          isDarkMode
+                            ? "hover:bg-slate-600/50"
+                            : "hover:bg-slate-200"
                         }`}
+                        title="Acknowledge Alert"
                       >
-                        {alert.phrase}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Speaker:{" "}
-                        <span className="font-medium">{alert.speaker}</span>
-                      </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-2 italic">
-                        "{alert.context}"
-                      </p>
+                        <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      </button>
                     </div>
-                    <button
-                      onClick={() => acknowledgeAlert(alert.id)}
-                      className={`ml-2 p-1.5 rounded-full transition-colors ${
-                        isDarkMode
-                          ? "hover:bg-slate-600/50"
-                          : "hover:bg-slate-200"
-                      }`}
-                      title="Acknowledge Alert"
-                    >
-                      <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                    </button>
+                    {alert.suggestion && (
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                          Suggestion:
+                        </p>
+                        <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">
+                          {alert.suggestion}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  {alert.suggestion && (
-                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                      <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                        Suggestion:
-                      </p>
-                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">
-                        {alert.suggestion}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         )}
-        {/* END: UPDATED CRITICAL ALERTS SECTION */}
+        {/* END: ADDED CRITICAL ALERTS SECTION */}
 
         {/* Forecasted Client Follow ups */}
         {(selectedCategories.includes("all") ||
@@ -3763,41 +3710,34 @@ useEffect(() => {
               >
                 <div className="flex items-center space-x-2">
                   <TrendingUp className="w-5 h-5" />
-                  <span>Live Playbook</span>
+                  <span>Live Playbook Analysis</span>
                 </div>
               </h4>
 
-              {/* Buying Signals Counter - ENHANCED VERSION */}
+              {/* Buying Signals Counter */}
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold text-gray-700 dark:text-gray-300">
                     Buying Signals
                   </span>
-                  <div className="flex items-center space-x-2">
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center ${
-                        sentimentData.buying_signals.trend === "increasing"
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
-                          : sentimentData.buying_signals.trend === "decreasing"
-                          ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
-                          : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                      }`}
-                    >
-                      {sentimentData.buying_signals.trend === "increasing"
-                        ? "↑"
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center ${
+                      sentimentData.buying_signals.trend === "increasing"
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
                         : sentimentData.buying_signals.trend === "decreasing"
-                        ? "↓"
-                        : "→"}
-                      <span className="ml-1">
-                        {sentimentData.buying_signals.trend}
-                      </span>
+                        ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
+                        : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                    }`}
+                  >
+                    {sentimentData.buying_signals.trend === "increasing"
+                      ? "↑"
+                      : sentimentData.buying_signals.trend === "decreasing"
+                      ? "↓"
+                      : "→"}
+                    <span className="ml-1">
+                      {sentimentData.buying_signals.trend}
                     </span>
-                    {(sentimentData.buying_signals as any)?.analysis_method && (
-                      <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">
-                        {(sentimentData.buying_signals as any).analysis_method === "llm_enhanced" ? "AI Enhanced" : "Pattern Based"}
-                      </span>
-                    )}
-                  </div>
+                  </span>
                 </div>
                 <div className="text-3xl font-bold text-green-600 dark:text-green-400">
                   {sentimentData.buying_signals.total_score} points
@@ -3805,19 +3745,6 @@ useEffect(() => {
                 <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                   {sentimentData.buying_signals.signal_count} signals detected
                 </div>
-                
-                {/* LLM Summary if available */}
-                {(sentimentData.buying_signals as any)?.llm_summary && (
-                  <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">
-                      AI Analysis:
-                    </p>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
-                      {(sentimentData.buying_signals as any).llm_summary}
-                    </p>
-                  </div>
-                )}
-
                 <div className="mt-2 space-y-1.5 border-t border-gray-200 dark:border-gray-700 pt-3">
                   {Object.entries(
                     sentimentData.buying_signals.signals_by_type
@@ -3827,7 +3754,7 @@ useEffect(() => {
                       className="flex justify-between text-sm items-center"
                     >
                       <span className="flex items-center text-gray-600 dark:text-gray-300">
-                        {getSignalTypeIcon(type)} {type.replace("_", " ").toUpperCase()}
+                        {getSignalTypeIcon(type)} {type.replace("_", " ")}
                       </span>
                       <span className="font-medium text-gray-800 dark:text-gray-200">
                         {points} pts
@@ -4021,6 +3948,27 @@ useEffect(() => {
                     }
                   )}
                 </div>
+
+                {/* MEDPIC Summary Button */}
+                <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={getMedpicSummary}
+                    disabled={isLoadingMedpicSummary}
+                    className="w-full px-3 py-2 text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  >
+                    {isLoadingMedpicSummary ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Loading Summary...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>📊</span>
+                        <span>View MEDPIC Summary</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -4042,7 +3990,6 @@ useEffect(() => {
           </React.Fragment>
         )}
 
-
         {/* Sentiment Analysis Dashboard */}
         {(selectedCategories.includes("all") ||
           selectedCategories.includes("sentiment")) && (
@@ -4055,34 +4002,121 @@ useEffect(() => {
               >
                 <div className="flex items-center space-x-2">
                   <TrendingUp className="w-5 h-5" />
-                  <span>Live Sentiment</span>
+                  <span>Live Sentiment Analysis</span>
                 </div>
               </h4>
 
-              {/* Participant Cards Section - REPLACE ENTIRE SECTION */}
+              {/* Engagement Scores */}
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-semibold text-gray-700 dark:text-gray-300">
-                    Participant Sentiments
+                    Speaker Engagement
                   </span>
                   <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
-                    {sentimentData.participant_cards.length} participants
+                    {sentimentData.engagement_scores.length} participants
                   </span>
                 </div>
+                <div className="space-y-2.5">
+                  {/* MODIFIED: Use the newly calculated engagementScores */}
+                  {sentimentData.engagement_scores.map((participant, index) => {
+                    const isMuted = mutedSpeakers.includes(participant.speaker);
+                    return (
+                      <div
+                        key={participant.speaker}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex items-center space-x-2.5">
+                          {/* ... other code for rendering color and name ... */}
+                          <span
+                            className={`text-sm font-medium ${
+                              isMuted
+                                ? "text-gray-500 dark:text-gray-400"
+                                : "text-gray-700 dark:text-gray-300"
+                            }`}
+                          >
+                            {participant.speaker}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          {/* ADDED: Mute Button */}
+                          <button
+                            onClick={() =>
+                              toggleMuteParticipant(participant.speaker)
+                            }
+                            className={`p-1.5 rounded-full transition-colors ${
+                              isMuted
+                                ? "bg-red-500/20 text-red-500" // Muted state
+                                : isDarkMode
+                                ? "hover:bg-slate-600/50"
+                                : "hover:bg-slate-200" // Unmuted state
+                            }`}
+                            title={
+                              isMuted
+                                ? "Unmute Participant"
+                                : "Mute Participant"
+                            }
+                          >
+                            {isMuted ? (
+                              <MicOff className="w-4 h-4" />
+                            ) : (
+                              <Mic className="w-4 h-4" />
+                            )}
+                          </button>
+                          {/* The progress bar and percentage remain the same */}
+                          <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                            <div
+                              className={`h-1.5 rounded-full ${
+                                isMuted
+                                  ? "bg-gray-400"
+                                  : index === 0
+                                  ? "bg-blue-500"
+                                  : index === 1
+                                  ? "bg-purple-500"
+                                  : index === 2
+                                  ? "bg-green-500"
+                                  : "bg-gray-400"
+                              }`}
+                              style={{
+                                width: `${Math.min(
+                                  100,
+                                  participant.speaking_percentage
+                                )}%`,
+                              }}
+                            ></div>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 min-w-[40px] text-right">
+                            {participant.speaking_percentage.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {sentimentData.engagement_scores.length === 0 && (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        No participants detected yet
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-                {sentimentData.participant_cards.length === 0 ? (
-                  <div className="text-center py-8">
-                    <User className="w-12 h-12 mx-auto mb-4 opacity-50 text-gray-400" />
-                    <p className="text-gray-500 dark:text-gray-400 font-medium">No participants detected yet</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                      Participants will appear here once the conversation starts
-                    </p>
+              {/* Participant Cards Section */}
+              {sentimentData.participant_cards.length > 0 && (
+                <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-semibold text-gray-700 dark:text-gray-300">
+                      Participant Sentiments
+                    </span>
+                    <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
+                      {sentimentData.participant_cards.length} participants
+                    </span>
                   </div>
-                ) : (
                   <div className="space-y-3">
                     {sentimentData.participant_cards
-                      .filter(card => !card.speaker.toLowerCase().includes("spiked"))
-                      .sort((a, b) => b.speaking_percentage - a.speaking_percentage)
+                      .filter(
+                        (card) => !card.speaker.toLowerCase().includes("spiked")
+                      )
                       .map((card) => (
                         <div
                           key={card.speaker}
@@ -4118,90 +4152,177 @@ useEffect(() => {
 
                               <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400 mb-2">
                                 <span>
-                                  🗣️ {card.speaking_percentage.toFixed(1)}% speaking
+                                  🗣️ {card.speaking_percentage.toFixed(1)}%
+                                  speaking
                                 </span>
                                 <span>
-                                  ⏱️ {formatTimeAgo(card.last_activity)}
+                                  📊 {card.buying_signals_count} buying signals
                                 </span>
-                                <div className="flex items-center space-x-1">
-                                  <span>📊 {card.buying_signals_count} buying signals</span>
-                                  {card.buying_signals_count > 0 && (
-                                    <EyeButton
-                                      onClick={() => toggleBuyingSignals(card.speaker)}
-                                      isExpanded={expandedBuyingSignals.has(card.speaker)}
-                                    />
-                                  )}
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <span>⚠️ {card.concerns_count} concerns</span>
-                                  {card.concerns_count > 0 && (
-                                    <EyeButton
-                                      onClick={() => toggleConcerns(card.speaker)}
-                                      isExpanded={expandedConcerns.has(card.speaker)}
-                                    />
-                                  )}
-                                </div>
+                                <span>⚠️ {card.concerns_count} concerns</span>
+                                <span>💬 {card.total_words} words</span>
                               </div>
 
-                              {/* Expanded Buying Signals */}
-                              {expandedBuyingSignals.has(card.speaker) && (
-                                <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs">
-                                  <p className="font-semibold text-blue-600 dark:text-blue-400 mb-1">
-                                    Buying Signals:
-                                  </p>
-                                  {participantDetails[card.speaker]?.buying_signals?.map((signal: any, index: number) => (
-                                    <div key={index} className="mb-1">
-                                      <span className="text-blue-700 dark:text-blue-300">"{signal.phrase}"</span>
-                                      <span className="text-gray-500 ml-2">({signal.timestamp})</span>
-                                    </div>
-                                  )) || <span className="text-gray-500">Loading details...</span>}
-                                </div>
-                              )}
-
-                              {/* Expanded Concerns */}
-                              {expandedConcerns.has(card.speaker) && (
-                                <div className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs">
-                                  <p className="font-semibold text-red-600 dark:text-red-400 mb-1">
+                              {card.concerns_list.length > 0 && (
+                                <div className="mb-2">
+                                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
                                     Concerns:
                                   </p>
-                                  {participantDetails[card.speaker]?.concerns?.map((concern: any, index: number) => (
-                                    <div key={index} className="mb-1">
-                                      <span className="text-red-700 dark:text-red-300">"{concern.phrase}"</span>
-                                      <span className="text-gray-500 ml-2">({concern.context})</span>
-                                    </div>
-                                  )) || <span className="text-gray-500">Loading details...</span>}
+                                  <p className="text-xs text-gray-700 dark:text-gray-300">
+                                    {card.concerns_list.slice(0, 2).join(", ")}
+                                  </p>
                                 </div>
                               )}
 
                               <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded text-xs">
-                                <div className="flex items-center justify-between">
-                                  <p className="font-semibold text-gray-600 dark:text-gray-400">
-                                    Recommended Action:
-                                  </p>
-                                  <EyeButton
-                                    onClick={() => toggleRecommendation(card.speaker, card)}
-                                    isExpanded={expandedRecommendations.has(card.speaker)}
-                                    isLoading={loadingRecommendations.has(card.speaker)}
-                                  />
-                                </div>
-                                {expandedRecommendations.has(card.speaker) && (
-                                  <div className="mt-2">
-                                    {detailedRecommendations[card.speaker] ? (
-                                      <p className="text-gray-700 dark:text-gray-300">
-                                        {detailedRecommendations[card.speaker]}
-                                      </p>
-                                    ) : (
-                                      <p className="text-gray-500">Loading detailed recommendation...</p>
-                                    )}
-                                  </div>
-                                )}
+                                <p className="font-semibold text-gray-600 dark:text-gray-400">
+                                  Action Needed:
+                                </p>
+                                <p className="text-gray-700 dark:text-gray-300">
+                                  {card.action_needed}
+                                </p>
                               </div>
                             </div>
                           </div>
                         </div>
                       ))}
                   </div>
+                </div>
+              )}
+
+              {/* Conversation Health Section */}
+              <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">
+                    Conversation Health
+                  </span>
+                  <span
+                    className={`text-xs font-bold px-2 py-1 rounded-full ${
+                      sentimentData.conversation_health.health_status ===
+                      "healthy"
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                        : sentimentData.conversation_health.health_status ===
+                          "concerning"
+                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300"
+                        : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
+                    }`}
+                  >
+                    {sentimentData.conversation_health.health_status.toUpperCase()}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-center mb-4">
+                  <div className="relative w-24 h-24">
+                    <svg
+                      className="w-24 h-24 transform -rotate-90"
+                      viewBox="0 0 100 100"
+                    >
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        stroke="currentColor"
+                        strokeWidth="8"
+                        fill="none"
+                        className="text-gray-200 dark:text-gray-700"
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        stroke="currentColor"
+                        strokeWidth="8"
+                        fill="none"
+                        strokeDasharray={`${2 * Math.PI * 40}`}
+                        strokeDashoffset={`${
+                          2 *
+                          Math.PI *
+                          40 *
+                          (1 -
+                            sentimentData.conversation_health.overall_score /
+                              100)
+                        }`}
+                        className={
+                          sentimentData.conversation_health.overall_score >= 70
+                            ? "text-green-500"
+                            : sentimentData.conversation_health.overall_score >=
+                              40
+                            ? "text-yellow-500"
+                            : "text-red-500"
+                        }
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-lg font-bold text-gray-800 dark:text-gray-200">
+                        {sentimentData.conversation_health.overall_score.toFixed(
+                          0
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center mb-3">
+                  <span
+                    className={`flex items-center text-sm font-medium ${
+                      sentimentData.conversation_health.trend === "improving"
+                        ? "text-green-600 dark:text-green-400"
+                        : sentimentData.conversation_health.trend ===
+                          "declining"
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-gray-600 dark:text-gray-400"
+                    }`}
+                  >
+                    {sentimentData.conversation_health.trend === "improving"
+                      ? "↗️"
+                      : sentimentData.conversation_health.trend === "declining"
+                      ? "↘️"
+                      : "➡️"}
+                    <span className="ml-1">
+                      {sentimentData.conversation_health.trend}
+                    </span>
+                  </span>
+                </div>
+
+                {sentimentData.conversation_health.risk_factors.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">
+                      ⚠️ Risk Factors:
+                    </p>
+                    <ul className="text-xs text-gray-700 dark:text-gray-300 space-y-0.5">
+                      {sentimentData.conversation_health.risk_factors.map(
+                        (risk: string, index: number) => (
+                          <li key={index}>• {risk}</li>
+                        )
+                      )}
+                    </ul>
+                  </div>
                 )}
+
+                {sentimentData.conversation_health.positive_indicators.length >
+                  0 && (
+                  <div className="mb-3">
+                    <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">
+                      ✅ Positive Signs:
+                    </p>
+                    <ul className="text-xs text-gray-700 dark:text-gray-300 space-y-0.5">
+                      {sentimentData.conversation_health.positive_indicators.map(
+                        (positive, index) => (
+                          <li key={index}>• {positive}</li>
+                        )
+                      )}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                  <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">
+                    💡 Recommendation:
+                  </p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300">
+                    {sentimentData.conversation_health.recommendation}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -4239,6 +4360,18 @@ useEffect(() => {
       </div>
     );
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
+        <div className="text-center">
+          <Loader className="w-12 h-12 mx-auto animate-spin mb-4" />
+          <h1 className="text-2xl font-bold">Loading SpikedAI...</h1>
+          <p className="text-slate-400">Please wait a moment.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -4750,7 +4883,7 @@ useEffect(() => {
                     isDarkMode ? "text-white" : "text-berkeley-blue"
                   }`}
                 >
-                  Content Hub
+                  Documents
                 </h2>
                 <p
                   className={`text-xs ${
@@ -4949,254 +5082,275 @@ useEffect(() => {
       <div ref={containerRef} className="flex h-[calc(100vh-88px)] w-full">
         {layout !== "chat-only" && layout !== "conv+ai" && (
           <div
-  style={{ flex: `0 0 ${columnWidths.left}px` }}
-  className={`${
-    layout === "chat-only" || layout === "conv+ai" ? "hidden" : "flex"
-  } ${isDarkMode ? "bg-slate-800/50" : "bg-white/80"} backdrop-blur-xl border-r ${
-    isDarkMode ? "border-slate-700/50" : "border-non-photo-blue/30"
-  } flex-col`}
->
-            <RecallAIComponent
-
-        meetingUrl={meetingUrl}
-
-        isDarkMode={isDarkMode}
-
-      />
-
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-
-        <div
-
-          className={`px-6 py-4 border-b ${
-
-            isDarkMode ? "border-slate-700/50" : "border-non-photo-blue/30"
-
-          } flex items-center justify-between`}
-
-        >
-
-          <div className="flex flex-col space-y-4">
-
-            <div className="flex justify-between items-center"></div>
-
-          </div>
-
-        </div>
-
-
-        {transcript.length === 0 ? (
-
-          <div
-
-            className={`text-center py-12 ${
-
-              isDarkMode ? "text-slate-400" : "text-slate-500"
-
-            }`}
-
+            style={{ flex: `0 0 ${columnWidths.left}px` }}
+            className={`${
+              isDarkMode ? "bg-slate-800/50" : "bg-white/80"
+            } backdrop-blur-xl border-r ${
+              isDarkMode ? "border-slate-700/50" : "border-non-photo-blue/30"
+            } flex flex-col`}
           >
-
-            <Headphones className="w-12 h-12 mx-auto mb-4 opacity-50" />
-
-            <p className="text-lg font-medium mb-2">No transcription yet</p>
-
-            <p className="text-sm">Connect your meeting bot to start real-time transcription</p>
-
-          </div>
-
-        ) : (
-
-          transcript
-
-            .filter((entry) => !mutedSpeakers.includes(entry.speaker || ""))
-
-            .map((entry, index) => (
-
-              <div
-
-                key={entry.id}
-
-                className={`${
-
-                  isDarkMode ? "bg-slate-700/40" : "bg-honeydew/40"
-
-                } backdrop-blur-sm rounded-lg px-3 py-2 border ${
-
-                  isDarkMode ? "border-slate-600/20" : "border-non-photo-blue/20"
-
-                } shadow-sm hover:shadow-md transition duration-200 ease-in-out text-sm ${getSentimentColor(
-
-                  entry.speaker
-
-                )}`}
-
-              >
-
-                <div className="flex items-center justify-between mb-2">
-
-                  <div className="flex items-center space-x-2">
-
+            <div
+              className={`px-6 py-4 border-b ${
+                isDarkMode ? "border-slate-700/50" : "border-non-photo-blue/30"
+              } flex items-center justify-between`}
+            >
+              <div className="flex flex-col space-y-4">
+                {/* Top: Headphones + Status */}
+                <div className="flex justify-between items-center">
+                  {/* Left: Headphones + Title */}
+                  <div className="flex items-center space-x-3">
                     <div
-
-                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
-
-                        entry.speaker === "Spiked"
-
-                          ? "bg-gradient-to-r from-cerulean to-berkeley-blue text-white"
-
-                          : entry.speaker?.toLowerCase().includes("customer")
-
-                          ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white"
-
-                          : index % 2 === 0
-
-                          ? "bg-gradient-to-r from-cerulean to-non-photo-blue text-white"
-
-                          : "bg-gradient-to-r from-non-photo-blue to-cerulean text-white"
-
+                      className={`p-2 rounded-lg ${
+                        isDarkMode ? "bg-cerulean/20" : "bg-cerulean/30"
                       }`}
-
                     >
-
-                      {entry.speaker === "Spiked"
-
-                        ? "🧠"
-
-                        : entry.speaker?.toLowerCase().includes("customer")
-
-                        ? "👤"
-
-                        : entry.speaker
-
-                        ? entry.speaker.charAt(0)
-
-                        : "?"}
-
+                      <Headphones
+                        className={`w-5 h-5 ${
+                          isDarkMode ? "text-cerulean" : "text-berkeley-blue"
+                        }`}
+                      />
                     </div>
-
-                    <span
-
-                      className={`font-medium ${
-
-                        entry.speaker === "Spiked"
-
-                          ? "text-cerulean dark:text-cerulean"
-
-                          : entry.speaker?.toLowerCase().includes("customer")
-
-                          ? "text-emerald-500 dark:text-emerald-400"
-
-                          : isDarkMode ? "text-non-photo-blue" : "text-berkeley-blue"
-
-                      }`}
-
-                    >
-
-                      {entry.speaker || "Unknown"}
-
-                    </span>
-
+                    <div>
+                      <h2
+                        className={`font-bold ${
+                          isDarkMode ? "text-white" : "text-berkeley-blue"
+                        }`}
+                      >
+                        {isHotMicActive
+                          ? "Hot Transcribe"
+                          : "Live Transcription"}
+                      </h2>
+                      <p
+                        className={`text-xs ${
+                          isDarkMode ? "text-slate-400" : "text-slate-500"
+                        }`}
+                      >
+                        {isHotMicActive
+                          ? "Direct microphone capture"
+                          : "Real-time meeting insights"}
+                      </p>
+                    </div>
                   </div>
 
+                  {/* Right: Activity */}
                   <div className="flex items-center space-x-2">
-
+                    <Activity
+                      className={`w-4 h-4 ${
+                        isTranscribing
+                          ? "text-emerald-500 animate-pulse"
+                          : "text-slate-400"
+                      }`}
+                    />
                     <span
-
-                      className={`text-[10px] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
-
+                      className={`text-xs font-medium ${
+                        isDarkMode ? "text-slate-400" : "text-slate-500"
+                      }`}
                     >
-
-                      {new Date(entry.absolute_start_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-
+                      {transcript.length} entries
                     </span>
-
                   </div>
-
                 </div>
 
-                <p
+                <div className="flex flex-col items-center space-y-4">
+                  {/* Top: Mic Toggle as a Sliding Switch */}
+                  <div className="flex items-center space-x-3">
+                    {/* Mic Status Indicator */}
+                    {isHotMicActive ? (
+                      <div className="flex items-center space-x-1 text-red-500">
+                        <Mic className="w-4 h-4" />
+                        <span className="text-sm font-medium">Hot Mic On</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-1 text-gray-500">
+                        <MicOff className="w-4 h-4" />
+                        <span className="text-sm font-medium">Hot Mic Off</span>
+                      </div>
+                    )}
 
-                  className={`${isDarkMode ? "text-slate-300" : "text-berkeley-blue"} leading-snug text-[13px]`}
+                    {/* Sliding Toggle Switch */}
+                    <button
+                      onClick={toggleListening}
+                      disabled={!isSupported}
+                      className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                        isListening
+                          ? "bg-blue-600"
+                          : "bg-gray-200 dark:bg-gray-700"
+                      }`}
+                    >
+                      <span className="sr-only">Toggle Mic</span>
+                      <span
+                        className={`inline-block w-4 h-4 transform rounded-full bg-white transition-transform ${
+                          isListening ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
 
-                >
-
-                  {entry.text}
-
-                </p>
-
+                  {/* Bottom: Discrete "Powered by" and Switch Button */}
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                      <b>Mode R</b>
+                    </span>
+                    <img
+                      src={RecallLogo}
+                      alt="Recall Logo"
+                      className="w-4 h-4"
+                    />
+                    <Link
+                      to="/vexa"
+                      className="flex items-center space-x-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-full hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+                    >
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-200">
+                        Switch to V
+                      </span>
+                      <img src={VexaLogo} alt="Vexa Logo" className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
               </div>
-
-            ))
-
-        )}
-
-        {interimTranscript && isBotRunning && (
-
-          <div
-
-            className={`relative p-3 rounded-lg shadow-sm border-l-4 transition duration-200 ease-in-out text-sm
-
-              ${
-
-                isDarkMode
-
-                  ? "bg-slate-700/40 border-slate-600/20 text-slate-300"
-
-                  : "bg-honeydew/40 border-non-photo-blue/20 text-berkeley-blue"
-
-              }
-
-              border-l-4 border-orange-500`}
-
-          >
-
-            <div className="flex items-center space-x-2 mb-1">
-
-              <span
-
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold
-
-                  bg-gradient-to-r from-orange-400 to-yellow-500 text-white`}
-
-              >
-
-                <Mic className="w-4 h-4" />
-
-              </span>
-
-              <span
-
-                className={`font-medium ${isDarkMode ? "text-orange-400" : "text-orange-600"}`}
-
-              >
-
-                Hot Mic
-
-              </span>
-
             </div>
 
-            <p className="leading-snug text-[13px]">{interimTranscript}</p>
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+              {transcript.length === 0 ? (
+                <div
+                  className={`text-center py-12 ${
+                    isDarkMode ? "text-slate-400" : "text-slate-500"
+                  }`}
+                >
+                  <Headphones className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">
+                    No transcription yet
+                  </p>
+                  <p className="text-sm">
+                    Connect your meeting bot to start real-time transcription
+                  </p>
+                </div>
+              ) : (
+                processedTranscript
+                  .filter(
+                    (entry) => !mutedSpeakers.includes(entry.speaker || "")
+                  )
+                  .map((entry, index) => (
+                    <div
+                      key={entry.id}
+                      className={`${
+                        isDarkMode ? "bg-slate-700/40" : "bg-honeydew/40"
+                      } backdrop-blur-sm rounded-lg px-3 py-2 border ${
+                        isDarkMode
+                          ? "border-slate-600/20"
+                          : "border-non-photo-blue/20"
+                      } shadow-sm hover:shadow-md transition duration-200 ease-in-out text-sm ${getSentimentColor(
+                        entry.speaker
+                      )}`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <div
+                            className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
+                              entry.speaker === "Spiked"
+                                ? "bg-gradient-to-r from-cerulean to-berkeley-blue text-white"
+                                : entry.speaker
+                                    ?.toLowerCase()
+                                    .includes("customer")
+                                ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white"
+                                : index % 2 === 0
+                                ? "bg-gradient-to-r from-cerulean to-non-photo-blue text-white"
+                                : "bg-gradient-to-r from-non-photo-blue to-cerulean text-white"
+                            }`}
+                          >
+                            {entry.speaker === "Spiked"
+                              ? "🧠"
+                              : entry.speaker
+                                  ?.toLowerCase()
+                                  .includes("customer")
+                              ? "👤"
+                              : entry.speaker
+                              ? entry.speaker.charAt(0)
+                              : "?"}
+                          </div>
+                          <span
+                            className={`font-medium ${
+                              entry.speaker === "Spiked"
+                                ? "text-cerulean dark:text-cerulean"
+                                : entry.speaker
+                                    ?.toLowerCase()
+                                    .includes("customer")
+                                ? "text-emerald-500 dark:text-emerald-400"
+                                : isDarkMode
+                                ? "text-non-photo-blue"
+                                : "text-berkeley-blue"
+                            }`}
+                          >
+                            {entry.speaker || "Unknown"}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span
+                            className={`text-[10px] ${
+                              isDarkMode ? "text-slate-400" : "text-slate-500"
+                            }`}
+                          >
+                            {new Date(
+                              entry.absolute_start_time
+                            ).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                      <p
+                        className={`${
+                          isDarkMode ? "text-slate-300" : "text-berkeley-blue"
+                        } leading-snug text-[13px]`}
+                      >
+                        {entry.text}
+                      </p>
+                    </div>
+                  ))
+              )}
+              {interimTranscript && (
+                <div
+                  className={`relative p-3 rounded-lg shadow-sm border-l-4 transition duration-200 ease-in-out text-sm
+        ${
+          isDarkMode
+            ? "bg-slate-700/40 border-slate-600/20 text-slate-300"
+            : "bg-honeydew/40 border-non-photo-blue/20 text-berkeley-blue"
+        }
+        border-l-4 border-orange-500`}
+                >
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold
+           bg-gradient-to-r from-orange-400 to-yellow-500 text-white`}
+                    >
+                      <Mic className="w-4 h-4" />
+                    </span>
+                    <span
+                      className={`font-medium ${
+                        isDarkMode ? "text-orange-400" : "text-orange-600"
+                      }`}
+                    >
+                      Hot Mic
+                    </span>
+                  </div>
+                  <p className="leading-snug text-[13px]">
+                    {interimTranscript}
+                  </p>
+                </div>
+              )}
 
+              <div ref={transcriptEndRef} />
+              <div ref={transcriptEndRef} />
+            </div>
           </div>
-
         )}
 
-        <div ref={transcriptEndRef} />
-
-      </div>
-
-    </div>
-
-  )} 
         {layout === "full" && (
           <div
-  className={`${
-    layout === "full" ? "block" : "hidden"
-  } w-2 cursor-col-resize bg-gradient-to-b from-cerulean/20 to-berkeley-blue/20 hover:from-cerulean hover:to-berkeley-blue transition-all duration-300`}
-  onMouseDown={(e) => handleMouseDown("left", e)}
-/>
+            className="w-2 cursor-col-resize bg-gradient-to-b from-cerulean/20 to-berkeley-blue/20 hover:from-cerulean hover:to-berkeley-blue transition-all duration-300"
+            onMouseDown={(e) => handleMouseDown("left", e)}
+          />
         )}
 
         <div
@@ -5687,7 +5841,7 @@ useEffect(() => {
                     )}
 
                     <div
-                      className={`prose prose-sm max-w-none 
+                      className={`prose prose-sm max-w-none
     ${isDarkMode ? "prose-invert text-white" : "text-slate-800"}
   `}
                     >
@@ -5695,104 +5849,150 @@ useEffect(() => {
                         remarkPlugins={[remarkGfm]}
                         rehypePlugins={[rehypeRaw]}
                         components={{
+                          h1: ({ node, ...props }) => (
+                            <h1
+                              {...props}
+                              className="text-2xl font-bold mt-6 mb-3 border-b pb-1"
+                            />
+                          ),
+                          h2: ({ node, ...props }) => (
+                            <h2
+                              {...props}
+                              className="text-xl font-semibold mt-5 mb-2 border-b pb-1"
+                            />
+                          ),
+                          h3: ({ node, ...props }) => (
+                            <h3
+                              {...props}
+                              className="text-lg font-semibold mt-4 mb-2"
+                            />
+                          ),
                           strong: ({ node, ...props }) => (
-                            <strong className="font-bold" {...props} />
+                            <strong {...props} className="font-bold" />
                           ),
                           em: ({ node, ...props }) => (
-                            <em className="italic" {...props} />
+                            <em {...props} className="italic" />
+                          ),
+                          a: ({ node, ...props }) => (
+                            <a
+                              {...props}
+                              className="text-blue-600 hover:underline dark:text-blue-400"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            />
                           ),
                           ul: ({ node, ...props }) => (
-                            <ul className="list-disc ml-6" {...props} />
+                            <ul
+                              {...props}
+                              className="list-disc ml-6 space-y-1"
+                            />
                           ),
                           ol: ({ node, ...props }) => (
-                            <ol className="list-decimal ml-6" {...props} />
+                            <ol
+                              {...props}
+                              className="list-decimal ml-6 space-y-1"
+                            />
                           ),
                           li: ({ node, ...props }) => (
-                            <li className="mb-1" {...props} />
+                            <li {...props} className="mb-1 leading-relaxed" />
                           ),
-                          code: ({ node, ...props }) => (
-                            <code
-                              className={`px-1 py-0.5 rounded text-sm font-mono 
-            ${
-              isDarkMode ? "bg-slate-800 text-white" : "bg-slate-100 text-black"
-            }
-          `}
-                              {...props}
-                            />
-                          ),
-                          pre: ({ node, ...props }) => (
-                            <pre
-                              className={`p-3 rounded overflow-x-auto 
-            ${
-              isDarkMode ? "bg-slate-800 text-white" : "bg-slate-100 text-black"
-            }
-          `}
-                              {...props}
-                            />
-                          ),
+                          code: (props) => {
+                            const { inline, className, children, ...rest } =
+                              props as any;
+                            if (inline) {
+                              return (
+                                <code
+                                  {...rest}
+                                  className={`px-1 py-0.5 rounded text-sm font-mono 
+                ${
+                  isDarkMode
+                    ? "bg-slate-800 text-white"
+                    : "bg-slate-100 text-black"
+                }
+              `}
+                                >
+                                  {children}
+                                </code>
+                              );
+                            }
+                            return (
+                              <pre
+                                {...rest}
+                                className={`p-3 rounded overflow-x-auto text-sm font-mono 
+              ${
+                isDarkMode
+                  ? "bg-slate-900 text-slate-200"
+                  : "bg-slate-100 text-black"
+              }
+            `}
+                              >
+                                <code>{children}</code>
+                              </pre>
+                            );
+                          },
                           table: ({ node, ...props }) => (
                             <table
+                              {...props}
                               className={`table-auto border-collapse w-full text-sm 
             ${isDarkMode ? "border-slate-600" : "border-slate-400"} 
-            border
+            border rounded overflow-hidden
           `}
-                              {...props}
                             />
                           ),
                           thead: ({ node, ...props }) => (
                             <thead
+                              {...props}
                               className={
                                 isDarkMode
-                                  ? "bg-slate-700 font-bold"
-                                  : "bg-slate-200 font-bold"
+                                  ? "bg-slate-700 text-white"
+                                  : "bg-slate-200 text-black"
                               }
-                              {...props}
                             />
                           ),
                           tr: ({ node, ...props }) => (
                             <tr
+                              {...props}
                               className={
                                 isDarkMode
-                                  ? "border-b border-slate-700"
-                                  : "border-b border-slate-300"
+                                  ? "border-b border-slate-700 even:bg-slate-800"
+                                  : "border-b border-slate-300 even:bg-slate-50"
                               }
-                              {...props}
                             />
                           ),
                           th: ({ node, ...props }) => (
                             <th
-                              className={`px-2 py-1 text-left 
+                              {...props}
+                              className={`px-2 py-1 text-left font-semibold 
             ${isDarkMode ? "border-slate-700" : "border-slate-300"} border
           `}
-                              {...props}
                             />
                           ),
                           td: ({ node, ...props }) => (
                             <td
+                              {...props}
                               className={`px-2 py-1 
             ${isDarkMode ? "border-slate-700" : "border-slate-300"} border
           `}
-                              {...props}
                             />
                           ),
                           hr: ({ node, ...props }) => (
                             <hr
-                              className={`my-4 border-t 
+                              {...props}
+                              className={`my-6 border-t 
             ${isDarkMode ? "border-slate-700" : "border-slate-300"}
           `}
-                              {...props}
                             />
                           ),
                           blockquote: ({ node, ...props }) => (
                             <blockquote
-                              className={`border-l-4 pl-4 italic 
+                              {...props}
+                              className={`border-l-4 pl-4 italic rounded-md 
             ${
               isDarkMode
-                ? "border-slate-600 text-slate-300"
-                : "border-slate-400 text-slate-600"
+                ? "border-slate-600 bg-slate-800 text-slate-300"
+                : "border-slate-400 bg-slate-50 text-slate-700"
             }
           `}
-                              {...props}
                             />
                           ),
                         }}
@@ -5852,7 +6052,7 @@ useEffect(() => {
                               </span>
                             </div>
                             <span
-                              className={`text-sm font-medium ${
+                              className={`block text-lg font-medium tracking-wide mb-0 ${
                                 isDarkMode
                                   ? "text-non-photo-blue"
                                   : "text-cerulean"
@@ -5882,39 +6082,15 @@ useEffect(() => {
                             <RefreshCw className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <ReactMarkdown
-                          components={{
-                            strong: ({ node, ...props }) => (
-                              <strong className="font-bold" {...props} />
-                            ),
-                            em: ({ node, ...props }) => (
-                              <em className="italic" {...props} />
-                            ),
-                            ul: ({ node, ...props }) => (
-                              <ul className="list-disc ml-6" {...props} />
-                            ),
-                            ol: ({ node, ...props }) => (
-                              <ol className="list-decimal ml-6" {...props} />
-                            ),
-                            li: ({ node, ...props }) => (
-                              <li className="mb-1" {...props} />
-                            ),
-                            code: ({ node, ...props }) => (
-                              <code
-                                className="bg-slate-100 dark:bg-slate-800 px-1 rounded"
-                                {...props}
-                              />
-                            ),
-                            pre: ({ node, ...props }) => (
-                              <pre
-                                className="bg-slate-100 dark:bg-slate-800 p-2 rounded"
-                                {...props}
-                              />
-                            ),
-                          }}
+                        <p
+                          className={`text-m mb-3 ${
+                            isDarkMode ? "text-slate-400" : "text-slate-600"
+                          }`}
                         >
-                          {chat.question}
-                        </ReactMarkdown>
+                          <span className="not-italic font-medium">
+                            {chat.question}
+                          </span>
+                        </p>
                       </div>
 
                       <div>
@@ -5923,46 +6099,176 @@ useEffect(() => {
                             <Sparkles className="w-3 h-3 text-white" />
                           </div>
                           <span
-                            className={`text-sm font-medium ${
+                            className={`block text-lg font-medium tracking-wide mb-0 ${
                               isDarkMode ? "text-slate-400" : "text-slate-600"
                             }`}
                           >
                             Answer
                           </span>
                         </div>
-                        <ReactMarkdown
-                          components={{
-                            strong: ({ node, ...props }) => (
-                              <strong className="font-bold" {...props} />
-                            ),
-                            em: ({ node, ...props }) => (
-                              <em className="italic" {...props} />
-                            ),
-                            ul: ({ node, ...props }) => (
-                              <ul className="list-disc ml-6" {...props} />
-                            ),
-                            ol: ({ node, ...props }) => (
-                              <ol className="list-decimal ml-6" {...props} />
-                            ),
-                            li: ({ node, ...props }) => (
-                              <li className="mb-1" {...props} />
-                            ),
-                            code: ({ node, ...props }) => (
-                              <code
-                                className="bg-slate-100 dark:bg-slate-800 px-1 rounded"
-                                {...props}
-                              />
-                            ),
-                            pre: ({ node, ...props }) => (
-                              <pre
-                                className="bg-slate-100 dark:bg-slate-800 p-2 rounded"
-                                {...props}
-                              />
-                            ),
-                          }}
+                        <div
+                          className={`prose prose-sm max-w-none
+    ${isDarkMode ? "prose-invert text-white" : "text-slate-800"}
+  `}
                         >
-                          {chat.answer}
-                        </ReactMarkdown>
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeRaw]}
+                            components={{
+                              h1: ({ node, ...props }) => (
+                                <h1
+                                  {...props}
+                                  className="text-2xl font-bold mt-6 mb-3 border-b pb-1"
+                                />
+                              ),
+                              h2: ({ node, ...props }) => (
+                                <h2
+                                  {...props}
+                                  className="text-xl font-semibold mt-5 mb-2 border-b pb-1"
+                                />
+                              ),
+                              h3: ({ node, ...props }) => (
+                                <h3
+                                  {...props}
+                                  className="text-lg font-semibold mt-4 mb-2"
+                                />
+                              ),
+                              strong: ({ node, ...props }) => (
+                                <strong {...props} className="font-bold" />
+                              ),
+                              em: ({ node, ...props }) => (
+                                <em {...props} className="italic" />
+                              ),
+                              a: ({ node, ...props }) => (
+                                <a
+                                  {...props}
+                                  className="text-blue-600 hover:underline dark:text-blue-400"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                />
+                              ),
+                              ul: ({ node, ...props }) => (
+                                <ul
+                                  {...props}
+                                  className="list-disc ml-6 space-y-1"
+                                />
+                              ),
+                              ol: ({ node, ...props }) => (
+                                <ol
+                                  {...props}
+                                  className="list-decimal ml-6 space-y-1"
+                                />
+                              ),
+                              li: ({ node, ...props }) => (
+                                <li
+                                  {...props}
+                                  className="mb-1 leading-relaxed"
+                                />
+                              ),
+                              code: (props) => {
+                                const { inline, className, children, ...rest } =
+                                  props as any;
+                                if (inline) {
+                                  return (
+                                    <code
+                                      {...rest}
+                                      className={`px-1 py-0.5 rounded text-sm font-mono 
+                ${
+                  isDarkMode
+                    ? "bg-slate-800 text-white"
+                    : "bg-slate-100 text-black"
+                }
+              `}
+                                    >
+                                      {children}
+                                    </code>
+                                  );
+                                }
+                                return (
+                                  <pre
+                                    {...rest}
+                                    className={`p-3 rounded overflow-x-auto text-sm font-mono 
+              ${
+                isDarkMode
+                  ? "bg-slate-900 text-slate-200"
+                  : "bg-slate-100 text-black"
+              }
+            `}
+                                  >
+                                    <code>{children}</code>
+                                  </pre>
+                                );
+                              },
+                              table: ({ node, ...props }) => (
+                                <table
+                                  {...props}
+                                  className={`table-auto border-collapse w-full text-sm 
+            ${isDarkMode ? "border-slate-600" : "border-slate-400"} 
+            border rounded overflow-hidden
+          `}
+                                />
+                              ),
+                              thead: ({ node, ...props }) => (
+                                <thead
+                                  {...props}
+                                  className={
+                                    isDarkMode
+                                      ? "bg-slate-700 text-white"
+                                      : "bg-slate-200 text-black"
+                                  }
+                                />
+                              ),
+                              tr: ({ node, ...props }) => (
+                                <tr
+                                  {...props}
+                                  className={
+                                    isDarkMode
+                                      ? "border-b border-slate-700 even:bg-slate-800"
+                                      : "border-b border-slate-300 even:bg-slate-50"
+                                  }
+                                />
+                              ),
+                              th: ({ node, ...props }) => (
+                                <th
+                                  {...props}
+                                  className={`px-2 py-1 text-left font-semibold 
+            ${isDarkMode ? "border-slate-700" : "border-slate-300"} border
+          `}
+                                />
+                              ),
+                              td: ({ node, ...props }) => (
+                                <td
+                                  {...props}
+                                  className={`px-2 py-1 
+            ${isDarkMode ? "border-slate-700" : "border-slate-300"} border
+          `}
+                                />
+                              ),
+                              hr: ({ node, ...props }) => (
+                                <hr
+                                  {...props}
+                                  className={`my-6 border-t 
+            ${isDarkMode ? "border-slate-700" : "border-slate-300"}
+          `}
+                                />
+                              ),
+                              blockquote: ({ node, ...props }) => (
+                                <blockquote
+                                  {...props}
+                                  className={`border-l-4 pl-4 italic rounded-md 
+            ${
+              isDarkMode
+                ? "border-slate-600 bg-slate-800 text-slate-300"
+                : "border-slate-400 bg-slate-50 text-slate-700"
+            }
+          `}
+                                />
+                              ),
+                            }}
+                          >
+                            {chat.answer}
+                          </ReactMarkdown>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -5996,24 +6302,22 @@ useEffect(() => {
 
         {(layout === "full" || layout === "conv+ai") && (
           <div
-  className={`${
-    layout === "full" || layout === "conv+ai" ? "block" : "hidden"
-  } w-2 cursor-col-resize bg-gradient-to-b from-cerulean/20 to-berkeley-blue/20 hover:from-cerulean hover:to-berkeley-blue transition-all duration-300`}
-  onMouseDown={(e) => handleMouseDown("right", e)}
-/>
+            className="w-2 cursor-col-resize bg-gradient-to-b from-cerulean/20 to-berkeley-blue/20 hover:from-cerulean hover:to-berkeley-blue transition-all duration-300"
+            onMouseDown={(e) => handleMouseDown("right", e)}
+          />
         )}
 
         {(layout === "full" ||
           layout === "focused" ||
           layout === "conv+ai") && (
           <div
-  style={{ flex: `0 0 ${columnWidths.right}px` }}
-  className={`${
-    layout !== "full" && layout !== "focused" && layout !== "conv+ai" ? "hidden" : "flex"
-  } ${isDarkMode ? "bg-slate-800/50" : "bg-white/80"} backdrop-blur-xl border-l ${
-    isDarkMode ? "border-slate-700/50" : "border-non-photo-blue/30"
-  } flex-col`}
->
+            style={{ flex: `0 0 ${columnWidths.right}px` }}
+            className={`${
+              isDarkMode ? "bg-slate-800/50" : "bg-white/80"
+            } backdrop-blur-xl border-l ${
+              isDarkMode ? "border-slate-700/50" : "border-non-photo-blue/30"
+            } flex flex-col`}
+          >
             <div
               className={`px-6 py-4 border-b ${
                 isDarkMode ? "border-slate-700/50" : "border-non-photo-blue/30"

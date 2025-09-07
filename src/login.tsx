@@ -142,23 +142,23 @@ const AuthPages: React.FC = () => {
     };
 
     const handleSocialLogin = async (provider: 'google') => {
-        setIsLoading(true);
-        setApiError(null);
-        setSuccessMessage(null);
-        try {
-            const { error } = await supabase.auth.signInWithOAuth({ 
-                provider,
-                options: {
-                    redirectTo: window.location.origin // Redirect back to the app after Google auth
-                }
-             });
-            if (error) throw error;
-        } catch (error: any) {
-            setApiError(error.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    setIsLoading(true);
+    setApiError(null);
+    setSuccessMessage(null);
+    try {
+        const { error } = await supabase.auth.signInWithOAuth({ 
+            provider,
+            options: {
+                redirectTo: 'https://testing-spiked-frontend-recall.vercel.app' 
+            }
+         });
+        if (error) throw error;
+    } catch (error: any) {
+        setApiError(error.message);
+    } finally {
+        setIsLoading(false);
+    }
+};
 
     return (
         <div className="h-screen overflow-hidden md:grid md:grid-cols-2">

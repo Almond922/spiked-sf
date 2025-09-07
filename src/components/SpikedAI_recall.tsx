@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import RecallLogo from "/recall.png";
-import VexaLogo from "/vexa.png";
+import RecallLogo from "/recall.jpg";
+import VexaLogo from "/vexa.jpg";
+import { useBot } from '../contexts/BotContext'; // 
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown, { Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
-import { fetchEventSource } from "@microsoft/fetch-event-source";
+import RecallAIComponent from "./RecallAIComponent";
 import {
   Maximize2,
   Play,
@@ -49,16 +50,9 @@ import {
   HelpCircle,
   BookOpenCheck,
   ChevronRight,
+  Eye,
 } from "lucide-react";
 import { platform } from "os";
-import { useAuth } from "../AuthContext";
-
-const service_url_recall =
-  "https://recall-backend-production-822359826336.us-central1.run.app";
-const service_url_base =
-  "https://sales-assistant-service-822359826336.us-central1.run.app";
-const BASE_URL_PROD =
-  "https://spikedai-production-application-822359826336.us-central1.run.app";
 
 interface MarkdownProps extends Options {
   className?: string;
@@ -76,6 +70,7 @@ interface TranscriptSegment {
   absolute_end_time: string;
 }
 
+// Your other interface definitions
 interface Transcript {
   id: number;
   platform: string;
@@ -231,7 +226,7 @@ interface SentimentData {
 
 // IndexedDB utilities
 const DB_NAME = "SpikedAI_Cache";
-const DB_VERSION = 2;
+const DB_VERSION = 1;
 const TRANSCRIPTS_STORE = "transcripts";
 const QA_HISTORY_STORE = "qa_history";
 
@@ -413,9 +408,6 @@ const loadFromSessionStorage = (key: string, defaultValue: any = null) => {
 };
 
 const SpikedAI = () => {
-  const { session, loading } = useAuth();
-  const navigate = useNavigate();
-
   const [meetingUrl, setMeetingUrl] = useState(
     loadFromSessionStorage("spikedai_meeting_url", "")
   );
@@ -464,6 +456,9 @@ const SpikedAI = () => {
   const [botStatus, setBotStatus] = useState<
     "idle" | "starting" | "running" | "stopping" | "error"
   >("idle");
+  const [transcriptInterval, setTranscriptInterval] = useState<ReturnType<
+    typeof setInterval
+  > | null>(null);
   const [generatedQuestions, setGeneratedQuestions] = useState<string[]>([]);
   const [isMeetingOpen, setIsMeetingOpen] = useState(false);
   const [previewDocument, setPreviewDocument] = useState<{
@@ -508,6 +503,7 @@ const SpikedAI = () => {
   const [hotMicMeetingId, setHotMicMeetingId] = useState<string>("");
   const [lastTranscriptText, setLastTranscriptText] = useState("");
 
+  const navigate = useNavigate();
   const micTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const answerRef = useRef<HTMLDivElement>(null);
@@ -529,23 +525,31 @@ const SpikedAI = () => {
   // NEW STATE: For drag and drop
   const [draggedCategory, setDraggedCategory] = useState<string | null>(null);
 
-  const [botId, setBotId] = useState<string | null>(
-    loadFromSessionStorage("spikedai_bot_id", null)
-  );
-  const sseRefs = useRef<{
-    transcript: AbortController | null;
-    question: AbortController | null;
-  }>({
-    transcript: null,
-    question: null,
-  });
-
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>(
     loadFromSessionStorage("spikedai_suggested_questions", [])
   );
   const [meetingQuestions, setMeetingQuestions] = useState<string[]>(
     loadFromSessionStorage("spikedai_meeting_questions", [])
   );
+  const [expandedRecommendations, setExpandedRecommendations] = useState<Set<string>>(new Set());
+  const [expandedBuyingSignals, setExpandedBuyingSignals] = useState<Set<string>>(new Set());
+  const [expandedConcerns, setExpandedConcerns] = useState<Set<string>>(new Set());
+  const [detailedRecommendations, setDetailedRecommendations] = useState<Record<string, string>>({});
+  const [loadingRecommendations, setLoadingRecommendations] = useState<Set<string>>(new Set());
+  const [participantDetails, setParticipantDetails] = useState<Record<string, any>>({});
+  const [alertTimers, setAlertTimers] = useState<Record<string, NodeJS.Timeout>>({});
+  const [seenAlerts, setSeenAlerts] = useState<Set<string>>(new Set());
+  const [visibleAlerts, setVisibleAlerts] = useState<CriticalAlert[]>([]);
+  // Add state to track manual navigation and prevent auto-revert
+const [medpicManualNavigation, setMedpicManualNavigation] = useState<Record<string, number>>({});
+const [lastMedpicUpdate, setLastMedpicUpdate] = useState<string>("");
+  // Define service URLs
+  const service_url_recall =
+    "https://recall-backend-822359826336.us-central1.run.app";
+  const service_url_base =
+    "https://sales-assistant-service-822359826336.us-central1.run.app";
+  const BASE_URL_PROD =
+    "https://spikedai-production-application-822359826336.us-central1.run.app";
 
   // ** START: MODIFIED RECALL.AI FUNCTIONALITIES **
   const [transcriptEventSource, setTranscriptEventSource] =
@@ -559,210 +563,307 @@ const SpikedAI = () => {
 
   // Add this to prevent duplicate processing
   const [processedMessageIds, setProcessedMessageIds] = useState(new Set());
-
-  useEffect(() => {
-    if (!loading && !session) {
-      navigate("/login");
-    }
-  }, [session, loading, navigate]);
-
-  // ** FIX STARTS HERE **
-  // Moved useMemo hooks to the top level of the component
-  const answeredMeetingQuestionTexts = useMemo(
-    () =>
-      new Set(
-        chatHistory
-          .filter((h) => meetingQuestions.includes(h.question))
-          .map((h) => h.question)
-      ),
-    [chatHistory, meetingQuestions]
-  );
-
-  const unansweredMeetingQuestions = useMemo(
-    () => meetingQuestions.filter((q) => !answeredMeetingQuestionTexts.has(q)),
-    [meetingQuestions, answeredMeetingQuestionTexts]
-  );
-
-  const answeredMeetingQuestions = useMemo(
-    () => Array.from(answeredMeetingQuestionTexts).reverse(),
-    [answeredMeetingQuestionTexts]
-  );
-  // ** FIX ENDS HERE **
-
-  const closeSseConnections = () => {
-    if (sseRefs.current.transcript) {
-      sseRefs.current.transcript.abort(); // NEW: Abort the fetch request
-      sseRefs.current.transcript = null;
-    }
-    if (sseRefs.current.question) {
-      sseRefs.current.question.abort(); // NEW: Abort the fetch request
-      sseRefs.current.question = null;
-    }
-    console.log("SSE connections closed.");
+  const handleBotStatusChange = (status: typeof botStatus) => {
+    setBotStatus(status);
+    setIsBotRunning(status === "running");
   };
 
-  // REPLACEMENT for establishSseConnections
-  const establishSseConnections = async (currentBotId: string) => {
-    if (!session) {
-      console.error("Cannot establish SSE connection without a session.");
+  const handleNewTranscript = (segments: TranscriptSegment[]) => {
+    setTranscript(segments);
+    // You can also process it here if needed
+    // setProcessedTranscript(processTranscript({ segments } as any));
+  };
+  
+  const handleNewQuestion = (question: string) => {
+    setMeetingQuestions((prev) => [...prev, question]);
+    setSuggestedQuestions((prev) => [...prev, question]);
+  };
+  
+  const toggleTranscription = () => {
+    setIsTranscribing(!isTranscribing);
+  };
+
+  //latest
+  const fetchDetailedRecommendation = async (speaker: string, participantData: ParticipantCard) => {
+    try {
+      setLoadingRecommendations(prev => new Set([...prev, speaker]));
+      
+      const response = await fetch(`${service_url_recall}/sentiment/participant/${encodeURIComponent(speaker)}/detailed-recommendation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ participant_data: participantData })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setDetailedRecommendations(prev => ({ ...prev, [speaker]: data.recommendation }));
+      }
+    } catch (error) {
+      console.error("Error fetching detailed recommendation:", error);
+    } finally {
+      setLoadingRecommendations(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(speaker);
+        return newSet;
+      });
+    }
+  };
+
+  const fetchParticipantDetails = async (speaker: string, type: 'buying-signals' | 'concerns') => {
+    try {
+      const response = await fetch(`${service_url_recall}/sentiment/participant/${encodeURIComponent(speaker)}/${type}-details`);
+      if (response.ok) {
+        const data = await response.json();
+        setParticipantDetails(prev => ({ 
+          ...prev, 
+          [speaker]: { ...prev[speaker], [type.replace('-', '_')]: data.details }
+        }));
+      }
+    } catch (error) {
+      console.error(`Error fetching ${type} details:`, error);
+    }
+  };
+
+  const toggleRecommendation = async (speaker: string, participantData: ParticipantCard) => {
+    const isExpanded = expandedRecommendations.has(speaker);
+    
+    if (isExpanded) {
+      setExpandedRecommendations(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(speaker);
+        return newSet;
+      });
+    } else {
+      setExpandedRecommendations(prev => new Set([...prev, speaker]));
+      if (!detailedRecommendations[speaker]) {
+        await fetchDetailedRecommendation(speaker, participantData);
+      }
+    }
+  };
+
+  const toggleBuyingSignals = async (speaker: string) => {
+    const isExpanded = expandedBuyingSignals.has(speaker);
+    
+    if (isExpanded) {
+      setExpandedBuyingSignals(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(speaker);
+        return newSet;
+      });
+    } else {
+      setExpandedBuyingSignals(prev => new Set([...prev, speaker]));
+      if (!participantDetails[speaker]?.buying_signals) {
+        await fetchParticipantDetails(speaker, 'buying-signals');
+      }
+    }
+  };
+
+  const toggleConcerns = async (speaker: string) => {
+    const isExpanded = expandedConcerns.has(speaker);
+    
+    if (isExpanded) {
+      setExpandedConcerns(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(speaker);
+        return newSet;
+      });
+    } else {
+      setExpandedConcerns(prev => new Set([...prev, speaker]));
+      if (!participantDetails[speaker]?.concerns) {
+        await fetchParticipantDetails(speaker, 'concerns');
+      }
+    }
+  };
+
+  const formatDuration = (seconds: number): string => {
+    if (seconds < 60) return `${seconds.toFixed(0)}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds.toFixed(0)}s`;
+  };
+
+  const formatTimeAgo = (timestamp: string): string => {
+    try {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+      
+      if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
+      if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+      return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    } catch {
+      return 'Unknown';
+    }
+  };
+  
+  const startBot = async () => {
+    if (isBotRunning || botStatus === "starting") {
+      console.log("Bot is already running or starting. Ignoring request.");
       return;
     }
-    closeSseConnections();
-    console.log(`Establishing SSE connections for botId: ${currentBotId}`);
+    
+    if (!meetingUrl) {
+      console.error("No meeting URL provided. Cannot start bot.");
+      return;
+    }
 
-    // --- Transcript SSE Connection ---
-    const transcriptController = new AbortController(); // NEW: Controller for transcript stream
-    sseRefs.current.transcript = transcriptController;
-    const transcriptUrl = `${service_url_recall}/transcripts/${currentBotId}`;
+    setBotStatus("starting");
+    setIsBotRunning(true);
+    setIsConnected(true);
+    setIsTranscribing(true);
 
-    fetchEventSource(transcriptUrl, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${session.access_token}`, // THE FIX: Send the auth header
-      },
-      signal: transcriptController.signal, // NEW: For aborting the connection
-      openWhenHidden: true, // Optional: keeps connection alive in background tabs
-
-      onmessage(event) {
-        try {
-          const newSegmentData = JSON.parse(event.data);
-          const newSegment: TranscriptSegment = {
-            id: Date.now() + Math.random(),
-            speaker: newSegmentData.speaker || "Unknown",
-            text: newSegmentData.text,
-            start: 0,
-            end: 0,
-            language: "en",
-            created_at: new Date().toISOString(),
-            absolute_start_time: new Date().toISOString(),
-            absolute_end_time: new Date().toISOString(),
-          };
-          setTranscript((prev) => [...prev, newSegment]);
-        } catch (error) {
-          console.error("Failed to parse transcript SSE data:", error);
+    // Clean up any existing session with proper error handling
+    try {
+      const cleanupResponse = await fetch(`${service_url_recall}/cleanup-bot-session`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json'
+          // Add auth header if needed: 'Authorization': `Bearer ${token}`
         }
-      },
-      onerror(err) {
-        console.error("Transcript EventSource failed:", err);
-        // The library handles retries, but if a fatal error occurs, you can stop it.
-        if (err instanceof Error) throw err;
-      },
-    });
+      });
+      
+      if (cleanupResponse.ok) {
+        console.log("Previous session cleaned successfully");
+      } else {
+        console.warn("Cleanup request failed, continuing anyway");
+      }
+    } catch (error) {
+      console.log("No existing session to cleanup or cleanup failed:", error);
+    }
 
-    // --- Question SSE Connection ---
-    const questionController = new AbortController(); // NEW: Controller for question stream
-    sseRefs.current.question = questionController;
-    const questionUrl = `${service_url_recall}/questions/${currentBotId}`;
-
-    fetchEventSource(questionUrl, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${session.access_token}`, // THE FIX: Send the auth header
-      },
-      signal: questionController.signal, // NEW: For aborting the connection
-      openWhenHidden: true,
-
-      onmessage(event) {
-        try {
-          const newQuestionData = JSON.parse(event.data);
-          if (newQuestionData.question) {
-            setMeetingQuestions((prev) => {
-              if (!prev.includes(newQuestionData.question)) {
-                return [...prev, newQuestionData.question];
-              }
-              return prev;
-            });
-          }
-        } catch (error) {
-          console.error("Failed to parse question SSE data:", error);
-        }
-      },
-      onerror(err) {
-        console.error("Question EventSource failed:", err);
-        if (err instanceof Error) throw err;
-      },
-    });
-  };
-
-  const startBot = async () => {
-    if (!meetingUrl || !session) return;
+    // Reset frontend state AFTER cleanup call
+    setSentimentData(initialSentimentData);
+    setTranscript([]);
+    setSpeakerTimes({});
+    setTotalMeetingDuration(0);
 
     try {
-      setBotStatus("starting");
-
       const formData = new FormData();
       formData.append("meeting_url", meetingUrl);
 
       const response = await fetch(`${service_url_recall}/start`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${session?.access_token ?? ""}`,
-        },
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error("Failed to start bot via backend");
+        throw new Error("Failed to start meeting recording via Recall.ai");
       }
 
-      const newBotId = await response.json();
+      setBotStatus("running");
 
-      if (newBotId) {
-        setBotId(newBotId); // This triggers the useEffect to connect SSE
-        setBotStatus("running");
-        setIsBotRunning(true);
-        setIsConnected(true);
-        setIsTranscribing(true);
+      // Close any old connections before starting new ones
+      if (transcriptEventSource) {
+        transcriptEventSource.close();
+      }
+      if (questionEventSource) {
+        questionEventSource.close();
+      }
 
-        setTranscript([
-          {
-            id: Date.now(),
-            start: 0,
-            end: 0,
-            text: "Bot connected successfully. Real-time transcription active.",
-            language: "en",
+      // Start listening to transcript stream
+      const newTranscriptSource = new EventSource(
+        `${service_url_recall}/transcripts`
+      );
+
+      newTranscriptSource.onmessage = async (event) => {
+        try {
+          const { speaker, text } = JSON.parse(event.data);
+
+          // Create a unique ID for this message to prevent duplicates
+          const messageId = `${speaker}-${text}-${Date.now()}`;
+
+          // Skip if we've already processed this exact message recently
+          if (processedMessageIds.has(messageId)) {
+            console.log("Skipping duplicate message:", text.substring(0, 50));
+            return;
+          }
+
+          // Add to processed set and clean old entries
+          setProcessedMessageIds((prev) => {
+            const newSet = new Set(prev);
+            newSet.add(messageId);
+
+            // Keep only last 100 message IDs to prevent memory leaks
+            if (newSet.size > 100) {
+              const entries = Array.from(newSet);
+              const toKeep = entries.slice(-100);
+              return new Set(toKeep);
+            }
+
+            return newSet;
+          });
+
+          const newSegment = {
+            id: Date.now() + Math.random(),
+            start: Date.now(),
+            end: Date.now(),
+            text: text,
+            language: "en-US",
             created_at: new Date().toISOString(),
-            speaker: "Spiked",
+            speaker: speaker,
             absolute_start_time: new Date().toISOString(),
             absolute_end_time: new Date().toISOString(),
-          },
-        ]);
-      } else {
-        throw new Error("Failed to get a valid bot ID from the backend.");
-      }
-    } catch (error) {
-      console.error("Error starting bot:", error);
-      setBotStatus("error");
-      setIsBotRunning(false);
-      setIsConnected(false);
-      setIsTranscribing(false);
-    }
-  };
+          };
 
-  // Update stopBot function to clear sentiment polling
-  const stopBot = async () => {
-    if (!botId || !session) return; // Check for botId and session
+          console.log("Adding new transcript:", speaker, text.substring(0, 50));
 
-    try {
-      setBotStatus("stopping");
+          setTranscript((prev) => [...prev, newSegment]);
+          setProcessedTranscript((prev) => [...prev, newSegment]);
 
-      // API call to stop the bot
-      await fetch(`${service_url_recall}/remove-bot/${botId}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+          // Update speaking engagement
+          setSpeakerTimes((prevTimes) => {
+            const newTimes = { ...prevTimes };
+            const speakingTime = text.split(" ").length * 0.3;
+            newTimes[speaker] = (newTimes[speaker] || 0) + speakingTime;
+            return newTimes;
+          });
+          setTotalMeetingDuration((prevDuration) => prevDuration + 2);
+        } catch (error) {
+          console.error("Error processing transcript message:", error);
+        }
+      };
 
-      closeSseConnections(); // Important: Close SSE streams
+      newTranscriptSource.onerror = (error) => {
+        console.error("Transcript stream error:", error);
+      };
 
-      setBotId(null); // Clear the session ID
-      setIsBotRunning(false);
-      setBotStatus("idle");
-      setIsConnected(false);
-      setIsTranscribing(false);
-      setTranscriptContextWindow([]);
-      setGeneratedQuestions([]);
+      newTranscriptSource.onopen = () => {
+        console.log("Transcript EventSource connected");
+      };
+
+      setTranscriptEventSource(newTranscriptSource);
+
+      // Start listening to questions stream
+      const newQuestionSource = new EventSource(
+        `${service_url_recall}/questions`
+      );
+
+      newQuestionSource.onmessage = (event) => {
+        try {
+          const { speaker, question } = JSON.parse(event.data);
+          console.log(`New question detected from Recall.ai: ${question}`);
+
+          // Prevent duplicate questions
+          setMeetingQuestions((prev) => {
+            if (prev.includes(question)) {
+              return prev;
+            }
+            return [...prev, question];
+          });
+        } catch (error) {
+          console.error("Error processing question message:", error);
+        }
+      };
+
+      newQuestionSource.onerror = (error) => {
+        console.error("Question stream error:", error);
+      };
+
+      newQuestionSource.onopen = () => {
+        console.log("Question EventSource connected");
+      };
+
+      setQuestionEventSource(newQuestionSource);
 
       // Start sentiment analysis polling
       const sentimentPollingInterval = setInterval(() => {
@@ -871,6 +972,7 @@ const SpikedAI = () => {
     console.log("Bot stopped and all state cleared");
   };
 
+  // ** END: MODIFIED RECALL.AI FUNCTIONALITIES **
   useEffect(() => {
     const validateSession = async () => {
       try {

@@ -660,9 +660,9 @@ const SpikedAI = () => {
         signal: transcriptController.signal,
         openWhenHidden: true,
 
-        onmessage(event: MessageEvent) {
+        onmessage(ev) {
           try {
-            const newSegmentData = JSON.parse(event.data);
+            const newSegmentData = JSON.parse(ev.data);
             const newSegment = {
               id: Date.now() + Math.random(),
               speaker: newSegmentData.speaker || "Unknown",
@@ -718,13 +718,13 @@ const SpikedAI = () => {
         signal: questionController.signal,
         openWhenHidden: true,
 
-        onmessage(event: MessageEvent) {
+        onmessage(ev) {
           try {
             interface QuestionSSEData {
               question?: string;
               [key: string]: any;
             }
-            const newQuestionData: QuestionSSEData = JSON.parse(event.data);
+            const newQuestionData: QuestionSSEData = JSON.parse(ev.data);
             if (newQuestionData.question) {
               setMeetingQuestions((prev: string[]) => {
           if (!prev.includes(newQuestionData.question!)) {

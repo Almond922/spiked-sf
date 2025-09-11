@@ -49,8 +49,8 @@ import {
   HelpCircle,
   BookOpenCheck,
   ChevronRight,
+  Eye  
 } from "lucide-react";
-import { platform } from "os";
 import { useAuth } from "../AuthContext";
 
 const service_url_recall =
@@ -393,6 +393,29 @@ const extractGoogleMeetId = (url: string): string | null => {
   }
 };
 
+// Add this after the extractGoogleMeetId function
+const validateBotSession = async (
+  sessionObj: { user?: { id?: string }; access_token?: string },
+  botIdToCheck: string
+) => {
+  if (!sessionObj || !botIdToCheck) return false;
+  try {
+    // Clean the bot_id of any quotes
+    const cleanBotId = botIdToCheck.replace(/"/g, '');
+    
+    const response = await fetch(`${service_url_recall}/debug/bot-status/${sessionObj.user?.id}`, {
+      headers: { Authorization: `Bearer ${sessionObj.access_token}` },
+    });
+    if (!response.ok) return false;
+    const data = await response.json();
+    console.log("Bot session validation data:", data);
+    return data.mappings_valid && data.bot_id === cleanBotId;
+  } catch (error) {
+    console.error("Bot session validation failed:", error);
+    return false;
+  }
+};
+
 // Session Storage utilities
 const saveToSessionStorage = (key: string, data: any) => {
   try {
@@ -428,7 +451,15 @@ const SpikedAI = () => {
   const [sentimentData, setSentimentData] = useState<SentimentData>(
     loadFromSessionStorage("spikedai_sentiment_data", initialSentimentData)
   );
-
+  const [expandedRecommendations, setExpandedRecommendations] = useState<Set<string>>(new Set());
+  const [expandedBuyingSignals, setExpandedBuyingSignals] = useState<Set<string>>(new Set());
+  const [expandedConcerns, setExpandedConcerns] = useState<Set<string>>(new Set());
+  const [detailedRecommendations, setDetailedRecommendations] = useState<Record<string, string>>({});
+  const [loadingRecommendations, setLoadingRecommendations] = useState<Set<string>>(new Set());
+  const [participantDetails, setParticipantDetails] = useState<Record<string, any>>({});
+  const [alertTimers, setAlertTimers] = useState<Record<string, NodeJS.Timeout>>({});
+  const [seenAlerts, setSeenAlerts] = useState<Set<string>>(new Set());
+  const [visibleAlerts, setVisibleAlerts] = useState<CriticalAlert[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
@@ -567,7 +598,6 @@ const SpikedAI = () => {
   }, [session, loading, navigate]);
 
   // ** FIX STARTS HERE **
-  // Moved useMemo hooks to the top level of the component
   const answeredMeetingQuestionTexts = useMemo(
     () =>
       new Set(
@@ -601,98 +631,158 @@ const SpikedAI = () => {
     console.log("SSE connections closed.");
   };
 
-  // REPLACEMENT for establishSseConnections
-  const establishSseConnections = async (currentBotId: string) => {
+  // REPLACEMENT for establishSseConnections with retry logic
+  const establishSseConnections = async (currentBotId: string, retryCount = 0) => {
+    const maxRetries = 3;
+    const retryDelay = 2000;
+    
     if (!session) {
       console.error("Cannot establish SSE connection without a session.");
       return;
     }
+    
     closeSseConnections();
-    console.log(`Establishing SSE connections for botId: ${currentBotId}`);
+    console.log(`Establishing SSE connections for botId: ${currentBotId} (attempt ${retryCount + 1})`);
 
-    // --- Transcript SSE Connection ---
-    const transcriptController = new AbortController(); // NEW: Controller for transcript stream
-    sseRefs.current.transcript = transcriptController;
-    const transcriptUrl = `${service_url_recall}/transcripts/${currentBotId}`;
+    try {
+      // --- Transcript SSE Connection ---
+      const transcriptController = new AbortController();
+      sseRefs.current.transcript = transcriptController;
+      // FIX: Remove quotes and ensure proper encoding
+      const cleanBotId = currentBotId.replace(/"/g, '');
+      const transcriptUrl = `${service_url_recall}/transcripts/${encodeURIComponent(cleanBotId)}`;
 
-    fetchEventSource(transcriptUrl, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${session.access_token}`, // THE FIX: Send the auth header
-      },
-      signal: transcriptController.signal, // NEW: For aborting the connection
-      openWhenHidden: true, // Optional: keeps connection alive in background tabs
+      fetchEventSource(transcriptUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        signal: transcriptController.signal,
+        openWhenHidden: true,
 
-      onmessage(event) {
-        try {
-          const newSegmentData = JSON.parse(event.data);
-          const newSegment: TranscriptSegment = {
-            id: Date.now() + Math.random(),
-            speaker: newSegmentData.speaker || "Unknown",
-            text: newSegmentData.text,
-            start: 0,
-            end: 0,
-            language: "en",
-            created_at: new Date().toISOString(),
-            absolute_start_time: new Date().toISOString(),
-            absolute_end_time: new Date().toISOString(),
-          };
-          setTranscript((prev) => [...prev, newSegment]);
-        } catch (error) {
-          console.error("Failed to parse transcript SSE data:", error);
-        }
-      },
-      onerror(err) {
-        console.error("Transcript EventSource failed:", err);
-        // The library handles retries, but if a fatal error occurs, you can stop it.
-        if (err instanceof Error) throw err;
-      },
-    });
-
-    // --- Question SSE Connection ---
-    const questionController = new AbortController(); // NEW: Controller for question stream
-    sseRefs.current.question = questionController;
-    const questionUrl = `${service_url_recall}/questions/${currentBotId}`;
-
-    fetchEventSource(questionUrl, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${session.access_token}`, // THE FIX: Send the auth header
-      },
-      signal: questionController.signal, // NEW: For aborting the connection
-      openWhenHidden: true,
-
-      onmessage(event) {
-        try {
-          const newQuestionData = JSON.parse(event.data);
-          if (newQuestionData.question) {
-            setMeetingQuestions((prev) => {
-              if (!prev.includes(newQuestionData.question)) {
-                return [...prev, newQuestionData.question];
-              }
-              return prev;
+        onmessage(event: MessageEvent) {
+          try {
+            const newSegmentData = JSON.parse(event.data);
+            const newSegment = {
+              id: Date.now() + Math.random(),
+              speaker: newSegmentData.speaker || "Unknown",
+              text: newSegmentData.text,
+              start: 0,
+              end: 0,
+              language: "en",
+              created_at: new Date().toISOString(),
+              absolute_start_time: new Date().toISOString(),
+              absolute_end_time: new Date().toISOString(),
+            };
+            
+            setTranscript((prev) => [...prev, newSegment]);
+            
+            // CRITICAL: Update sliding window for sentiment analysis
+            setSlidingWindowTranscript(prev => {
+              const newWindow = [...prev, newSegmentData.text].slice(-10); // Keep last 10 segments
+              return newWindow;
             });
+
+            console.log("New transcript segment received:", newSegment);
+          } catch (error) {
+            console.error("Failed to parse transcript SSE data:", error);
           }
-        } catch (error) {
-          console.error("Failed to parse question SSE data:", error);
-        }
-      },
-      onerror(err) {
-        console.error("Question EventSource failed:", err);
-        if (err instanceof Error) throw err;
-      },
-    });
+        },
+        
+        onerror(err: unknown) {
+          console.error("Transcript EventSource failed:", err);
+          if (retryCount < maxRetries) {
+            console.log(`Retrying SSE connection in ${retryDelay}ms...`);
+            setTimeout(() => {
+              establishSseConnections(currentBotId, retryCount + 1);
+            }, retryDelay);
+          } else {
+            setIsBotRunning(false);
+            setIsConnected(false);
+            setIsTranscribing(false);
+          }
+          throw err;
+        },
+      });
+
+      // --- Question SSE Connection ---  
+      const questionController = new AbortController();
+      sseRefs.current.question = questionController;
+      const questionUrl = `${service_url_recall}/questions/${encodeURIComponent(cleanBotId)}`;
+
+      fetchEventSource(questionUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        signal: questionController.signal,
+        openWhenHidden: true,
+
+        onmessage(event: MessageEvent) {
+          try {
+            interface QuestionSSEData {
+              question?: string;
+              [key: string]: any;
+            }
+            const newQuestionData: QuestionSSEData = JSON.parse(event.data);
+            if (newQuestionData.question) {
+              setMeetingQuestions((prev: string[]) => {
+          if (!prev.includes(newQuestionData.question!)) {
+            return [...prev, newQuestionData.question!];
+          }
+          return prev;
+              });
+              console.log("New question detected:", newQuestionData.question);
+            }
+          } catch (error) {
+            console.error("Failed to parse question SSE data:", error);
+          }
+        },
+        
+        onerror(
+          err: unknown
+        ) {
+          console.error("Question EventSource failed:", err);
+          if (retryCount < maxRetries) {
+            console.log(`Retrying question SSE connection in ${retryDelay}ms...`);
+            setTimeout(() => {
+              establishSseConnections(currentBotId, retryCount + 1);
+            }, retryDelay);
+          }
+          throw err;
+        },
+      });
+      
+      console.log("SSE connections established successfully");
+      
+    } catch (error) {
+      console.error("Failed to establish SSE connections:", error);
+      if (retryCount < maxRetries) {
+        setTimeout(() => {
+          establishSseConnections(currentBotId, retryCount + 1);
+        }, retryDelay);
+      } else {
+        setIsBotRunning(false);
+        setIsConnected(false);
+        setIsTranscribing(false);
+      }
+    }
   };
 
   const startBot = async () => {
-    if (!meetingUrl || !session) return;
+    if (!meetingUrl || !session) {
+      console.error("Missing meetingUrl or session");
+      return;
+    }
 
     try {
+      console.log("Starting bot with URL:", meetingUrl);
       setBotStatus("starting");
 
       const formData = new FormData();
       formData.append("meeting_url", meetingUrl);
 
+      console.log("Sending request to backend...");
       const response = await fetch(`${service_url_recall}/start`, {
         method: "POST",
         headers: {
@@ -701,18 +791,26 @@ const SpikedAI = () => {
         body: formData,
       });
 
+      console.log("Response status:", response.status);
+
       if (!response.ok) {
-        throw new Error("Failed to start bot via backend");
+        const errorText = await response.text();
+        console.error("Backend error:", errorText);
+        throw new Error(`Failed to start bot: ${response.status} - ${errorText}`);
       }
 
-      const newBotId = await response.json();
+      const newBotId = await response.text(); // Note: Changed from response.json() to response.text()
+      console.log("Received bot ID:", newBotId);
 
       if (newBotId) {
-        setBotId(newBotId); // This triggers the useEffect to connect SSE
+        setBotId(newBotId);
         setBotStatus("running");
         setIsBotRunning(true);
         setIsConnected(true);
         setIsTranscribing(true);
+
+        // CRITICAL: Reset sentiment data when starting new bot
+        setSentimentData(initialSentimentData);
 
         setTranscript([
           {
@@ -727,6 +825,13 @@ const SpikedAI = () => {
             absolute_end_time: new Date().toISOString(),
           },
         ]);
+
+        // CRITICAL: Start sentiment polling immediately after bot starts
+        console.log("Starting sentiment polling...");
+        setTimeout(() => {
+          fetchSentimentDataStaggered();
+        }, 3000); // Start polling after 3 seconds
+
       } else {
         throw new Error("Failed to get a valid bot ID from the backend.");
       }
@@ -741,7 +846,7 @@ const SpikedAI = () => {
 
   // Update stopBot function to clear sentiment polling
   const stopBot = async () => {
-    if (!botId || !session) return; // Check for botId and session
+    if (!botId || !session) return;
 
     try {
       setBotStatus("stopping");
@@ -754,15 +859,26 @@ const SpikedAI = () => {
         },
       });
 
-      closeSseConnections(); // Important: Close SSE streams
+      closeSseConnections();
 
-      setBotId(null); // Clear the session ID
+      // Clear all related state
+      setBotId(null);
       setIsBotRunning(false);
       setBotStatus("idle");
       setIsConnected(false);
       setIsTranscribing(false);
       setTranscriptContextWindow([]);
       setGeneratedQuestions([]);
+      setSentimentData(initialSentimentData); // Reset sentiment data
+
+      // Clear sentiment polling interval
+      if (sentimentPollingInterval) {
+        clearInterval(sentimentPollingInterval);
+        setSentimentPollingInterval(null);
+      }
+
+      // Clear Redis mappings on frontend
+      sessionStorage.removeItem("spikedai_bot_id");
 
       setTranscript((prev) => [
         ...prev,
@@ -778,32 +894,75 @@ const SpikedAI = () => {
           absolute_end_time: new Date().toISOString(),
         },
       ]);
+      
+      console.log("Bot stopped and cleaned up successfully");
     } catch (error) {
       console.error("Error stopping bot:", error);
       setBotStatus("error");
     }
   };
+
+  const debugSentimentStatus = async () => {
+  if (!session || !botId) {
+    console.log("Debug: No session or botId available");
+    return;
+  }
+
+  try {
+    // Check bot status
+    const debugResponse = await fetch(`${service_url_recall}/debug/bot-status/${session.user?.id}`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    
+    if (debugResponse.ok) {
+      const debugData = await debugResponse.json();
+      console.log("🔍 Bot Status Debug:", debugData);
+    }
+
+    // Try to fetch sentiment analysis directly
+    const sentimentResponse = await fetch(`${service_url_recall}/sentiment/analysis`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+
+    if (sentimentResponse.ok) {
+      const sentimentData = await sentimentResponse.json();
+      console.log("🎯 Sentiment Analysis Success:", sentimentData);
+    } else {
+      const errorText = await sentimentResponse.text();
+      console.error("❌ Sentiment Analysis Failed:", sentimentResponse.status, errorText);
+    }
+  } catch (error) {
+    console.error("🚨 Debug request failed:", error);
+  }
+};
   // ** END: MODIFIED RECALL.AI FUNCTIONALITIES **
 
   useEffect(() => {
     const fetchHistoryAndConnect = async (currentBotId: string) => {
       try {
         console.log(`Reconnecting to session for botId: ${currentBotId}`);
-        // This check is now more robust because the effect waits for a valid session
         if (!session) return;
 
-        // This part already works
+        // Clean the bot_id of any quotes
+        const cleanBotId = currentBotId.replace(/"/g, '');
+
+        // Validate session first
         const response = await fetch(
-          `${service_url_recall}/bot/${currentBotId}/data`,
+          `${service_url_recall}/bot/${encodeURIComponent(cleanBotId)}/data`,
           {
             headers: {
               Authorization: `Bearer ${session.access_token}`,
             },
           }
         );
+        
         if (!response.ok) {
-          throw new Error("Failed to fetch session history.");
+          console.error("Failed to fetch session history, invalidating bot session");
+          setBotId(null);
+          setIsBotRunning(false);
+          return;
         }
+        
         const data = await response.json();
 
         // Populate state with historical data
@@ -820,6 +979,7 @@ const SpikedAI = () => {
           absolute_start_time: new Date().toISOString(),
           absolute_end_time: new Date().toISOString(),
         }));
+        
         setTranscript(historicalSegments);
         setMeetingQuestions(data.questions.map((q: any) => q.question) || []);
 
@@ -829,8 +989,10 @@ const SpikedAI = () => {
         setIsTranscribing(true);
         setBotStatus("running");
 
-        // This will now use the fresh session data and succeed
-        await establishSseConnections(currentBotId);
+        // Establish SSE connections with clean bot_id
+        await establishSseConnections(cleanBotId);
+        
+        console.log("Bot session restored successfully");
       } catch (error) {
         console.error("Failed to restore session:", error);
         setBotId(null);
@@ -847,23 +1009,48 @@ const SpikedAI = () => {
     return () => {
       closeSseConnections();
     };
-  }, [botId, session]); // This hook now correctly depends only on botId
+  }, [botId, session]);
 
   useEffect(() => {
+    let sentimentInterval: NodeJS.Timeout | null = null;
+    
     // Start polling for sentiment only when the bot is running
-    if (isBotRunning) {
-      // Clear any existing interval to prevent duplicates
-      if (sentimentPollingInterval) {
-        clearInterval(sentimentPollingInterval);
-      }
+    if (isBotRunning && session && botId) {
+      console.log("Starting sentiment polling interval");
+      
+      // Initial validation and fetch after a longer delay
+      setTimeout(async () => {
+        if (await validateBotSession(session, botId)) {
+          console.log("Bot session validated, starting sentiment analysis");
+          fetchSentimentDataStaggered();
+          
+          // Set up regular polling only after successful validation
+          sentimentInterval = setInterval(async () => {
+            // Validate session periodically (every 5 polls)
+            const pollCount = Math.floor(Date.now() / 5000) % 5;
+            if (pollCount === 0) {
+              if (!botId || !await validateBotSession(session, botId)) {
+                console.log("Periodic validation failed, stopping sentiment polling");
+                setIsBotRunning(false);
+                setIsConnected(false);
+                setIsTranscribing(false);
+                if (sentimentInterval) {
+                  clearInterval(sentimentInterval);
+                }
+                return;
+              }
+            }
+            fetchSentimentDataStaggered();
+          }, 5000); // Poll every 5 seconds
 
-      // Start a new interval
-      const newInterval = setInterval(() => {
-        fetchSentimentDataStaggered();
-      }, 3000); // Poll every 3 seconds
-
-      setSentimentPollingInterval(newInterval);
-      console.log("Sentiment polling started.");
+          setSentimentPollingInterval(sentimentInterval);
+        } else {
+          console.log("Initial bot session validation failed");
+          setIsBotRunning(false);
+          setIsConnected(false);
+          setIsTranscribing(false);
+        }
+      }, 5000); // Wait 5 seconds before starting
     } else {
       // If the bot stops, clear the interval
       if (sentimentPollingInterval) {
@@ -873,13 +1060,13 @@ const SpikedAI = () => {
       }
     }
 
-    // Cleanup function to clear the interval when the component unmounts
+    // Cleanup function to clear the interval when dependencies change
     return () => {
-      if (sentimentPollingInterval) {
-        clearInterval(sentimentPollingInterval);
+      if (sentimentInterval) {
+        clearInterval(sentimentInterval);
       }
     };
-  }, [isBotRunning]);
+  }, [isBotRunning, session, botId]);
 
   // Initialize cached data on component mount
   useEffect(() => {
@@ -1215,6 +1402,118 @@ const SpikedAI = () => {
   }, []);
 
   // SENTIMENT ANALYSIS UTILITY FUNCTIONS
+  const fetchDetailedRecommendation = async (speaker: string, participantData: ParticipantCard) => {
+    try {
+      setLoadingRecommendations(prev => new Set([...prev, speaker]));
+      
+      const response = await fetch(`${service_url_recall}/sentiment/participant/${encodeURIComponent(speaker)}/detailed-recommendation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ participant_data: participantData })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setDetailedRecommendations(prev => ({ ...prev, [speaker]: data.recommendation }));
+      }
+    } catch (error) {
+      console.error("Error fetching detailed recommendation:", error);
+    } finally {
+      setLoadingRecommendations(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(speaker);
+        return newSet;
+      });
+    }
+  };
+
+  const fetchParticipantDetails = async (speaker: string, type: 'buying-signals' | 'concerns') => {
+    try {
+      const response = await fetch(`${service_url_recall}/sentiment/participant/${encodeURIComponent(speaker)}/${type}-details`);
+      if (response.ok) {
+        const data = await response.json();
+        setParticipantDetails(prev => ({ 
+          ...prev, 
+          [speaker]: { ...prev[speaker], [type.replace('-', '_')]: data.details }
+        }));
+      }
+    } catch (error) {
+      console.error(`Error fetching ${type} details:`, error);
+    }
+  };
+
+  const toggleRecommendation = async (speaker: string, participantData: ParticipantCard) => {
+    const isExpanded = expandedRecommendations.has(speaker);
+    
+    if (isExpanded) {
+      setExpandedRecommendations(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(speaker);
+        return newSet;
+      });
+    } else {
+      setExpandedRecommendations(prev => new Set([...prev, speaker]));
+      if (!detailedRecommendations[speaker]) {
+        await fetchDetailedRecommendation(speaker, participantData);
+      }
+    }
+  };
+
+  const toggleBuyingSignals = async (speaker: string) => {
+    const isExpanded = expandedBuyingSignals.has(speaker);
+    
+    if (isExpanded) {
+      setExpandedBuyingSignals(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(speaker);
+        return newSet;
+      });
+    } else {
+      setExpandedBuyingSignals(prev => new Set([...prev, speaker]));
+      if (!participantDetails[speaker]?.buying_signals) {
+        await fetchParticipantDetails(speaker, 'buying-signals');
+      }
+    }
+  };
+
+  const toggleConcerns = async (speaker: string) => {
+    const isExpanded = expandedConcerns.has(speaker);
+    
+    if (isExpanded) {
+      setExpandedConcerns(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(speaker);
+        return newSet;
+      });
+    } else {
+      setExpandedConcerns(prev => new Set([...prev, speaker]));
+      if (!participantDetails[speaker]?.concerns) {
+        await fetchParticipantDetails(speaker, 'concerns');
+      }
+    }
+  };
+
+  const formatDuration = (seconds: number): string => {
+    if (seconds < 60) return `${seconds.toFixed(0)}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds.toFixed(0)}s`;
+  };
+
+  const formatTimeAgo = (timestamp: string): string => {
+    try {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+      
+      if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
+      if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+      return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    } catch {
+      return 'Unknown';
+    }
+  };
+
   const getMedpicIcon = (category: string) => {
     switch (category) {
       case "metrics":
@@ -1624,31 +1923,65 @@ const SpikedAI = () => {
   };
 
   const fetchSentimentComponent = async (component: string) => {
-    if (!session) return;
+    if (!session) {
+      throw new Error("No session available");
+    }
+    
+    // Validate bot session first
+    if (!botId || !await validateBotSession(session, botId)) {
+      console.log("Invalid bot session detected, stopping sentiment polling");
+      setIsBotRunning(false);
+      setIsConnected(false);
+      setIsTranscribing(false);
+      if (sentimentPollingInterval) {
+        clearInterval(sentimentPollingInterval);
+        setSentimentPollingInterval(null);
+      }
+      return;
+    }
+    
     try {
+      console.log(`Fetching sentiment component: ${component}`);
       let url = `${service_url_recall}/sentiment/${component}`;
 
       const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { 
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
       });
+      
       if (!response.ok) {
-        console.error(`Failed to fetch ${component}: ${response.status}`);
-        return;
+        if (response.status === 403 || response.status === 404) {
+          console.log("Bot session expired or access denied, stopping sentiment polling");
+          setIsBotRunning(false);
+          setIsConnected(false);
+          setIsTranscribing(false);
+          if (sentimentPollingInterval) {
+            clearInterval(sentimentPollingInterval);
+            setSentimentPollingInterval(null);
+          }
+          return;
+        }
+        const errorText = await response.text();
+        console.error(`Sentiment ${component} request failed:`, response.status, errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log(`Sentiment component ${component} data:`, data);
 
+      // Rest of the switch statement remains the same...
       switch (component) {
         case "alerts":
           const newAlerts = data.critical_alerts || [];
           setSentimentData((prev) => {
-            const existingAlertIds = new Set(
-              prev.critical_alerts.map((a) => a.id)
-            );
+            const existingAlertIds = new Set(prev.critical_alerts.map((a) => a.id));
             const uniqueNewAlerts = newAlerts.filter(
-              (alert: { id: string }) => !existingAlertIds.has(alert.id)
+              (alert: CriticalAlert) => !existingAlertIds.has(alert.id)
             );
             if (uniqueNewAlerts.length === 0) return prev;
+            console.log(`Adding ${uniqueNewAlerts.length} new alerts`);
             return {
               ...prev,
               critical_alerts: [...prev.critical_alerts, ...uniqueNewAlerts],
@@ -1657,12 +1990,13 @@ const SpikedAI = () => {
           });
           break;
 
-        case "engagement":
+        case "participants":
           setSentimentData((prev) => ({
             ...prev,
-            engagement_scores: data.engagement_scores || [],
+            participant_cards: data.participant_cards || [],
             last_updated: new Date().toISOString(),
           }));
+          console.log(`Updated participant cards: ${data.participant_cards?.length || 0} participants`);
           break;
 
         case "medpic":
@@ -1672,6 +2006,7 @@ const SpikedAI = () => {
               medpic_progress: data.medpic_progress,
               last_updated: new Date().toISOString(),
             }));
+            console.log("Updated MEDPIC progress");
           }
           break;
 
@@ -1682,15 +2017,8 @@ const SpikedAI = () => {
               buying_signals: data.buying_signals,
               last_updated: new Date().toISOString(),
             }));
+            console.log(`Updated buying signals: ${data.buying_signals.total_score} points`);
           }
-          break;
-
-        case "participants":
-          setSentimentData((prev) => ({
-            ...prev,
-            participant_cards: data.participant_cards || [],
-            last_updated: new Date().toISOString(),
-          }));
           break;
 
         case "health":
@@ -1700,11 +2028,14 @@ const SpikedAI = () => {
               conversation_health: data.conversation_health,
               last_updated: new Date().toISOString(),
             }));
+            console.log("Updated conversation health");
           }
           break;
       }
     } catch (error) {
       console.error(`Error fetching sentiment component ${component}:`, error);
+      // Don't break polling for individual component failures
+      // Just log the error and continue
     }
   };
 
@@ -1760,36 +2091,137 @@ const SpikedAI = () => {
     }
   };
 
-  // Replace the existing fetchSentimentDataStaggered function with this corrected version
+    const EyeButton = ({ onClick, isExpanded, isLoading = false }: { 
+      onClick: () => void; 
+      isExpanded: boolean; 
+      isLoading?: boolean; 
+    }) => (
+      <button
+        onClick={onClick}
+        disabled={isLoading}
+        className={`p-1.5 rounded-full transition-colors ${
+          isExpanded 
+            ? "bg-blue-500/20 text-blue-500" 
+            : isDarkMode
+            ? "hover:bg-slate-600/50 text-slate-400"
+            : "hover:bg-slate-200 text-slate-500"
+        }`}
+        title={isExpanded ? "Hide details" : "Show details"}
+      >
+        {isLoading ? (
+          <Loader className="w-3.5 h-3.5 animate-spin" />
+        ) : (
+          <Eye className="w-3.5 h-3.5" />
+        )}
+      </button>
+    );
+
+    // Alert management functions
+    useEffect(() => {
+      // Auto-hide acknowledged alerts after 5 seconds
+      const newTimers: Record<string, NodeJS.Timeout> = {};
+      
+      sentimentData.critical_alerts.forEach(alert => {
+        if (alert.acknowledged && !seenAlerts.has(alert.id)) {
+          const timer = setTimeout(() => {
+            setSentimentData(prev => ({
+              ...prev,
+              critical_alerts: prev.critical_alerts.filter(a => a.id !== alert.id)
+            }));
+            setSeenAlerts(prev => new Set([...prev, alert.id]));
+          }, 5000);
+          newTimers[alert.id] = timer;
+        }
+      });
+
+      setAlertTimers(prev => {
+        // Clear old timers
+        Object.values(prev).forEach(timer => clearTimeout(timer));
+        return newTimers;
+      });
+
+      return () => {
+        Object.values(newTimers).forEach(timer => clearTimeout(timer));
+      };
+    }, [sentimentData.critical_alerts, seenAlerts]);
+
+    // Update visible alerts
+    useEffect(() => {
+      const unacknowledgedAlerts = sentimentData.critical_alerts.filter(alert => !alert.acknowledged);
+      setVisibleAlerts(unacknowledgedAlerts);
+    }, [sentimentData.critical_alerts]);
 
   const fetchSentimentDataStaggered = async () => {
     try {
       console.log("Fetching sentiment data...");
 
-      // Always fetch critical alerts (highest priority)
-      await fetchSentimentComponent("alerts");
+      // Check if we still have an active bot session
+      if (!isBotRunning || !session || !botId) {
+        console.log("No active bot session, skipping sentiment fetch");
+        return;
+      }
+
+      // Debug: Check bot status first
+      try {
+        const debugResponse = await fetch(`${service_url_recall}/debug/bot-status/${session.user?.id}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        
+        if (debugResponse.ok) {
+          const debugData = await debugResponse.json();
+          console.log("Bot status debug:", debugData);
+          
+          if (!debugData.mappings_valid) {
+            console.log("Bot mappings invalid, stopping sentiment polling");
+            setIsBotRunning(false);
+            setIsConnected(false);
+            setIsTranscribing(false);
+            return;
+          }
+        }
+      } catch (debugError) {
+        console.warn("Debug endpoint failed:", debugError);
+      }
+
+      // Always fetch critical alerts (highest priority) with error handling
+      try {
+        await fetchSentimentComponent("alerts");
+      } catch (error) {
+        console.error("Failed to fetch alerts:", error);
+        // If we get 403/404, the bot session may be invalid
+        const errorMessage = (error as any).message ?? "";
+        if (errorMessage.includes('403') || errorMessage.includes('404')) {
+          console.log("Bot session appears invalid, stopping polling");
+          setIsBotRunning(false);
+          setIsConnected(false);
+          setIsTranscribing(false);
+          return;
+        }
+      }
 
       const now = Date.now();
-
       // Cycle through different components to avoid overwhelming the backend
-      const cycleIndex = Math.floor(now / 3000) % 5; // 3-second cycles
+      const cycleIndex = Math.floor(now / 1000) % 4; // 4 different cycles, every 3 seconds
 
-      switch (cycleIndex) {
-        case 0:
-          await fetchSentimentComponent("medpic");
-          break;
-        case 1:
-          await fetchSentimentComponent("engagement");
-          break;
-        case 2:
-          await fetchSentimentComponent("buying-signals");
-          break;
-        case 3:
-          await fetchSentimentComponent("participants");
-          break;
-        case 4:
-          await fetchSentimentComponent("health");
-          break;
+      try {
+        switch (cycleIndex) {
+          case 0:
+            await fetchSentimentComponent("participants");
+            break;
+          case 1:
+            await fetchSentimentComponent("buying-signals");
+            break;
+          case 2:
+            await fetchSentimentComponent("medpic");
+            break;
+          case 3:
+            await fetchSentimentComponent("health");
+            break;
+        }
+        console.log(`Sentiment cycle ${cycleIndex} completed successfully`);
+      } catch (error) {
+        console.error(`Error in sentiment cycle ${cycleIndex}:`, error);
+        // Don't break the polling for individual component failures
       }
     } catch (error) {
       console.error("Error in staggered sentiment fetching:", error);
@@ -2447,61 +2879,6 @@ const SpikedAI = () => {
     }
   };
 
-  const startBotWithGranularSentiment = async () => {
-    if (!meetingUrl || !session) return;
-
-    try {
-      setBotStatus("starting");
-
-      const formData = new FormData();
-      formData.append("meeting_url", meetingUrl);
-
-      const response = await fetch(`${service_url_recall}/start`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to start bot via Vexa backend");
-      }
-
-      const newBotId = await response.json(); // Assumes startVexaBot returns { id: "..." }
-
-      if (newBotId) {
-        setBotId(newBotId); // This will trigger the main useEffect to connect
-        setBotStatus("running");
-        setIsBotRunning(true);
-        setIsConnected(true);
-        setIsTranscribing(true);
-
-        setTranscript([
-          {
-            id: Date.now(),
-            start: 0,
-            end: 0,
-            text: "Bot connected successfully. Real-time transcription active.",
-            language: "en",
-            created_at: new Date().toISOString(),
-            speaker: "Spiked",
-            absolute_start_time: new Date().toISOString(),
-            absolute_end_time: new Date().toISOString(),
-          },
-        ]);
-      } else {
-        throw new Error("Failed to get a valid bot ID from the backend.");
-      }
-    } catch (error) {
-      console.error("Error starting bot:", error);
-      setBotStatus("error");
-      setIsBotRunning(false);
-      setIsConnected(false);
-      setIsTranscribing(false);
-    }
-  };
-
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
 
@@ -2927,6 +3304,25 @@ const SpikedAI = () => {
     [slidingWindowTranscript, lastAnalyzedTranscript]
   );
 
+  // Debounce expensive operations
+  const debouncedFetchSentiment = useMemo(
+    () => {
+      let timeoutId: NodeJS.Timeout;
+      return () => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(fetchSentimentDataStaggered, 300);
+      };
+    },
+    []
+  );
+
+  // Memoize heavy computations
+  const memoizedTranscriptData = useMemo(() => {
+    return processedTranscript.filter(
+      (entry) => !mutedSpeakers.includes(entry.speaker || "")
+    );
+  }, [processedTranscript, mutedSpeakers]);
+
   interface QuestionResponse {
     is_question: boolean;
     question?: string;
@@ -3190,6 +3586,18 @@ const SpikedAI = () => {
     });
   };
 
+  // Cleanup function for intervals and timeouts
+  useEffect(() => {
+    return () => {
+      // Clear all timers on unmount
+      Object.values(alertTimers).forEach(timer => clearTimeout(timer));
+      if (hotMicInterval) clearInterval(hotMicInterval);
+      if (sentimentPollingInterval) clearInterval(sentimentPollingInterval);
+      if (questionDetectionIntervalRef.current) clearInterval(questionDetectionIntervalRef.current);
+      if (micTimeoutRef.current) clearTimeout(micTimeoutRef.current);
+    };
+  }, []);
+
   // DRAG AND DROP HANDLERS
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedCategory(id);
@@ -3402,9 +3810,8 @@ const SpikedAI = () => {
             </div>
           )}
 
-        {/* START: ADDED CRITICAL ALERTS SECTION */}
-        {sentimentData.critical_alerts.filter((alert) => !alert.acknowledged)
-          .length > 0 && (
+        {/* START: UPDATED CRITICAL ALERTS SECTION */}
+        {visibleAlerts.length > 0 && (
           <div className="space-y-4">
             <h4
               className={`text-base font-semibold mb-3 flex items-center space-x-2 ${
@@ -3415,66 +3822,64 @@ const SpikedAI = () => {
               <span>Alerts</span>
             </h4>
             <div className="space-y-3">
-              {sentimentData.critical_alerts
-                .filter((alert) => !alert.acknowledged)
-                .map((alert) => (
-                  <div
-                    key={alert.id}
-                    className={`p-4 rounded-xl border-l-4 shadow-md transition-all ${
-                      alert.severity === "negative_high"
-                        ? "border-red-500 bg-red-50 dark:bg-red-900/20"
-                        : alert.alert_type === "positive"
-                        ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                        : "border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p
-                          className={`font-bold text-sm ${
-                            alert.severity === "negative_high"
-                              ? "text-red-700 dark:text-red-300"
-                              : "text-yellow-700 dark:text-green-300"
-                          }`}
-                        >
-                          {alert.phrase}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          Speaker:{" "}
-                          <span className="font-medium">{alert.speaker}</span>
-                        </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-300 mt-2 italic">
-                          "{alert.context}"
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => acknowledgeAlert(alert.id)}
-                        className={`ml-2 p-1.5 rounded-full transition-colors ${
-                          isDarkMode
-                            ? "hover:bg-slate-600/50"
-                            : "hover:bg-slate-200"
+              {visibleAlerts.map((alert) => (
+                <div
+                  key={alert.id}
+                  className={`p-4 rounded-xl border-l-4 shadow-md transition-all ${
+                    alert.severity === "negative_high"
+                      ? "border-red-500 bg-red-50 dark:bg-red-900/20"
+                      : alert.alert_type === "positive"
+                      ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                      : "border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20"
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p
+                        className={`font-bold text-sm ${
+                          alert.severity === "negative_high"
+                            ? "text-red-700 dark:text-red-300"
+                            : "text-yellow-700 dark:text-green-300"
                         }`}
-                        title="Acknowledge Alert"
                       >
-                        <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                      </button>
+                        {alert.phrase}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Speaker:{" "}
+                        <span className="font-medium">{alert.speaker}</span>
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-2 italic">
+                        "{alert.context}"
+                      </p>
                     </div>
-                    {alert.suggestion && (
-                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                          Suggestion:
-                        </p>
-                        <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">
-                          {alert.suggestion}
-                        </p>
-                      </div>
-                    )}
+                    <button
+                      onClick={() => acknowledgeAlert(alert.id)}
+                      className={`ml-2 p-1.5 rounded-full transition-colors ${
+                        isDarkMode
+                          ? "hover:bg-slate-600/50"
+                          : "hover:bg-slate-200"
+                      }`}
+                      title="Acknowledge Alert"
+                    >
+                      <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                    </button>
                   </div>
-                ))}
+                  {alert.suggestion && (
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                        Suggestion:
+                      </p>
+                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">
+                        {alert.suggestion}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
-        {/* END: ADDED CRITICAL ALERTS SECTION */}
+        {/* END: UPDATED CRITICAL ALERTS SECTION */}
 
         {/* Forecasted Client Follow ups */}
         {(selectedCategories.includes("all") ||
@@ -3697,7 +4102,7 @@ const SpikedAI = () => {
               </div>
             </div>
           )}
-
+ 
         {/* Playbook Dashboard */}
         {(selectedCategories.includes("all") ||
           selectedCategories.includes("playbook")) && (
@@ -3710,34 +4115,41 @@ const SpikedAI = () => {
               >
                 <div className="flex items-center space-x-2">
                   <TrendingUp className="w-5 h-5" />
-                  <span>Live Playbook Analysis</span>
+                  <span>Live Playbook</span>
                 </div>
               </h4>
 
-              {/* Buying Signals Counter */}
+              {/* Buying Signals Counter - ENHANCED VERSION */}
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold text-gray-700 dark:text-gray-300">
                     Buying Signals
                   </span>
-                  <span
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center ${
-                      sentimentData.buying_signals.trend === "increasing"
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                  <div className="flex items-center space-x-2">
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center ${
+                        sentimentData.buying_signals.trend === "increasing"
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                          : sentimentData.buying_signals.trend === "decreasing"
+                          ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
+                          : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                      }`}
+                    >
+                      {sentimentData.buying_signals.trend === "increasing"
+                        ? "↑"
                         : sentimentData.buying_signals.trend === "decreasing"
-                        ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
-                        : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                    }`}
-                  >
-                    {sentimentData.buying_signals.trend === "increasing"
-                      ? "↑"
-                      : sentimentData.buying_signals.trend === "decreasing"
-                      ? "↓"
-                      : "→"}
-                    <span className="ml-1">
-                      {sentimentData.buying_signals.trend}
+                        ? "↓"
+                        : "→"}
+                      <span className="ml-1">
+                        {sentimentData.buying_signals.trend}
+                      </span>
                     </span>
-                  </span>
+                    {(sentimentData.buying_signals as any)?.analysis_method && (
+                      <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">
+                        {(sentimentData.buying_signals as any).analysis_method === "llm_enhanced" ? "AI Enhanced" : "Pattern Based"}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="text-3xl font-bold text-green-600 dark:text-green-400">
                   {sentimentData.buying_signals.total_score} points
@@ -3745,6 +4157,19 @@ const SpikedAI = () => {
                 <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                   {sentimentData.buying_signals.signal_count} signals detected
                 </div>
+                
+                {/* LLM Summary if available */}
+                {(sentimentData.buying_signals as any)?.llm_summary && (
+                  <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">
+                      AI Analysis:
+                    </p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      {(sentimentData.buying_signals as any).llm_summary}
+                    </p>
+                  </div>
+                )}
+
                 <div className="mt-2 space-y-1.5 border-t border-gray-200 dark:border-gray-700 pt-3">
                   {Object.entries(
                     sentimentData.buying_signals.signals_by_type
@@ -3754,7 +4179,7 @@ const SpikedAI = () => {
                       className="flex justify-between text-sm items-center"
                     >
                       <span className="flex items-center text-gray-600 dark:text-gray-300">
-                        {getSignalTypeIcon(type)} {type.replace("_", " ")}
+                        {getSignalTypeIcon(type)} {type.replace("_", " ").toUpperCase()}
                       </span>
                       <span className="font-medium text-gray-800 dark:text-gray-200">
                         {points} pts
@@ -3948,27 +4373,6 @@ const SpikedAI = () => {
                     }
                   )}
                 </div>
-
-                {/* MEDPIC Summary Button */}
-                <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    onClick={getMedpicSummary}
-                    disabled={isLoadingMedpicSummary}
-                    className="w-full px-3 py-2 text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-                  >
-                    {isLoadingMedpicSummary ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Loading Summary...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>📊</span>
-                        <span>View MEDPIC Summary</span>
-                      </>
-                    )}
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -3990,6 +4394,7 @@ const SpikedAI = () => {
           </React.Fragment>
         )}
 
+
         {/* Sentiment Analysis Dashboard */}
         {(selectedCategories.includes("all") ||
           selectedCategories.includes("sentiment")) && (
@@ -4002,121 +4407,34 @@ const SpikedAI = () => {
               >
                 <div className="flex items-center space-x-2">
                   <TrendingUp className="w-5 h-5" />
-                  <span>Live Sentiment Analysis</span>
+                  <span>Live Sentiment</span>
                 </div>
               </h4>
 
-              {/* Engagement Scores */}
+              {/* Participant Cards Section - REPLACE ENTIRE SECTION */}
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-semibold text-gray-700 dark:text-gray-300">
-                    Speaker Engagement
+                    Participant Sentiments
                   </span>
                   <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
-                    {sentimentData.engagement_scores.length} participants
+                    {sentimentData.participant_cards.length} participants
                   </span>
                 </div>
-                <div className="space-y-2.5">
-                  {/* MODIFIED: Use the newly calculated engagementScores */}
-                  {sentimentData.engagement_scores.map((participant, index) => {
-                    const isMuted = mutedSpeakers.includes(participant.speaker);
-                    return (
-                      <div
-                        key={participant.speaker}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex items-center space-x-2.5">
-                          {/* ... other code for rendering color and name ... */}
-                          <span
-                            className={`text-sm font-medium ${
-                              isMuted
-                                ? "text-gray-500 dark:text-gray-400"
-                                : "text-gray-700 dark:text-gray-300"
-                            }`}
-                          >
-                            {participant.speaker}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          {/* ADDED: Mute Button */}
-                          <button
-                            onClick={() =>
-                              toggleMuteParticipant(participant.speaker)
-                            }
-                            className={`p-1.5 rounded-full transition-colors ${
-                              isMuted
-                                ? "bg-red-500/20 text-red-500" // Muted state
-                                : isDarkMode
-                                ? "hover:bg-slate-600/50"
-                                : "hover:bg-slate-200" // Unmuted state
-                            }`}
-                            title={
-                              isMuted
-                                ? "Unmute Participant"
-                                : "Mute Participant"
-                            }
-                          >
-                            {isMuted ? (
-                              <MicOff className="w-4 h-4" />
-                            ) : (
-                              <Mic className="w-4 h-4" />
-                            )}
-                          </button>
-                          {/* The progress bar and percentage remain the same */}
-                          <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                            <div
-                              className={`h-1.5 rounded-full ${
-                                isMuted
-                                  ? "bg-gray-400"
-                                  : index === 0
-                                  ? "bg-blue-500"
-                                  : index === 1
-                                  ? "bg-purple-500"
-                                  : index === 2
-                                  ? "bg-green-500"
-                                  : "bg-gray-400"
-                              }`}
-                              style={{
-                                width: `${Math.min(
-                                  100,
-                                  participant.speaking_percentage
-                                )}%`,
-                              }}
-                            ></div>
-                          </div>
-                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 min-w-[40px] text-right">
-                            {participant.speaking_percentage.toFixed(1)}%
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {sentimentData.engagement_scores.length === 0 && (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        No participants detected yet
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
 
-              {/* Participant Cards Section */}
-              {sentimentData.participant_cards.length > 0 && (
-                <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-semibold text-gray-700 dark:text-gray-300">
-                      Participant Sentiments
-                    </span>
-                    <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
-                      {sentimentData.participant_cards.length} participants
-                    </span>
+                {sentimentData.participant_cards.length === 0 ? (
+                  <div className="text-center py-8">
+                    <User className="w-12 h-12 mx-auto mb-4 opacity-50 text-gray-400" />
+                    <p className="text-gray-500 dark:text-gray-400 font-medium">No participants detected yet</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      Participants will appear here once the conversation starts
+                    </p>
                   </div>
+                ) : (
                   <div className="space-y-3">
                     {sentimentData.participant_cards
-                      .filter(
-                        (card) => !card.speaker.toLowerCase().includes("spiked")
-                      )
+                      .filter(card => !card.speaker.toLowerCase().includes("spiked"))
+                      .sort((a, b) => b.speaking_percentage - a.speaking_percentage)
                       .map((card) => (
                         <div
                           key={card.speaker}
@@ -4152,177 +4470,90 @@ const SpikedAI = () => {
 
                               <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400 mb-2">
                                 <span>
-                                  🗣️ {card.speaking_percentage.toFixed(1)}%
-                                  speaking
+                                  🗣️ {card.speaking_percentage.toFixed(1)}% speaking
                                 </span>
                                 <span>
-                                  📊 {card.buying_signals_count} buying signals
+                                  ⏱️ {formatTimeAgo(card.last_activity)}
                                 </span>
-                                <span>⚠️ {card.concerns_count} concerns</span>
-                                <span>💬 {card.total_words} words</span>
+                                <div className="flex items-center space-x-1">
+                                  <span>📊 {card.buying_signals_count} buying signals</span>
+                                  {card.buying_signals_count > 0 && (
+                                    <EyeButton
+                                      onClick={() => toggleBuyingSignals(card.speaker)}
+                                      isExpanded={expandedBuyingSignals.has(card.speaker)}
+                                    />
+                                  )}
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <span>⚠️ {card.concerns_count} concerns</span>
+                                  {card.concerns_count > 0 && (
+                                    <EyeButton
+                                      onClick={() => toggleConcerns(card.speaker)}
+                                      isExpanded={expandedConcerns.has(card.speaker)}
+                                    />
+                                  )}
+                                </div>
                               </div>
 
-                              {card.concerns_list.length > 0 && (
-                                <div className="mb-2">
-                                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                              {/* Expanded Buying Signals */}
+                              {expandedBuyingSignals.has(card.speaker) && (
+                                <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs">
+                                  <p className="font-semibold text-blue-600 dark:text-blue-400 mb-1">
+                                    Buying Signals:
+                                  </p>
+                                  {participantDetails[card.speaker]?.buying_signals?.map((signal: any, index: number) => (
+                                    <div key={index} className="mb-1">
+                                      <span className="text-blue-700 dark:text-blue-300">"{signal.phrase}"</span>
+                                      <span className="text-gray-500 ml-2">({signal.timestamp})</span>
+                                    </div>
+                                  )) || <span className="text-gray-500">Loading details...</span>}
+                                </div>
+                              )}
+
+                              {/* Expanded Concerns */}
+                              {expandedConcerns.has(card.speaker) && (
+                                <div className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs">
+                                  <p className="font-semibold text-red-600 dark:text-red-400 mb-1">
                                     Concerns:
                                   </p>
-                                  <p className="text-xs text-gray-700 dark:text-gray-300">
-                                    {card.concerns_list.slice(0, 2).join(", ")}
-                                  </p>
+                                  {participantDetails[card.speaker]?.concerns?.map((concern: any, index: number) => (
+                                    <div key={index} className="mb-1">
+                                      <span className="text-red-700 dark:text-red-300">"{concern.phrase}"</span>
+                                      <span className="text-gray-500 ml-2">({concern.context})</span>
+                                    </div>
+                                  )) || <span className="text-gray-500">Loading details...</span>}
                                 </div>
                               )}
 
                               <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded text-xs">
-                                <p className="font-semibold text-gray-600 dark:text-gray-400">
-                                  Action Needed:
-                                </p>
-                                <p className="text-gray-700 dark:text-gray-300">
-                                  {card.action_needed}
-                                </p>
+                                <div className="flex items-center justify-between">
+                                  <p className="font-semibold text-gray-600 dark:text-gray-400">
+                                    Recommended Action:
+                                  </p>
+                                  <EyeButton
+                                    onClick={() => toggleRecommendation(card.speaker, card)}
+                                    isExpanded={expandedRecommendations.has(card.speaker)}
+                                    isLoading={loadingRecommendations.has(card.speaker)}
+                                  />
+                                </div>
+                                {expandedRecommendations.has(card.speaker) && (
+                                  <div className="mt-2">
+                                    {detailedRecommendations[card.speaker] ? (
+                                      <p className="text-gray-700 dark:text-gray-300">
+                                        {detailedRecommendations[card.speaker]}
+                                      </p>
+                                    ) : (
+                                      <p className="text-gray-500">Loading detailed recommendation...</p>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
                         </div>
                       ))}
                   </div>
-                </div>
-              )}
-
-              {/* Conversation Health Section */}
-              <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-semibold text-gray-700 dark:text-gray-300">
-                    Conversation Health
-                  </span>
-                  <span
-                    className={`text-xs font-bold px-2 py-1 rounded-full ${
-                      sentimentData.conversation_health.health_status ===
-                      "healthy"
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
-                        : sentimentData.conversation_health.health_status ===
-                          "concerning"
-                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300"
-                        : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
-                    }`}
-                  >
-                    {sentimentData.conversation_health.health_status.toUpperCase()}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-center mb-4">
-                  <div className="relative w-24 h-24">
-                    <svg
-                      className="w-24 h-24 transform -rotate-90"
-                      viewBox="0 0 100 100"
-                    >
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        stroke="currentColor"
-                        strokeWidth="8"
-                        fill="none"
-                        className="text-gray-200 dark:text-gray-700"
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        stroke="currentColor"
-                        strokeWidth="8"
-                        fill="none"
-                        strokeDasharray={`${2 * Math.PI * 40}`}
-                        strokeDashoffset={`${
-                          2 *
-                          Math.PI *
-                          40 *
-                          (1 -
-                            sentimentData.conversation_health.overall_score /
-                              100)
-                        }`}
-                        className={
-                          sentimentData.conversation_health.overall_score >= 70
-                            ? "text-green-500"
-                            : sentimentData.conversation_health.overall_score >=
-                              40
-                            ? "text-yellow-500"
-                            : "text-red-500"
-                        }
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-lg font-bold text-gray-800 dark:text-gray-200">
-                        {sentimentData.conversation_health.overall_score.toFixed(
-                          0
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-center mb-3">
-                  <span
-                    className={`flex items-center text-sm font-medium ${
-                      sentimentData.conversation_health.trend === "improving"
-                        ? "text-green-600 dark:text-green-400"
-                        : sentimentData.conversation_health.trend ===
-                          "declining"
-                        ? "text-red-600 dark:text-red-400"
-                        : "text-gray-600 dark:text-gray-400"
-                    }`}
-                  >
-                    {sentimentData.conversation_health.trend === "improving"
-                      ? "↗️"
-                      : sentimentData.conversation_health.trend === "declining"
-                      ? "↘️"
-                      : "➡️"}
-                    <span className="ml-1">
-                      {sentimentData.conversation_health.trend}
-                    </span>
-                  </span>
-                </div>
-
-                {sentimentData.conversation_health.risk_factors.length > 0 && (
-                  <div className="mb-3">
-                    <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">
-                      ⚠️ Risk Factors:
-                    </p>
-                    <ul className="text-xs text-gray-700 dark:text-gray-300 space-y-0.5">
-                      {sentimentData.conversation_health.risk_factors.map(
-                        (risk: string, index: number) => (
-                          <li key={index}>• {risk}</li>
-                        )
-                      )}
-                    </ul>
-                  </div>
                 )}
-
-                {sentimentData.conversation_health.positive_indicators.length >
-                  0 && (
-                  <div className="mb-3">
-                    <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">
-                      ✅ Positive Signs:
-                    </p>
-                    <ul className="text-xs text-gray-700 dark:text-gray-300 space-y-0.5">
-                      {sentimentData.conversation_health.positive_indicators.map(
-                        (positive, index) => (
-                          <li key={index}>• {positive}</li>
-                        )
-                      )}
-                    </ul>
-                  </div>
-                )}
-
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                  <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">
-                    💡 Recommendation:
-                  </p>
-                  <p className="text-xs text-blue-700 dark:text-blue-300">
-                    {sentimentData.conversation_health.recommendation}
-                  </p>
-                </div>
               </div>
             </div>
 
@@ -5226,11 +5457,7 @@ const SpikedAI = () => {
                   </p>
                 </div>
               ) : (
-                processedTranscript
-                  .filter(
-                    (entry) => !mutedSpeakers.includes(entry.speaker || "")
-                  )
-                  .map((entry, index) => (
+                memoizedTranscriptData.map((entry, index) => (
                     <div
                       key={entry.id}
                       className={`${

@@ -54,7 +54,7 @@ import {
 import { useAuth } from "../AuthContext";
 
 const service_url_recall =
-  "http://localhost:8000";
+  "https://recall-backend-production-822359826336.us-central1.run.app";
 const service_url_base =
   "https://sales-assistant-service-822359826336.us-central1.run.app";
 const BASE_URL_PROD =

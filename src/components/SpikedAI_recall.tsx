@@ -54,7 +54,7 @@ import {
 import { useAuth } from "../AuthContext";
 
 const service_url_recall =
-  "https://recall-backend-production-822359826336.us-central1.run.app";
+  "http://localhost:8000";
 const service_url_base =
   "https://sales-assistant-service-822359826336.us-central1.run.app";
 const BASE_URL_PROD =
@@ -399,20 +399,28 @@ const validateBotSession = async (
   botIdToCheck: string
 ) => {
   if (!sessionObj || !botIdToCheck) return false;
+  
   try {
-    // Clean the bot_id of any quotes
-    const cleanBotId = botIdToCheck.replace(/"/g, '');
+    // Clean bot ID consistently
+    const cleanBotId = botIdToCheck.replace(/['"]/g, '').trim();
     
     const response = await fetch(`${service_url_recall}/debug/bot-status/${sessionObj.user?.id}`, {
-      headers: { Authorization: `Bearer ${sessionObj.access_token}` },
+      headers: { Authorization: `Bearer ${sessionObj.access_token}` }
     });
-    if (!response.ok) return false;
+    
+    if (!response.ok) {
+      console.log("Bot validation request failed:", response.status);
+      return false;
+    }
+    
     const data = await response.json();
     console.log("Bot session validation data:", data);
-    return data.mappings_valid && data.bot_id === cleanBotId;
+    
+    // More lenient validation - just check if bot exists
+    return data.bot_id === cleanBotId && data.user_has_active_bot;
   } catch (error) {
-    console.error("Bot session validation failed:", error);
-    return false;
+    console.error("Bot session validation error:", error);
+    return false; // Don't disconnect on network errors
   }
 };
 
@@ -607,6 +615,8 @@ const SpikedAI = () => {
       ),
     [chatHistory, meetingQuestions]
   );
+    const [hasError, setHasError] = useState(false);
+
 
   const unansweredMeetingQuestions = useMemo(
     () => meetingQuestions.filter((q) => !answeredMeetingQuestionTexts.has(q)),
@@ -633,260 +643,174 @@ const SpikedAI = () => {
 
   // REPLACEMENT for establishSseConnections with retry logic
   const establishSseConnections = async (currentBotId: string, retryCount = 0) => {
-    const maxRetries = 3;
-    const retryDelay = 2000;
+  const maxRetries = 3;
+  const retryDelay = 2000;
+  
+  if (!session) {
+    console.error("Cannot establish SSE connection without a session.");
+    return;
+  }
+  
+  closeSseConnections();
+  console.log(`Establishing SSE connections for botId: ${currentBotId} (attempt ${retryCount + 1})`);
+
+  try {
+    // --- Transcript SSE Connection ---
+    const transcriptController = new AbortController();
+    sseRefs.current.transcript = transcriptController;
     
-    if (!session) {
-      console.error("Cannot establish SSE connection without a session.");
-      return;
-    }
-    
-    closeSseConnections();
-    console.log(`Establishing SSE connections for botId: ${currentBotId} (attempt ${retryCount + 1})`);
+    // FIX: Use clean bot ID (no quotes needed since it's already clean from JSON)
+    const transcriptUrl = `${service_url_recall}/transcripts/${encodeURIComponent(currentBotId)}`;
 
-    try {
-      // --- Transcript SSE Connection ---
-      const transcriptController = new AbortController();
-      sseRefs.current.transcript = transcriptController;
-      // FIX: Remove quotes and ensure proper encoding
-      const cleanBotId = currentBotId.replace(/"/g, '');
-      const transcriptUrl = `${service_url_recall}/transcripts/${encodeURIComponent(cleanBotId)}`;
+    fetchEventSource(transcriptUrl, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      signal: transcriptController.signal,
+      openWhenHidden: true,
 
-      fetchEventSource(transcriptUrl, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        signal: transcriptController.signal,
-        openWhenHidden: true,
-
-        onmessage(ev) {
-          try {
-            const newSegmentData = JSON.parse(ev.data);
-            const newSegment = {
-              id: Date.now() + Math.random(),
-              speaker: newSegmentData.speaker || "Unknown",
-              text: newSegmentData.text,
-              start: 0,
-              end: 0,
-              language: "en",
-              created_at: new Date().toISOString(),
-              absolute_start_time: new Date().toISOString(),
-              absolute_end_time: new Date().toISOString(),
-            };
-            
-            setTranscript((prev) => [...prev, newSegment]);
-            
-            // CRITICAL: Update sliding window for sentiment analysis
-            setSlidingWindowTranscript(prev => {
-              const newWindow = [...prev, newSegmentData.text].slice(-10); // Keep last 10 segments
-              return newWindow;
-            });
-
-            console.log("New transcript segment received:", newSegment);
-          } catch (error) {
-            console.error("Failed to parse transcript SSE data:", error);
-          }
-        },
-        
-        onerror(err: unknown) {
-          console.error("Transcript EventSource failed:", err);
-          if (retryCount < maxRetries) {
-            console.log(`Retrying SSE connection in ${retryDelay}ms...`);
-            setTimeout(() => {
-              establishSseConnections(currentBotId, retryCount + 1);
-            }, retryDelay);
-          } else {
-            setIsBotRunning(false);
-            setIsConnected(false);
-            setIsTranscribing(false);
-          }
-          throw err;
-        },
-      });
-
-      // --- Question SSE Connection ---  
-      const questionController = new AbortController();
-      sseRefs.current.question = questionController;
-      const questionUrl = `${service_url_recall}/questions/${encodeURIComponent(cleanBotId)}`;
-
-      fetchEventSource(questionUrl, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        signal: questionController.signal,
-        openWhenHidden: true,
-
-        onmessage(ev) {
-          try {
-            interface QuestionSSEData {
-              question?: string;
-              [key: string]: any;
-            }
-            const newQuestionData: QuestionSSEData = JSON.parse(ev.data);
-            if (newQuestionData.question) {
-              setMeetingQuestions((prev: string[]) => {
-          if (!prev.includes(newQuestionData.question!)) {
-            return [...prev, newQuestionData.question!];
-          }
-          return prev;
-              });
-              console.log("New question detected:", newQuestionData.question);
-            }
-          } catch (error) {
-            console.error("Failed to parse question SSE data:", error);
-          }
-        },
-        
-        onerror(
-          err: unknown
-        ) {
-          console.error("Question EventSource failed:", err);
-          if (retryCount < maxRetries) {
-            console.log(`Retrying question SSE connection in ${retryDelay}ms...`);
-            setTimeout(() => {
-              establishSseConnections(currentBotId, retryCount + 1);
-            }, retryDelay);
-          }
-          throw err;
-        },
-      });
-      
-      console.log("SSE connections established successfully");
-      
-    } catch (error) {
-      console.error("Failed to establish SSE connections:", error);
-      if (retryCount < maxRetries) {
-        setTimeout(() => {
-          establishSseConnections(currentBotId, retryCount + 1);
-        }, retryDelay);
-      } else {
-        setIsBotRunning(false);
-        setIsConnected(false);
-        setIsTranscribing(false);
-      }
-    }
-  };
-
-  const startBot = async () => {
-    if (!meetingUrl || !session) {
-      console.error("Missing meetingUrl or session");
-      return;
-    }
-
-    try {
-      console.log("Starting bot with URL:", meetingUrl);
-      setBotStatus("starting");
-
-      const formData = new FormData();
-      formData.append("meeting_url", meetingUrl);
-
-      console.log("Sending request to backend...");
-      const response = await fetch(`${service_url_recall}/start`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session?.access_token ?? ""}`,
-        },
-        body: formData,
-      });
-
-      console.log("Response status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Backend error:", errorText);
-        throw new Error(`Failed to start bot: ${response.status} - ${errorText}`);
-      }
-
-      const newBotId = await response.text(); // Note: Changed from response.json() to response.text()
-      console.log("Received bot ID:", newBotId);
-
-      if (newBotId) {
-        setBotId(newBotId);
-        setBotStatus("running");
-        setIsBotRunning(true);
-        setIsConnected(true);
-        setIsTranscribing(true);
-
-        // CRITICAL: Reset sentiment data when starting new bot
-        setSentimentData(initialSentimentData);
-
-        setTranscript([
-          {
-            id: Date.now(),
+      onmessage(ev) {
+        try {
+          const newSegmentData = JSON.parse(ev.data);
+          const newSegment = {
+            id: Date.now() + Math.random(),
+            speaker: newSegmentData.speaker || "Unknown",
+            text: newSegmentData.text,
             start: 0,
             end: 0,
-            text: "Bot connected successfully. Real-time transcription active.",
             language: "en",
             created_at: new Date().toISOString(),
-            speaker: "Spiked",
             absolute_start_time: new Date().toISOString(),
             absolute_end_time: new Date().toISOString(),
-          },
-        ]);
+          };
+          
+          setTranscript((prev) => [...prev, newSegment]);
+          console.log("New transcript segment received:", newSegment);
+        } catch (error) {
+          console.error("Failed to parse transcript SSE data:", error);
+        }
+      },
+      
+      onerror(err) {
+        console.error("Transcript EventSource failed:", err);
+        if (retryCount < maxRetries) {
+          console.log(`Retrying SSE connection in ${retryDelay}ms...`);
+          setTimeout(() => {
+            establishSseConnections(currentBotId, retryCount + 1);
+          }, retryDelay);
+        }
+        throw err;
+      },
+    });
 
-        // CRITICAL: Start sentiment polling immediately after bot starts
-        console.log("Starting sentiment polling...");
-        setTimeout(() => {
-          fetchSentimentDataStaggered();
-        }, 3000); // Start polling after 3 seconds
+    // --- Question SSE Connection ---  
+    const questionController = new AbortController();
+    sseRefs.current.question = questionController;
+    const questionUrl = `${service_url_recall}/questions/${encodeURIComponent(currentBotId)}`;
 
-      } else {
-        throw new Error("Failed to get a valid bot ID from the backend.");
-      }
-    } catch (error) {
-      console.error("Error starting bot:", error);
-      setBotStatus("error");
-      setIsBotRunning(false);
-      setIsConnected(false);
-      setIsTranscribing(false);
+    fetchEventSource(questionUrl, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      signal: questionController.signal,
+      openWhenHidden: true,
+
+      onmessage(event) {
+        try {
+          const newQuestionData = JSON.parse(event.data);
+          if (newQuestionData.question) {
+            setMeetingQuestions((prev) => {
+              if (!prev.includes(newQuestionData.question)) {
+                return [...prev, newQuestionData.question];
+              }
+              return prev;
+            });
+            console.log("New question detected:", newQuestionData.question);
+          }
+        } catch (error) {
+          console.error("Failed to parse question SSE data:", error);
+        }
+      },
+      
+      onerror(err) {
+        console.error("Question EventSource failed:", err);
+        if (retryCount < maxRetries) {
+          setTimeout(() => {
+            establishSseConnections(currentBotId, retryCount + 1);
+          }, retryDelay);
+        }
+        throw err;
+      },
+    });
+    
+    console.log("SSE connections established successfully");
+    
+  } catch (error) {
+    console.error("Failed to establish SSE connections:", error);
+    if (retryCount < maxRetries) {
+      setTimeout(() => {
+        establishSseConnections(currentBotId, retryCount + 1);
+      }, retryDelay);
+    } else {
+      console.error("Max retries reached for SSE connections");
     }
-  };
+  }
+};
 
-  // Update stopBot function to clear sentiment polling
-  const stopBot = async () => {
-    if (!botId || !session) return;
+  const startBot = async () => {
+  if (!meetingUrl || !session) {
+    console.error("Missing meetingUrl or session");
+    return;
+  }
 
-    try {
-      setBotStatus("stopping");
+  try {
+    console.log("Starting bot with URL:", meetingUrl);
+    setBotStatus("starting");
 
-      // API call to stop the bot
-      await fetch(`${service_url_recall}/remove-bot/${botId}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+    const formData = new FormData();
+    formData.append("meeting_url", meetingUrl);
 
-      closeSseConnections();
+    console.log("Sending request to backend...");
+    const response = await fetch(`${service_url_recall}/start`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session?.access_token ?? ""}`,
+      },
+      body: formData,
+    });
 
-      // Clear all related state
-      setBotId(null);
-      setIsBotRunning(false);
-      setBotStatus("idle");
-      setIsConnected(false);
-      setIsTranscribing(false);
-      setTranscriptContextWindow([]);
-      setGeneratedQuestions([]);
-      setSentimentData(initialSentimentData); // Reset sentiment data
+    console.log("Response status:", response.status);
 
-      // Clear sentiment polling interval
-      if (sentimentPollingInterval) {
-        clearInterval(sentimentPollingInterval);
-        setSentimentPollingInterval(null);
-      }
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Backend error:", errorText);
+      throw new Error(`Failed to start bot: ${response.status} - ${errorText}`);
+    }
 
-      // Clear Redis mappings on frontend
-      sessionStorage.removeItem("spikedai_bot_id");
+    // FIX: Parse JSON response properly
+    const responseData = await response.json();
+    const newBotId = responseData.id; // Extract ID from JSON response
+    
+    console.log("Received bot ID:", newBotId);
 
-      setTranscript((prev) => [
-        ...prev,
+    if (newBotId) {
+      setBotId(newBotId);
+      setBotStatus("running");
+      setIsBotRunning(true);
+      setIsConnected(true);
+      setIsTranscribing(true);
+
+      // Reset sentiment data when starting new bot
+      setSentimentData(initialSentimentData);
+
+      setTranscript([
         {
           id: Date.now(),
           start: 0,
           end: 0,
-          text: "Bot disconnected. Transcription stopped.",
+          text: "Bot connected successfully. Real-time transcription active.",
           language: "en",
           created_at: new Date().toISOString(),
           speaker: "Spiked",
@@ -894,13 +818,68 @@ const SpikedAI = () => {
           absolute_end_time: new Date().toISOString(),
         },
       ]);
-      
-      console.log("Bot stopped and cleaned up successfully");
-    } catch (error) {
-      console.error("Error stopping bot:", error);
-      setBotStatus("error");
+
+      // Start SSE connections immediately
+      console.log("Starting SSE connections...");
+      await establishSseConnections(newBotId);
+
+      // Start sentiment polling after connections are established
+      setTimeout(() => {
+        fetchSentimentDataStaggered();
+      }, 5000); // Start after 5 seconds
+
+    } else {
+      throw new Error("No bot ID received from backend");
     }
-  };
+  } catch (error) {
+    console.error("Error starting bot:", error);
+    setBotStatus("error");
+    setIsBotRunning(false);
+    setIsConnected(false);
+    setIsTranscribing(false);
+    
+    // Show user-friendly error
+    alert(`Failed to start bot: ${
+      error instanceof Error ? error.message : String(error)
+    }`);
+  }
+};
+
+  const stopBot = async () => {
+  if (!botId || !session) {
+    console.error("No botId or session to stop bot");
+    return;
+  }
+  try {
+    setBotStatus("stopping");
+    const response = await fetch(`${service_url_recall}/stop/${encodeURIComponent(botId)}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to stop bot: ${response.status} - ${errorText}`);
+    }
+    setIsBotRunning(false);
+    setIsConnected(false);
+    setIsTranscribing(false);
+    setBotStatus("idle");
+    setBotId(null);
+    closeSseConnections();
+    setTranscript([]);
+    setProcessedTranscript([]);
+    setMeetingQuestions([]);
+    setSuggestedQuestions([]);
+    setSentimentData(initialSentimentData);
+    console.log("Bot stopped successfully");
+  } catch (error) {
+    console.error("Error stopping bot:", error);
+    setBotStatus("error");
+    alert(`Failed to stop bot: ${error instanceof Error ? error.message : String(error)}`);
+  }
+};
 
   const debugSentimentStatus = async () => {
   if (!session || !botId) {
@@ -1012,61 +991,37 @@ const SpikedAI = () => {
   }, [botId, session]);
 
   useEffect(() => {
-    let sentimentInterval: NodeJS.Timeout | null = null;
+  let sentimentInterval: NodeJS.Timeout | null = null;
+  
+  // Start polling only when bot is running  
+  if (isBotRunning && session && botId) {
+    console.log("Starting sentiment polling interval");
     
-    // Start polling for sentiment only when the bot is running
-    if (isBotRunning && session && botId) {
-      console.log("Starting sentiment polling interval");
+    // Start polling after delay
+    setTimeout(() => {
+      fetchSentimentDataStaggered();
       
-      // Initial validation and fetch after a longer delay
-      setTimeout(async () => {
-        if (await validateBotSession(session, botId)) {
-          console.log("Bot session validated, starting sentiment analysis");
-          fetchSentimentDataStaggered();
-          
-          // Set up regular polling only after successful validation
-          sentimentInterval = setInterval(async () => {
-            // Validate session periodically (every 5 polls)
-            const pollCount = Math.floor(Date.now() / 5000) % 5;
-            if (pollCount === 0) {
-              if (!botId || !await validateBotSession(session, botId)) {
-                console.log("Periodic validation failed, stopping sentiment polling");
-                setIsBotRunning(false);
-                setIsConnected(false);
-                setIsTranscribing(false);
-                if (sentimentInterval) {
-                  clearInterval(sentimentInterval);
-                }
-                return;
-              }
-            }
-            fetchSentimentDataStaggered();
-          }, 5000); // Poll every 5 seconds
+      // Set up regular polling without validation checks
+      sentimentInterval = setInterval(() => {
+        fetchSentimentDataStaggered();
+      }, 8000); // Poll every 8 seconds
 
-          setSentimentPollingInterval(sentimentInterval);
-        } else {
-          console.log("Initial bot session validation failed");
-          setIsBotRunning(false);
-          setIsConnected(false);
-          setIsTranscribing(false);
-        }
-      }, 5000); // Wait 5 seconds before starting
-    } else {
-      // If the bot stops, clear the interval
-      if (sentimentPollingInterval) {
-        clearInterval(sentimentPollingInterval);
-        setSentimentPollingInterval(null);
-        console.log("Sentiment polling stopped.");
-      }
+      setSentimentPollingInterval(sentimentInterval);
+    }, 8000); // Initial delay of 8 seconds
+  } else {
+    // Clear interval if bot stops
+    if (sentimentPollingInterval) {
+      clearInterval(sentimentPollingInterval);
+      setSentimentPollingInterval(null);
     }
+  }
 
-    // Cleanup function to clear the interval when dependencies change
-    return () => {
-      if (sentimentInterval) {
-        clearInterval(sentimentInterval);
-      }
-    };
-  }, [isBotRunning, session, botId]);
+  return () => {
+    if (sentimentInterval) {
+      clearInterval(sentimentInterval);
+    }
+  };
+}, [isBotRunning, session, botId]);
 
   // Initialize cached data on component mount
   useEffect(() => {
@@ -1233,6 +1188,21 @@ const SpikedAI = () => {
       color: "from-emerald-500 to-teal-500",
     },
   ]);
+
+  useEffect(() => {
+    const handleError = (error: unknown) => {
+      console.error('Global error caught:', error);
+      setHasError(true);
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleError);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleError);
+    };
+  }, []);
 
   const handleCategoryToggle = (categoryId: string) => {
     if (categoryId === "all") {
@@ -1923,121 +1893,98 @@ const SpikedAI = () => {
   };
 
   const fetchSentimentComponent = async (component: string) => {
-    if (!session) {
-      throw new Error("No session available");
-    }
-    
-    // Validate bot session first
-    if (!botId || !await validateBotSession(session, botId)) {
-      console.log("Invalid bot session detected, stopping sentiment polling");
-      setIsBotRunning(false);
-      setIsConnected(false);
-      setIsTranscribing(false);
-      if (sentimentPollingInterval) {
-        clearInterval(sentimentPollingInterval);
-        setSentimentPollingInterval(null);
-      }
-      return;
-    }
-    
-    try {
-      console.log(`Fetching sentiment component: ${component}`);
-      let url = `${service_url_recall}/sentiment/${component}`;
+  if (!session) {
+    throw new Error("No session available");
+  }
+  
+  try {
+    console.log(`Fetching sentiment component: ${component}`);
+    let url = `${service_url_recall}/sentiment/${component}`;
 
-      const response = await fetch(url, {
-        headers: { 
-          Authorization: `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-      });
+    const response = await fetch(url, {
+      headers: { 
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      // Only disconnect on persistent errors, not single failures
+      if (response.status === 403 || response.status === 404) {
+        console.warn(`Sentiment ${component} access issue: ${response.status}`);
+        // Don't immediately disconnect - might be temporary
+        return;
+      }
       
-      if (!response.ok) {
-        if (response.status === 403 || response.status === 404) {
-          console.log("Bot session expired or access denied, stopping sentiment polling");
-          setIsBotRunning(false);
-          setIsConnected(false);
-          setIsTranscribing(false);
-          if (sentimentPollingInterval) {
-            clearInterval(sentimentPollingInterval);
-            setSentimentPollingInterval(null);
-          }
-          return;
-        }
-        const errorText = await response.text();
-        console.error(`Sentiment ${component} request failed:`, response.status, errorText);
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      const errorText = await response.text();
+      console.error(`Sentiment ${component} request failed:`, response.status, errorText);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
 
-      const data = await response.json();
-      console.log(`Sentiment component ${component} data:`, data);
+    const data = await response.json();
+    console.log(`Sentiment component ${component} data received`);
 
-      // Rest of the switch statement remains the same...
-      switch (component) {
-        case "alerts":
-          const newAlerts = data.critical_alerts || [];
-          setSentimentData((prev) => {
-            const existingAlertIds = new Set(prev.critical_alerts.map((a) => a.id));
-            const uniqueNewAlerts = newAlerts.filter(
-              (alert: CriticalAlert) => !existingAlertIds.has(alert.id)
-            );
-            if (uniqueNewAlerts.length === 0) return prev;
-            console.log(`Adding ${uniqueNewAlerts.length} new alerts`);
-            return {
-              ...prev,
-              critical_alerts: [...prev.critical_alerts, ...uniqueNewAlerts],
-              last_updated: new Date().toISOString(),
-            };
-          });
-          break;
+    // Update state based on component type
+    switch (component) {
+      case "alerts":
+        const newAlerts = data.critical_alerts || [];
+        setSentimentData((prev) => {
+          const existingAlertIds = new Set(prev.critical_alerts.map((a) => a.id));
+          const uniqueNewAlerts = newAlerts.filter(
+            (alert: CriticalAlert) => !existingAlertIds.has(alert.id)
+          );
+          if (uniqueNewAlerts.length === 0) return prev;
+          return {
+            ...prev,
+            critical_alerts: [...prev.critical_alerts, ...uniqueNewAlerts],
+            last_updated: new Date().toISOString(),
+          };
+        });
+        break;
 
-        case "participants":
+      case "participants":
+        setSentimentData((prev) => ({
+          ...prev,
+          participant_cards: data.participant_cards || [],
+          last_updated: new Date().toISOString(),
+        }));
+        break;
+
+      case "medpic":
+        if (data.medpic_progress) {
           setSentimentData((prev) => ({
             ...prev,
-            participant_cards: data.participant_cards || [],
+            medpic_progress: data.medpic_progress,
             last_updated: new Date().toISOString(),
           }));
-          console.log(`Updated participant cards: ${data.participant_cards?.length || 0} participants`);
-          break;
+        }
+        break;
 
-        case "medpic":
-          if (data.medpic_progress) {
-            setSentimentData((prev) => ({
-              ...prev,
-              medpic_progress: data.medpic_progress,
-              last_updated: new Date().toISOString(),
-            }));
-            console.log("Updated MEDPIC progress");
-          }
-          break;
+      case "buying-signals":
+        if (data.buying_signals) {
+          setSentimentData((prev) => ({
+            ...prev,
+            buying_signals: data.buying_signals,
+            last_updated: new Date().toISOString(),
+          }));
+        }
+        break;
 
-        case "buying-signals":
-          if (data.buying_signals) {
-            setSentimentData((prev) => ({
-              ...prev,
-              buying_signals: data.buying_signals,
-              last_updated: new Date().toISOString(),
-            }));
-            console.log(`Updated buying signals: ${data.buying_signals.total_score} points`);
-          }
-          break;
-
-        case "health":
-          if (data.conversation_health) {
-            setSentimentData((prev) => ({
-              ...prev,
-              conversation_health: data.conversation_health,
-              last_updated: new Date().toISOString(),
-            }));
-            console.log("Updated conversation health");
-          }
-          break;
-      }
-    } catch (error) {
-      console.error(`Error fetching sentiment component ${component}:`, error);
-      // Don't break polling for individual component failures
-      // Just log the error and continue
+      case "health":
+        if (data.conversation_health) {
+          setSentimentData((prev) => ({
+            ...prev,
+            conversation_health: data.conversation_health,
+            last_updated: new Date().toISOString(),
+          }));
+        }
+        break;
     }
-  };
+  } catch (error) {
+    console.error(`Error fetching sentiment component ${component}:`, error);
+    throw error;
+  }
+};
 
   const fetchAlertSuggestion = async (
     alertId: string
@@ -2152,81 +2099,47 @@ const SpikedAI = () => {
     }, [sentimentData.critical_alerts]);
 
   const fetchSentimentDataStaggered = async () => {
-    try {
-      console.log("Fetching sentiment data...");
+  try {
+    console.log("Fetching sentiment data...");
 
-      // Check if we still have an active bot session
-      if (!isBotRunning || !session || !botId) {
-        console.log("No active bot session, skipping sentiment fetch");
-        return;
-      }
-
-      // Debug: Check bot status first
-      try {
-        const debugResponse = await fetch(`${service_url_recall}/debug/bot-status/${session.user?.id}`, {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        
-        if (debugResponse.ok) {
-          const debugData = await debugResponse.json();
-          console.log("Bot status debug:", debugData);
-          
-          if (!debugData.mappings_valid) {
-            console.log("Bot mappings invalid, stopping sentiment polling");
-            setIsBotRunning(false);
-            setIsConnected(false);
-            setIsTranscribing(false);
-            return;
-          }
-        }
-      } catch (debugError) {
-        console.warn("Debug endpoint failed:", debugError);
-      }
-
-      // Always fetch critical alerts (highest priority) with error handling
-      try {
-        await fetchSentimentComponent("alerts");
-      } catch (error) {
-        console.error("Failed to fetch alerts:", error);
-        // If we get 403/404, the bot session may be invalid
-        const errorMessage = (error as any).message ?? "";
-        if (errorMessage.includes('403') || errorMessage.includes('404')) {
-          console.log("Bot session appears invalid, stopping polling");
-          setIsBotRunning(false);
-          setIsConnected(false);
-          setIsTranscribing(false);
-          return;
-        }
-      }
-
-      const now = Date.now();
-      // Cycle through different components to avoid overwhelming the backend
-      const cycleIndex = Math.floor(now / 1000) % 4; // 4 different cycles, every 3 seconds
-
-      try {
-        switch (cycleIndex) {
-          case 0:
-            await fetchSentimentComponent("participants");
-            break;
-          case 1:
-            await fetchSentimentComponent("buying-signals");
-            break;
-          case 2:
-            await fetchSentimentComponent("medpic");
-            break;
-          case 3:
-            await fetchSentimentComponent("health");
-            break;
-        }
-        console.log(`Sentiment cycle ${cycleIndex} completed successfully`);
-      } catch (error) {
-        console.error(`Error in sentiment cycle ${cycleIndex}:`, error);
-        // Don't break the polling for individual component failures
-      }
-    } catch (error) {
-      console.error("Error in staggered sentiment fetching:", error);
+    // Simple check - don't disconnect on first error
+    if (!isBotRunning || !session || !botId) {
+      console.log("No active bot session, skipping sentiment fetch");
+      return;
     }
-  };
+
+    // Always fetch critical alerts first
+    try {
+      await fetchSentimentComponent("alerts");
+    } catch (error) {
+      console.error("Failed to fetch alerts:", error);
+      // Don't return - continue with other components
+    }
+
+    // Cycle through other components
+    const now = Date.now();
+    const cycleIndex = Math.floor(now / 1000) % 4;
+
+    try {
+      switch (cycleIndex) {
+        case 0:
+          await fetchSentimentComponent("participants");
+          break;
+        case 1:
+          await fetchSentimentComponent("buying-signals");
+          break;
+        case 2:
+          await fetchSentimentComponent("medpic");
+          break;
+      }
+      console.log(`Sentiment cycle ${cycleIndex} completed`);
+    } catch (error) {
+      console.error(`Error in sentiment cycle ${cycleIndex}:`, error);
+    }
+  } catch (error) {
+    console.error("Error in sentiment fetching:", error);
+  }
+};
 
   const checkApiHealth = async () => {
     try {
@@ -4604,6 +4517,25 @@ const SpikedAI = () => {
     );
   }
 
+  if (hasError) {
+  return (
+    <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
+        <button 
+          onClick={() => {
+            setHasError(false);
+            window.location.reload();
+          }}
+          className="px-4 py-2 bg-blue-500 text-white rounded"
+        >
+          Reload Page
+        </button>
+      </div>
+    </div>
+  );
+}
+
   return (
     <div
       className={`h-screen overflow-hidden transition-all duration-300 ${
@@ -6775,3 +6707,4 @@ const SpikedAI = () => {
 };
 
 export default SpikedAI;
+

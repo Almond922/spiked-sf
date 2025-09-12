@@ -4860,7 +4860,7 @@ const SpikedAI = () => {
               {/* Note Taker Button */}
               <div className="relative group">
                 <button
-                  onClick={() => navigate("/note-taker")}
+                  onClick={() => window.open("/note-taker", "_blank")}
                   className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
                     isDarkMode
                       ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"

@@ -5,9 +5,8 @@ import rehypeRaw from "rehype-raw";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-    
+import EmailDialog from '../components/EmailDialog';
+
 import {
     Send,
     Users,
@@ -33,7 +32,7 @@ import {
     X,
     Save
 } from 'lucide-react';
-
+import { jsPDF } from "jspdf";
 
 // Enhanced Markdown Component with custom styling
 const EnhancedMarkdown = ({ children, isDarkMode }: { children: string; isDarkMode: boolean }) => {
@@ -339,400 +338,227 @@ export default function Notetaker() {
     const [isAITyping, setIsAITyping] = useState(false);
     const [additionalQuestions, setAdditionalQuestions] = useState<string[]>([]);
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+    const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
 
-    // Client-side PDF Generation function using jsPDF
-    const generatePDF = async () => {
-        try {
-            setIsGeneratingPDF(true);
-            
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            const margin = 20;
-            const lineHeight = 7;
-            let currentY = margin;
-            
-            // Helper function to add text with word wrapping
-            const addTextToPDF = (text: string, fontSize: number = 12, fontStyle: string = 'normal', color: [number, number, number] = [0, 0, 0]) => {
-                pdf.setFontSize(fontSize);
-                pdf.setFont('helvetica', fontStyle);
-                pdf.setTextColor(color[0], color[1], color[2]);
-                
-                const splitText = pdf.splitTextToSize(text, pageWidth - 2 * margin);
-                
-                // Check if we need a new page
-                if (currentY + (splitText.length * lineHeight) > pageHeight - margin) {
-                    pdf.addPage();
-                    currentY = margin;
-                }
-                
-                pdf.text(splitText, margin, currentY);
-                currentY += splitText.length * lineHeight + 5;
-            };
-            
-            // Helper function to add a section break
-            const addSectionBreak = () => {
-                currentY += 10;
-                if (currentY > pageHeight - margin - 20) {
-                    pdf.addPage();
-                    currentY = margin;
-                }
-            };
-            
-            // Title
-            addTextToPDF('SpikedAI Conversation Export', 20, 'bold', [220, 38, 38]);
-            addSectionBreak();
-            
-            // Meeting information
-            const exportDate = new Date().toLocaleString();
-            addTextToPDF(`Meeting URL: ${meetingUrl || 'N/A'}`, 12, 'normal', [100, 100, 100]);
-            addTextToPDF(`Export Date: ${exportDate}`, 12, 'normal', [100, 100, 100]);
-            addSectionBreak();
-            
-            // AI Assistant Conversation
-            if (chatMessages.length > 0) {
-                addTextToPDF('AI Assistant Conversation', 16, 'bold', [220, 38, 38]);
-                addSectionBreak();
-                
-                chatMessages.forEach((message) => {
-                    const timestamp = message.timestamp.toLocaleString();
-                    const role = message.isUser ? 'You' : 'AI Assistant';
-                    
-                    // Add message header
-                    addTextToPDF(`${role} (${timestamp})`, 11, 'bold', message.isUser ? [59, 130, 246] : [16, 185, 129]);
-                    
-                    // Clean the message text (remove markdown formatting for PDF)
-                    let cleanText = message.text
-                        .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold markdown
-                        .replace(/\*(.*?)\*/g, '$1')      // Remove italic markdown
-                        .replace(/`(.*?)`/g, '$1')        // Remove code markdown
-                        .replace(/#{1,6}\s/g, '')         // Remove headers
-                        .replace(/```[\s\S]*?```/g, '[Code Block]') // Replace code blocks
-                        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); // Remove links, keep text
-                    
-                    addTextToPDF(cleanText, 11, 'normal');
-                    addSectionBreak();
-                });
-            }
-            
-            // Meeting Transcript
-            if (transcript.length > 0) {
-                // Add new page for transcript
-                pdf.addPage();
-                currentY = margin;
-                
-                addTextToPDF('Meeting Transcript', 16, 'bold', [220, 38, 38]);
-                addSectionBreak();
-                
-                transcript.forEach((segment) => {
-                    const speaker = segment.speaker || 'Unknown Speaker';
-                    const startTime = (segment as any).start_time || 0;
-                    const minutes = Math.floor(startTime / 60);
-                    const seconds = Math.floor(startTime % 60);
-                    const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                    
-                    // Add speaker and time
-                    addTextToPDF(`${speaker} (${timeStr})`, 11, 'bold', [124, 58, 237]);
-                    
-                    // Add transcript text
-                    addTextToPDF(segment.text, 10, 'normal');
-                    addSectionBreak();
-                });
-            }
-            
-            // Additional Questions
-            if (additionalQuestions.length > 0) {
-                // Add new page for questions if needed
-                if (currentY > pageHeight - margin - 100) {
-                    pdf.addPage();
-                    currentY = margin;
-                }
-                
-                addTextToPDF('Suggested Follow-up Questions', 16, 'bold', [220, 38, 38]);
-                addSectionBreak();
-                
-                additionalQuestions.forEach((question, index) => {
-                    addTextToPDF(`${index + 1}. ${question}`, 11, 'normal');
-                });
-            }
-            
-            // Generate filename with timestamp
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-            const filename = `spikedai_conversation_${timestamp}.pdf`;
-            
-            // Save the PDF
-            pdf.save(filename);
-            
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-            alert('Failed to generate PDF. Please try again.');
-        } finally {
-            setIsGeneratingPDF(false);
+    // Generate formatted email content
+    const generateEmailContent = () => {
+        if (!chatMessages || chatMessages.length === 0) {
+            alert('No conversation to share. Please start a chat first.');
+            return null;
         }
+
+        const summary = chatMessages
+            .filter(msg => !msg.isUser)
+            .map(msg => msg.text)
+            .join('\n\n');
+
+        const emailSubject = `SpikedAI Meeting Summary - ${new Date().toLocaleDateString()}`;
+        const emailBody = `
+Meeting Summary from SpikedAI
+Date: ${new Date().toLocaleString()}
+Meeting URL: ${meetingUrl || 'N/A'}
+
+${summary}
+
+---
+Generated by SpikedAI
+Visit us at: https://www.spiked.ai
+        `.trim();
+
+        return { subject: encodeURIComponent(emailSubject), body: encodeURIComponent(emailBody) };
     };
 
-    // Alternative: Visual PDF generation that captures the chat interface
-    const generateVisualPDF = async () => {
+    // Share via Email Dialog
+    const handleShareClick = () => {
+        if (!chatMessages || chatMessages.length === 0) {
+            alert('No conversation to share. Please start a chat first.');
+            return;
+        }
+        setIsEmailDialogOpen(true);
+    };
+
+    // PDF Generation function
+    const generatePDF = () => {
+        if (!chatMessages || chatMessages.length === 0) {
+            alert('No conversation to export. Please start a chat first.');
+            return;
+        }
+
         try {
             setIsGeneratingPDF(true);
             
-            // Find the chat messages container
-            const chatContainer = document.querySelector('[data-chat-container]');
-            if (!chatContainer) {
-                alert('Chat container not found. Please try the text-based PDF option.');
-                return;
-            }
-            
-            // Create canvas from the chat container
-            const canvas = await html2canvas(chatContainer as HTMLElement, {
-                height: chatContainer.scrollHeight,
-                width: chatContainer.scrollWidth,
-                useCORS: true
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
             });
             
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            
-            // Calculate dimensions
-            const canvasAspectRatio = canvas.height / canvas.width;
-            const pdfWidth = pageWidth - 20; // 10mm margin on each side
-            const pdfHeight = pdfWidth * canvasAspectRatio;
-            
-            // If the content is taller than one page, we'll need to split it
-            const totalPages = Math.ceil(pdfHeight / (pageHeight - 40));
-            
-            for (let page = 0; page < totalPages; page++) {
-                if (page > 0) {
-                    pdf.addPage();
-                }
-                
-                pdf.addImage(
-                    canvas.toDataURL('image/png'),
-                    'PNG',
-                    10, // x position
-                    20, // y position
-                    pdfWidth,
-                    Math.min(pdfHeight - (page * (pageHeight - 40)), pageHeight - 40)
-                );
+            if (!doc) {
+                throw new Error('Failed to initialize PDF document');
             }
             
-            // Generate filename with timestamp
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-            const filename = `spikedai_visual_${timestamp}.pdf`;
-            
-            pdf.save(filename);
-            
-        } catch (error) {
-            console.error('Error generating visual PDF:', error);
-            alert('Failed to generate visual PDF. Please try the text-based option.');
-        } finally {
-            setIsGeneratingPDF(false);
-        }
-    };
+            const accentRed = '#F44336';
+            const accentGreen = '#4CAF50';
+            const accentBlue = '#2196F3';
+            const textPrimary = '#212121';
+            const textSecondary = '#757575';
+            const borderLight = '#E0E0E0';
+            const logoBase64 = 'data:image/jpeg;base64,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';
+            let yPosition = 20;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 20;
+            const contentWidth = pageWidth - (margin * 2);
+            const lineHeight = 7;
 
-    // Email sharing function
-    const shareViaEmail = async (useVisualPdf: boolean = false) => {
-        try {
-            setIsGeneratingPDF(true);
-            
-            let pdf: jsPDF;
-            let filename: string;
-            let subject = 'SpikedAI Conversation Export';
-            
-            if (useVisualPdf) {
-                // Generate visual PDF for email
-                const chatContainer = document.querySelector('[data-chat-container]');
-                if (!chatContainer) {
-                    alert('Chat container not found. Using text-based PDF instead.');
-                    useVisualPdf = false;
+            // Helper functions
+            const checkPageBreak = (requiredHeight: number): void => {
+                if (yPosition + requiredHeight > doc.internal.pageSize.height - 25) {
+                    addFooter();
+                    doc.addPage();
+                    addHeader();
+                    yPosition = 40;
                 }
-            }
-            
-            if (useVisualPdf) {
-                // Visual PDF generation for email
-                const chatContainer = document.querySelector('[data-chat-container]');
-                const canvas = await html2canvas(chatContainer as HTMLElement, {
-                    height: chatContainer!.scrollHeight,
-                    width: chatContainer!.scrollWidth,
-                    useCORS: true
-                });
-                
-                pdf = new jsPDF('p', 'mm', 'a4');
-                const pageWidth = pdf.internal.pageSize.getWidth();
-                const pageHeight = pdf.internal.pageSize.getHeight();
-                
-                const canvasAspectRatio = canvas.height / canvas.width;
-                const pdfWidth = pageWidth - 20;
-                const pdfHeight = pdfWidth * canvasAspectRatio;
-                
-                const totalPages = Math.ceil(pdfHeight / (pageHeight - 40));
-                
-                for (let page = 0; page < totalPages; page++) {
-                    if (page > 0) {
-                        pdf.addPage();
-                    }
-                    
-                    pdf.addImage(
-                        canvas.toDataURL('image/png'),
-                        'PNG',
-                        10,
-                        20,
-                        pdfWidth,
-                        Math.min(pdfHeight - (page * (pageHeight - 40)), pageHeight - 40)
-                    );
+            };
+
+            const addHeader = (): void => {
+                // Add logo with a very small size (4mm x 4mm)
+                try {
+                    // Load and add the logo with a tiny size
+                    doc.addImage('/logo.png', 'PNG', margin, 15, 4, 4);
+                } catch (error) {
+                    console.error('Error adding logo:', error);
                 }
-                
-                filename = `spikedai_visual_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)}.pdf`;
-                subject = 'SpikedAI Visual Conversation Export';
-            } else {
-                // Text-based PDF generation for email (reuse existing logic)
-                pdf = new jsPDF('p', 'mm', 'a4');
-                const pageWidth = pdf.internal.pageSize.getWidth();
-                const pageHeight = pdf.internal.pageSize.getHeight();
-                const margin = 20;
-                const lineHeight = 7;
-                let currentY = margin;
-                
-                const addTextToPDF = (text: string, fontSize: number = 12, fontStyle: string = 'normal', color: [number, number, number] = [0, 0, 0]) => {
-                    pdf.setFontSize(fontSize);
-                    pdf.setFont('helvetica', fontStyle);
-                    pdf.setTextColor(color[0], color[1], color[2]);
-                    
-                    const splitText = pdf.splitTextToSize(text, pageWidth - 2 * margin);
-                    
-                    if (currentY + (splitText.length * lineHeight) > pageHeight - margin) {
-                        pdf.addPage();
-                        currentY = margin;
-                    }
-                    
-                    pdf.text(splitText, margin, currentY);
-                    currentY += splitText.length * lineHeight + 5;
-                };
-                
-                const addSectionBreak = () => {
-                    currentY += 10;
-                    if (currentY > pageHeight - margin - 20) {
-                        pdf.addPage();
-                        currentY = margin;
-                    }
-                };
-                
-                // Add content (same as generatePDF function)
-                addTextToPDF('SpikedAI Conversation Export', 20, 'bold', [220, 38, 38]);
-                addSectionBreak();
-                
-                const exportDate = new Date().toLocaleString();
-                addTextToPDF(`Meeting URL: ${meetingUrl || 'N/A'}`, 12, 'normal', [100, 100, 100]);
-                addTextToPDF(`Export Date: ${exportDate}`, 12, 'normal', [100, 100, 100]);
-                addSectionBreak();
-                
-                if (chatMessages.length > 0) {
-                    addTextToPDF('AI Assistant Conversation', 16, 'bold', [220, 38, 38]);
-                    addSectionBreak();
-                    
-                    chatMessages.forEach((message) => {
-                        const timestamp = message.timestamp.toLocaleString();
-                        const role = message.isUser ? 'You' : 'AI Assistant';
-                        
-                        addTextToPDF(`${role} (${timestamp})`, 11, 'bold', message.isUser ? [59, 130, 246] : [16, 185, 129]);
-                        
-                        let cleanText = message.text
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(18);
+                doc.setTextColor(textPrimary);
+                doc.text('SpikedAI', margin + 18, 21);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                doc.setTextColor(textSecondary);
+                doc.text('Conversation Export', pageWidth - margin, 20, { align: 'right' });
+                doc.setDrawColor(accentRed);
+                doc.setLineWidth(0.5);
+                doc.line(margin, 25, pageWidth - margin, 25);
+            };
+
+            const addFooter = (): void => {
+                const pageNumber = doc.getNumberOfPages();
+                doc.setFontSize(8);
+                doc.setTextColor(textSecondary);
+                doc.text(`Page ${pageNumber}`, pageWidth - margin, 290, { align: 'right' });
+                doc.text('Confidential & Proprietary. All rights reserved to SpikedAI', margin, 290);
+            };
+
+            // Start document creation
+            addHeader();
+            yPosition = 40;
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(22);
+            doc.setTextColor(textPrimary);
+            doc.text('Conversation Summary', margin, yPosition);
+            yPosition += 15;
+
+            // Add metadata section
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(textSecondary);
+            doc.text(`Meeting URL: ${meetingUrl || 'N/A'}`, margin, yPosition);
+            doc.text(`Export Date: ${new Date().toLocaleString()}`, margin, yPosition + 5);
+            doc.text(`Total Messages: ${chatMessages.length}`, margin, yPosition + 10);
+            yPosition += 20;
+
+            // Add conversation messages
+            if (chatMessages.length > 0) {
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(18);
+                doc.setTextColor(textPrimary);
+                doc.text('Chat Transcript', margin, yPosition);
+                yPosition += 10;
+
+                chatMessages.forEach((message) => {
+                    checkPageBreak(60);
+
+                    doc.setDrawColor(borderLight);
+                    doc.setLineWidth(0.2);
+                    doc.line(margin, yPosition - 5, pageWidth - margin, yPosition - 5);
+
+                    doc.setFontSize(11);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(message.isUser ? accentBlue : accentGreen);
+                    const role = message.isUser ? 'You' : 'AI Assistant';
+                    const timestamp = message.timestamp.toLocaleString();
+                    doc.text(`${role} (${timestamp})`, margin, yPosition + 5);
+
+                    // Clean and add message text
+                    let cleanText = message.text
+                        ? message.text
                             .replace(/\*\*(.*?)\*\*/g, '$1')
                             .replace(/\*(.*?)\*/g, '$1')
                             .replace(/`(.*?)`/g, '$1')
                             .replace(/#{1,6}\s/g, '')
                             .replace(/```[\s\S]*?```/g, '[Code Block]')
-                            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+                            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+                            .trim()
+                        : '';
+
+                    if (cleanText) {
+                        doc.setFont('helvetica', 'normal');
+                        doc.setFontSize(10);
+                        doc.setTextColor(textPrimary);
+                        const lines = doc.splitTextToSize(cleanText, contentWidth);
                         
-                        addTextToPDF(cleanText, 11, 'normal');
-                        addSectionBreak();
-                    });
-                }
-                
-                if (transcript.length > 0) {
-                    pdf.addPage();
-                    currentY = margin;
-                    
-                    addTextToPDF('Meeting Transcript', 16, 'bold', [220, 38, 38]);
-                    addSectionBreak();
-                    
-                    transcript.forEach((segment) => {
-                        const speaker = segment.speaker || 'Unknown Speaker';
-                        const startTime = (segment as any).start_time || 0;
-                        const minutes = Math.floor(startTime / 60);
-                        const seconds = Math.floor(startTime % 60);
-                        const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                        // Check if we need a page break for this message
+                        const messageHeight = lines.length * lineHeight + 20;
+                        checkPageBreak(messageHeight);
                         
-                        addTextToPDF(`${speaker} (${timeStr})`, 11, 'bold', [124, 58, 237]);
-                        addTextToPDF(segment.text, 10, 'normal');
-                        addSectionBreak();
-                    });
-                }
-                
-                if (additionalQuestions.length > 0) {
-                    if (currentY > pageHeight - margin - 100) {
-                        pdf.addPage();
-                        currentY = margin;
+                        doc.text(lines, margin, yPosition + 12);
+                        yPosition += messageHeight;
+                    } else {
+                        yPosition += 10; // Add some spacing even for empty messages
                     }
-                    
-                    addTextToPDF('Suggested Follow-up Questions', 16, 'bold', [220, 38, 38]);
-                    addSectionBreak();
-                    
-                    additionalQuestions.forEach((question, index) => {
-                        addTextToPDF(`${index + 1}. ${question}`, 11, 'normal');
-                    });
-                }
+                });
+            }
+
+            // Add additional questions if any
+            if (additionalQuestions.length > 0) {
+                checkPageBreak(60);
                 
-                filename = `spikedai_conversation_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)}.pdf`;
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(18);
+                doc.setTextColor(textPrimary);
+                doc.text('Suggested Follow-up Questions', margin, yPosition);
+                yPosition += 10;
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                doc.setTextColor(textPrimary);
+
+                additionalQuestions.forEach((question, index) => {
+                    checkPageBreak(15);
+                    doc.text(`${index + 1}. ${question}`, margin, yPosition);
+                    yPosition += 7;
+                });
             }
+
+            addFooter();
+
+            // Generate filename and save
+            const timestamp = new Date().toISOString().split('T')[0];
+            const filename = `SpikedAI_Conversation_${timestamp}.pdf`;
             
-            // Create email body
-            const emailBody = `Hi,
-
-I'm sharing the SpikedAI conversation export from our recent meeting.
-
-Meeting Details:
-- Meeting URL: ${meetingUrl || 'N/A'}
-- Export Date: ${new Date().toLocaleString()}
-- Messages: ${chatMessages.length} conversation exchanges
-- Transcript: ${transcript.length > 0 ? 'Included' : 'Not available'}
-
-Please find the PDF attachment with the complete conversation and transcript.
-
-Best regards,
-SpikedAI Export`;
-
-            // Create mailto link with PDF attachment (note: this has limitations)
-            const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
-            
-            // Save PDF for manual attachment
-            pdf.save(filename);
-            
-            // Show email instructions
-            const emailInstructions = `📧 Email Sharing Instructions:
-
-1. ✅ PDF has been downloaded: "${filename}"
-2. 📎 Open your email client and create a new message
-3. 📎 Attach the downloaded PDF file
-4. 📝 Use this suggested content:
-
-Subject: ${subject}
-
-${emailBody}
-
-Would you like me to open your default email client?`;
-
-            const openEmailClient = confirm(emailInstructions);
-            
-            if (openEmailClient) {
-                // Open email client with pre-filled content
-                window.location.href = mailtoLink;
+            try {
+                doc.save(filename);
+                console.log('PDF generated successfully:', filename);
+            } catch (saveError) {
+                console.error('Error saving PDF:', saveError);
+                throw new Error('Failed to save the PDF file');
             }
-            
+
         } catch (error) {
-            console.error('Error sharing via email:', error);
-            alert('Failed to prepare email. The PDF has been downloaded instead - you can manually attach it to an email.');
+            console.error('Error generating PDF:', error);
+            alert('Failed to generate PDF: ' + (error instanceof Error ? error.message : 'Unknown error'));
         } finally {
             setIsGeneratingPDF(false);
         }
@@ -1614,79 +1440,57 @@ Would you like me to open your default email client?`;
                         <h2 className="text-xl font-bold truncate text-black-600 dark:text-red-400">AI Assistant</h2>
                         <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} truncate`}>Ask me anything</p>
                     </div>
-                    {/* Save to PDF and Email Buttons */}
-                    <div className="relative">
-                        <div className="flex space-x-1">
-                            {/* Main PDF Button */}
-                            <button
-                                onClick={generatePDF}
-                                disabled={isGeneratingPDF || (chatMessages.length === 0 && transcript.length === 0)}
-                                className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${
-                                    isDarkMode 
-                                        ? 'bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-600' 
-                                        : 'bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-400'
-                                }`}
-                                title="Save conversation and transcript to PDF (Text Format)"
-                            >
-                                {isGeneratingPDF ? (
-                                    <>
-                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        <span>Generating...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="w-4 h-4" />
-                                        <span>Save PDF</span>
-                                    </>
-                                )}
-                            </button>
-                            
-                            {/* Visual PDF Button */}
-                            <button
-                                onClick={generateVisualPDF}
-                                disabled={isGeneratingPDF || chatMessages.length === 0}
-                                className={`p-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${
-                                    isDarkMode 
-                                        ? 'bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-600' 
-                                        : 'bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-400'
-                                }`}
-                                title="Save conversation as visual PDF (preserves chat appearance)"
-                            >
-                                <FileText className="w-4 h-4" />
-                            </button>
-                            
-                            {/* Email Text PDF Button */}
-                            <button
-                                onClick={() => shareViaEmail(false)}
-                                disabled={isGeneratingPDF || (chatMessages.length === 0 && transcript.length === 0)}
-                                className={`p-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${
-                                    isDarkMode 
-                                        ? 'bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-600' 
-                                        : 'bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400'
-                                }`}
-                                title="Share text-based PDF via email"
-                            >
-                                <Mail className="w-4 h-4" />
-                            </button>
-                            
-                            {/* Email Visual PDF Button */}
-                            <button
-                                onClick={() => shareViaEmail(true)}
-                                disabled={isGeneratingPDF || chatMessages.length === 0}
-                                className={`flex items-center space-x-1 px-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${
-                                    isDarkMode 
-                                        ? 'bg-purple-600 hover:bg-purple-700 text-white disabled:bg-gray-600' 
-                                        : 'bg-purple-600 hover:bg-purple-700 text-white disabled:bg-gray-400'
-                                }`}
-                                title="Share visual PDF via email"
-                            >
-                                <Mail className="w-3 h-3" />
-                                <FileText className="w-3 h-3" />
-                            </button>
-                        </div>
+                    <div className="flex items-center space-x-2">
+                        <button
+                            onClick={generatePDF}
+                            disabled={isGeneratingPDF || chatMessages.length === 0}
+                            className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${
+                                isDarkMode 
+                                    ? 'bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-600' 
+                                    : 'bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-400'
+                            }`}
+                            title="Save conversation as PDF"
+                        >
+                            {isGeneratingPDF ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    <span>Generating...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <FileText className="w-4 h-4" />
+                                    <span>Save PDF</span>
+                                </>
+                            )}
+                        </button>
+                        <button
+                            onClick={handleShareClick}
+                            disabled={chatMessages.length === 0}
+                            className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${
+                                isDarkMode 
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-600' 
+                                    : 'bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-400'
+                            }`}
+                            title="Share via Email"
+                        >
+                            <Mail className="w-4 h-4" />
+                            <span>Share</span>
+                        </button>
+
+                        {/* Email Dialog */}
+                        <EmailDialog
+                            isOpen={isEmailDialogOpen}
+                            onClose={() => setIsEmailDialogOpen(false)}
+                            defaultSubject={`SpikedAI Meeting Summary - ${new Date().toLocaleDateString()}`}
+                            defaultBody={chatMessages
+                                .filter(msg => !msg.isUser)
+                                .map(msg => msg.text)
+                                .join('\n\n') + '\n\n---\nGenerated by SpikedAI\nVisit us at: https://www.spiked.ai'}
+                            isDarkMode={isDarkMode}
+                        />
                     </div>
                 </div>
-                <div className="flex-1 p-4 space-y-4 overflow-y-auto" data-chat-container>
+                <div className="flex-1 p-4 space-y-4 overflow-y-auto">
                     {chatMessages.map((msg) => (
                         <div key={msg.id} className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-[85%] p-4 rounded-xl shadow-sm transition-all duration-200 hover:shadow-md ${
@@ -1747,6 +1551,18 @@ Would you like me to open your default email client?`;
                         <div className="flex space-x-2">
                             <button type="button" className={`p-3 rounded-xl transition-all duration-200 hover:scale-105 ${isConnected ? 'bg-green-500 text-white hover:bg-green-600' : (isDarkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-200 text-gray-600')}`}>
                                 <Headphones className="w-4 h-4" />
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={generatePDF}
+                                disabled={isGeneratingPDF || chatMessages.length === 0}
+                                className={`p-3 rounded-xl transition-all duration-200 hover:scale-105 ${
+                                    isDarkMode 
+                                        ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50' 
+                                        : 'bg-blue-500 text-white hover:bg-blue-600 disabled:bg-blue-400 disabled:opacity-50'
+                                }`}
+                            >
+                                <FileText className="w-4 h-4" />
                             </button>
                             <button 
                                 type="submit" 

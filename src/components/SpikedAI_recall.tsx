@@ -879,7 +879,7 @@ const SpikedAI = () => {
   }
   try {
     setBotStatus("stopping");
-    const response = await fetch(`${service_url_recall}/stop/${encodeURIComponent(botId)}`, {
+    const response = await fetch(`${service_url_recall}/remove-bot/${encodeURIComponent(botId)}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${session.access_token}`,
@@ -6912,4 +6912,5 @@ useEffect(() => {
 };
 
 export default SpikedAI;
+
 

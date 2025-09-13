@@ -212,6 +212,28 @@ interface ConversationHealth {
   trend: "improving" | "declining" | "stable";
 }
 
+// ...existing code...
+interface CustomGoal {
+  id: string;
+  goal_description: string;
+  evaluation_strictness?: string;
+  emoji_icon?: string;
+}
+
+interface CustomGoalProgress {
+  goal: CustomGoal;
+  is_achieved: boolean;
+  evidence?: string;
+  confidence_score?: number;
+}
+
+interface MeetingGoalUpdate {
+  goal_description?: string;
+  evaluation_strictness?: string;
+  emoji_icon?: string;
+}
+// ...existing code...
+
 interface SentimentData {
   critical_alerts: CriticalAlert[];
   buying_signals: {
@@ -227,6 +249,7 @@ interface SentimentData {
   engagement_scores: ParticipantEngagement[];
   medpic_progress: MedpicProgress;
   last_updated: string;
+  custom_goals_progress: CustomGoalProgress[]; // <-- Add this field
 }
 
 // IndexedDB utilities
@@ -308,6 +331,8 @@ const initialSentimentData: SentimentData = {
     least_discussed_category: "",
   },
   last_updated: "",
+  custom_goals_progress: [], // <-- Add this field
+
 };
 
 const initDB = (): Promise<IDBDatabase> => {
@@ -456,6 +481,7 @@ const SpikedAI = () => {
   const [layout, setLayout] = useState(
     loadFromSessionStorage("spikedai_layout", "full")
   );
+
   const [sentimentData, setSentimentData] = useState<SentimentData>(
     loadFromSessionStorage("spikedai_sentiment_data", initialSentimentData)
   );
@@ -546,7 +572,8 @@ const SpikedAI = () => {
   > | null>(null);
   const [hotMicMeetingId, setHotMicMeetingId] = useState<string>("");
   const [lastTranscriptText, setLastTranscriptText] = useState("");
-
+  const [customGoals, setCustomGoals] = useState<CustomGoal[]>([]);
+  const [customGoalsProgress, setCustomGoalsProgress] = useState<CustomGoalProgress[]>([]);
   const micTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const answerRef = useRef<HTMLDivElement>(null);
@@ -1539,6 +1566,87 @@ const SpikedAI = () => {
     }
   };
 
+const fetchCustomGoals = async () => {
+  if (!session) return;
+  try {
+    const response = await fetch(`${service_url_recall}/meetingGoals`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (response.ok) {
+      const goals = await response.json();
+      setCustomGoals(goals);
+    }
+  } catch (error) {
+    console.error("Error fetching custom goals:", error);
+  }
+};
+
+// Enhanced createCustomGoal function:
+const createCustomGoal = async (goalData: {
+  goal_description: string;
+  evaluation_strictness?: string;
+  emoji_icon?: string;
+}) => {
+  if (!session) return;
+  try {
+    const response = await fetch(`${service_url_recall}/meetingGoals`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(goalData),
+    });
+    if (response.ok) {
+      const newGoal = await response.json();
+      setCustomGoals(prev => [...prev, newGoal]);
+      return newGoal;
+    }
+  } catch (error) {
+    console.error("Error creating custom goal:", error);
+  }
+};
+
+// Enhanced updateCustomGoal function:
+const updateCustomGoal = async (goalId: string, updates: MeetingGoalUpdate) => {
+  if (!session) return;
+  try {
+    const response = await fetch(`${service_url_recall}/meetingGoals/${goalId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(updates),
+    });
+    if (response.ok) {
+      const updatedGoal = await response.json();
+      setCustomGoals(prev => 
+        prev.map(goal => goal.id === goalId ? updatedGoal : goal)
+      );
+      return updatedGoal;
+    }
+  } catch (error) {
+    console.error("Error updating custom goal:", error);
+  }
+};
+
+// Enhanced deleteCustomGoal function:
+const deleteCustomGoal = async (goalId: string) => {
+  if (!session) return;
+  try {
+    const response = await fetch(`${service_url_recall}/meetingGoals/${goalId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (response.ok) {
+      setCustomGoals(prev => prev.filter(goal => goal.id !== goalId));
+    }
+  } catch (error) {
+    console.error("Error deleting custom goal:", error);
+  }
+};
+
   interface SentimentTranscriptSegment {
     speaker: string | null;
     text: string;
@@ -1969,12 +2077,11 @@ const SpikedAI = () => {
           }));
         }
         break;
-
-      case "health":
-        if (data.conversation_health) {
+      case "custom-goals":
+        if (data.custom_goals_progress) {
           setSentimentData((prev) => ({
             ...prev,
-            conversation_health: data.conversation_health,
+            custom_goals_progress: data.custom_goals_progress,
             last_updated: new Date().toISOString(),
           }));
         }
@@ -2118,7 +2225,7 @@ const SpikedAI = () => {
 
     // Cycle through other components
     const now = Date.now();
-    const cycleIndex = Math.floor(now / 1000) % 4;
+    const cycleIndex = Math.floor(now / 1000) % 5;
 
     try {
       switch (cycleIndex) {
@@ -2130,6 +2237,9 @@ const SpikedAI = () => {
           break;
         case 2:
           await fetchSentimentComponent("medpic");
+          break;
+        case 3:
+          await fetchSentimentComponent("custom-goals"); // ADD THIS CASE
           break;
       }
       console.log(`Sentiment cycle ${cycleIndex} completed`);
@@ -3068,15 +3178,23 @@ const SpikedAI = () => {
   }, [processedTranscript.length]);
 
   useEffect(() => {
-    checkApiHealth();
-    if (session) {
-      fetchDocuments();
-    }
-    const interval = setInterval(checkApiHealth, 30000);
-    return () => {
-      clearInterval(interval);
-    };
-  }, [session]);
+  checkApiHealth();
+  if (session) {
+    fetchDocuments();
+    fetchCustomGoals(); // ADD THIS LINE - this was missing!
+  }
+  const interval = setInterval(checkApiHealth, 30000);
+  return () => {
+    clearInterval(interval);
+  };
+}, [session]);
+
+// Also add another useEffect to call it when the component mounts:
+useEffect(() => {
+  if (session) {
+    fetchCustomGoals();
+  }
+}, [session]);
 
   useEffect(() => {
     const cleanupInterval = setInterval(clearOldQuestionData, 10 * 60 * 1000); // Every 10 minutes
@@ -4289,6 +4407,93 @@ const SpikedAI = () => {
               </div>
             </div>
 
+            {/* Custom Goals Progress - Move this OUTSIDE of the MEDPIC section */}
+            {customGoals.length > 0 && (
+            <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                <span className="font-semibold text-gray-700 dark:text-gray-300">
+                    Custom Goals
+                </span>
+                <div className="flex items-center space-x-2">
+                    <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
+                    {customGoals.length} goals
+                    </span>
+                    <button
+                    onClick={() => {/* Add logic to show create goal modal */}}
+                    className="text-xs bg-blue-500 text-white px-2 py-1 rounded-full hover:bg-blue-600"
+                    >
+                    + Add Goal
+                    </button>
+                </div>
+                </div>
+
+                <div className="space-y-3">
+                {customGoals.map((goal) => {
+                    const progress = sentimentData.custom_goals_progress.find(p => p.goal.id === goal.id);
+                    const isAchieved = progress?.is_achieved || false;
+                    
+                    return (
+                    <div key={goal.id} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                            <span className="text-sm">{goal.emoji_icon || "🎯"}</span>
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {goal.goal_description}
+                            </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <span
+                            className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                                isAchieved
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                                : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                            }`}
+                            >
+                            {isAchieved ? "Achieved" : "Pending"}
+                            </span>
+                            <button
+                            onClick={() => updateCustomGoal(goal.id, {/* updated data */})}
+                            className="text-xs text-blue-500 hover:text-blue-700"
+                            >
+                            Edit
+                            </button>
+                            <button
+                            onClick={() => deleteCustomGoal(goal.id)}
+                            className="text-xs text-red-500 hover:text-red-700"
+                            >
+                            Delete
+                            </button>
+                        </div>
+                        </div>
+
+                        {/* Show evidence if achieved */}
+                        {isAchieved && progress?.evidence && (
+                        <div className="ml-6 mt-2">
+                            <details className="group">
+                            <summary className="cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400 list-none flex items-center justify-between">
+                                <span>View Evidence</span>
+                                <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
+                            </summary>
+                            <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
+                                <p className="text-xs text-green-700 dark:text-green-300">
+                                {progress.evidence}
+                                </p>
+                                {progress.confidence_score && (
+                                <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Confidence: {(progress.confidence_score * 100).toFixed(1)}%
+                                </div>
+                                )}
+                            </div>
+                            </details>
+                        </div>
+                        )}
+                    </div>
+                    );
+                })}
+                </div>
+            </div>
+            )}
+
             {/* ADDED: Clear Sentiment Button */}
             <div className="mt-6 flex justify-left">
               <button
@@ -4860,7 +5065,7 @@ const SpikedAI = () => {
               {/* Note Taker Button */}
               <div className="relative group">
                 <button
-                  onClick={() => window.open("/note-taker", "_blank")}
+                  onClick={() => navigate("/note-taker")}
                   className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
                     isDarkMode
                       ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"

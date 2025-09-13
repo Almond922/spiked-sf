@@ -575,7 +575,7 @@ const SpikedAISettings: React.FC = () => {
                 <div className="flex items-center space-x-4">
                   <div className={`p-2 rounded-lg ${isDarkMode ? "bg-red-900/20" : "bg-red-100"}`}><Target className={`w-5 h-5 ${isDarkMode ? "text-red-400" : "text-red-600"}`} /></div>
                   <div>
-                    <h2 className="text-xl font-semibold">Meeting Goals</h2>
+                    <h2 className="text-xl font-semibold">Custom Goals</h2>
                     <p className={`text-sm mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>Define key objectives for your meetings to track success.</p>
                   </div>
                 </div>

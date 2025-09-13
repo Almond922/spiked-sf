@@ -4991,7 +4991,7 @@ useEffect(() => {
                         : "bg-slate-800 text-slate-100"
                     }`}
                 >
-                  Settings
+                  Personalization
                   <div
                     className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
                       isDarkMode ? "bg-slate-200" : "bg-slate-800"

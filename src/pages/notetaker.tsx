@@ -40,7 +40,40 @@ import {
 } from 'lucide-react';
 import { jsPDF } from "jspdf";
 
-// ... (EnhancedMarkdown component and all interfaces remain the same)
+// EnhancedMarkdown component for rendering markdown with syntax highlighting and GFM
+function EnhancedMarkdown({ children, isDarkMode }: { children: string; isDarkMode: boolean }) {
+    return (
+        <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[
+                rehypeRaw,
+                rehypeHighlight,
+                rehypeSlug,
+                rehypeAutolinkHeadings,
+            ]}
+            components={{
+                a: ({ node, ...props }) => (
+                    <a {...props} target="_blank" rel="noopener noreferrer" className="underline text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200" />
+                ),
+                code: (props) => {
+                    const {inlineCode, className, children, ...rest} = props as any;
+                    const isInline = typeof inlineCode === 'boolean' ? inlineCode : (props as any).inline;
+                    return (
+                        <code
+                            className={`rounded px-1.5 py-1 text-sm font-mono ${isInline ? 'bg-gray-200 dark:bg-gray-700' : 'block bg-gray-100 dark:bg-gray-800 p-3 my-2'} ${className || ''}`}
+                            {...rest}
+                        >
+                            {children}
+                        </code>
+                    );
+                },
+                // Add more custom renderers if needed
+            }}
+        >
+            {children}
+        </ReactMarkdown>
+    );
+}
 // ...
 
 const BASE_URL = 'https://recall-backend-production-822359826336.us-central1.run.app';

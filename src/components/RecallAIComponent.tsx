@@ -5,7 +5,7 @@ import { Play, Pause, X, Loader, Headphones } from "lucide-react";
 import RecallLogo from "/recall.png";
 import VexaLogo from "/vexa.png";
 import { Link } from "react-router-dom";
-import { useBot } from "../contexts/BotContext";
+import { useBot } from "../BotContext";
 
 import { TranscriptSegment } from "../types"; 
 

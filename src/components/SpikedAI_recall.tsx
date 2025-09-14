@@ -52,6 +52,7 @@ import {
   Eye  
 } from "lucide-react";
 import { useAuth } from "../AuthContext";
+import { useBotId } from '../BotIdContext';
 
 const service_url_recall =
   "https://recall-backend-production-822359826336.us-central1.run.app";
@@ -469,6 +470,7 @@ const loadFromSessionStorage = (key: string, defaultValue: any = null) => {
 };
 
 const SpikedAI = () => {
+  const { botId, setBotId } = useBotId(); 
   const { session, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -595,9 +597,7 @@ const SpikedAI = () => {
   // NEW STATE: For drag and drop
   const [draggedCategory, setDraggedCategory] = useState<string | null>(null);
 
-  const [botId, setBotId] = useState<string | null>(
-    loadFromSessionStorage("spikedai_bot_id", null)
-  );
+  
   const sseRefs = useRef<{
     transcript: AbortController | null;
     question: AbortController | null;
@@ -786,90 +786,95 @@ const SpikedAI = () => {
   }
 };
 
+useEffect(() => {
+        if (botId) {
+            establishSseConnections(botId);
+        }
+    }, [botId]);
+
   const startBot = async () => {
-  if (!meetingUrl || !session) {
-    console.error("Missing meetingUrl or session");
-    return;
-  }
+    // 1. Get the setter function from the context hook
 
-  try {
-    console.log("Starting bot with URL:", meetingUrl);
-    setBotStatus("starting");
+    try {
+        console.log("Starting bot with URL:", meetingUrl);
+        setBotStatus("starting");
 
-    const formData = new FormData();
-    formData.append("meeting_url", meetingUrl);
+        const formData = new FormData();
+        formData.append("meeting_url", meetingUrl);
 
-    console.log("Sending request to backend...");
-    const response = await fetch(`${service_url_recall}/start`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${session?.access_token ?? ""}`,
-      },
-      body: formData,
-    });
+        console.log("Sending request to backend...");
+        const response = await fetch(`${service_url_recall}/start`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${session?.access_token ?? ""}`,
+            },
+            body: formData,
+        });
 
-    console.log("Response status:", response.status);
+        console.log("Response status:", response.status);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Backend error:", errorText);
-      throw new Error(`Failed to start bot: ${response.status} - ${errorText}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Backend error:", errorText);
+            throw new Error(`Failed to start bot: ${response.status} - ${errorText}`);
+        }
+
+        const responseData = await response.json();
+        const newBotId = responseData.id;
+
+        console.log("Received bot ID:", newBotId);
+
+        if (newBotId && typeof newBotId === 'string' && newBotId.length > 0) {
+            // 2. Use the setter function to broadcast the new botId
+            setBotId(newBotId); 
+
+            // Update local component state for UI feedback
+            setBotStatus("running");
+            setIsBotRunning(true);
+            setIsConnected(true);
+            setIsTranscribing(true);
+            setSentimentData(initialSentimentData);
+
+            setTranscript([
+                {
+                    id: Date.now(),
+                    start: 0,
+                    end: 0,
+                    text: "Bot connected successfully. Real-time transcription active.",
+                    language: "en",
+                    created_at: new Date().toISOString(),
+                    speaker: "Spiked",
+                    absolute_start_time: new Date().toISOString(),
+                    absolute_end_time: new Date().toISOString(),
+                },
+            ]);
+
+            console.log("Starting SSE connections...");
+            await establishSseConnections(newBotId);
+
+            setTimeout(() => {
+                fetchSentimentDataStaggered();
+            }, 5000);
+
+        } else {
+            throw new Error("No valid bot ID received from backend");
+        }
+    } catch (error) {
+        console.error("Error starting bot:", error);
+        
+        // 3. Reset the global state on error
+        setBotId(null); 
+
+        // Reset local component state
+        setBotStatus("error");
+        setIsBotRunning(false);
+        setIsConnected(false);
+        setIsTranscribing(false);
+
+        alert(`Failed to start bot: ${
+            error instanceof Error ? error.message : String(error)
+        }`);
     }
-
-    // FIX: Parse JSON response properly
-    const responseData = await response.json();
-    const newBotId = responseData.id; // Extract ID from JSON response
-    
-    console.log("Received bot ID:", newBotId);
-
-    if (newBotId) {
-      setBotId(newBotId);
-      setBotStatus("running");
-      setIsBotRunning(true);
-      setIsConnected(true);
-      setIsTranscribing(true);
-
-      // Reset sentiment data when starting new bot
-      setSentimentData(initialSentimentData);
-
-      setTranscript([
-        {
-          id: Date.now(),
-          start: 0,
-          end: 0,
-          text: "Bot connected successfully. Real-time transcription active.",
-          language: "en",
-          created_at: new Date().toISOString(),
-          speaker: "Spiked",
-          absolute_start_time: new Date().toISOString(),
-          absolute_end_time: new Date().toISOString(),
-        },
-      ]);
-
-      // Start SSE connections immediately
-      console.log("Starting SSE connections...");
-      await establishSseConnections(newBotId);
-
-      // Start sentiment polling after connections are established
-      setTimeout(() => {
-        fetchSentimentDataStaggered();
-      }, 5000); // Start after 5 seconds
-
-    } else {
-      throw new Error("No bot ID received from backend");
-    }
-  } catch (error) {
-    console.error("Error starting bot:", error);
-    setBotStatus("error");
-    setIsBotRunning(false);
-    setIsConnected(false);
-    setIsTranscribing(false);
-    
-    // Show user-friendly error
-    alert(`Failed to start bot: ${
-      error instanceof Error ? error.message : String(error)
-    }`);
-  }
 };
 
   const stopBot = async () => {
@@ -5035,7 +5040,8 @@ useEffect(() => {
               {/* Meeting Prep Button */}
               <div className="relative group">
                 <button
-                  onClick={() => navigate("/meeting-prep")}
+                  onClick={() => window.open("/meeting-prep", "_blank")}
+                  
                   className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
                     isDarkMode
                       ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
@@ -5189,7 +5195,7 @@ useEffect(() => {
               {/* User Button */}
               <div className="relative group">
                 <button
-                  onClick={() => navigate("/admin")}
+                  onClick={() => window.open("/admin", "_blank")}
                   className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
                     isDarkMode
                       ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
@@ -5264,7 +5270,7 @@ useEffect(() => {
             </div>
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => navigate("/documents")}
+                onClick={() => window.open("/documents", "_blank")}
                 className={`p-2 rounded-lg transition-all duration-300 hover:scale-105 ${
                   isDarkMode
                     ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50"

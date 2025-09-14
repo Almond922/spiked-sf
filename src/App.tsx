@@ -1,7 +1,7 @@
 // src/App.tsx
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "./AuthContext";
-import { BotProvider } from "./BotContext"; // Import the BotProvider
+import { BotIdProvider } from "./BotIdContext"; // Import the BotProvider
 
 // --- Import Your Page Components ---
 import AuthPages from "./login";
@@ -35,7 +35,7 @@ const NotFoundPage = () => {
 
 function App() {
   return (
-    <BotProvider> {/* Wrap the entire app with the BotProvider */}
+    <BotIdProvider> {/* Wrap the entire app with the BotProvider */}
       <Routes>
         <Route path="/login" element={<AuthPages />} />
         
@@ -54,7 +54,7 @@ function App() {
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
-    </BotProvider>
+    </BotIdProvider>
   );
 }
 

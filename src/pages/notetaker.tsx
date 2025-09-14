@@ -8,6 +8,8 @@ import rehypeSlug from "rehype-slug";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import EmailDialog from '../components/EmailDialog';
 import { useBotId } from '../BotIdContext';
+import { useAuth } from '../AuthContext';
+import { fetchEventSource } from "@microsoft/fetch-event-source";
 
 import {
     Send,
@@ -35,12 +37,7 @@ import {
     Save
 } from 'lucide-react';
 import { jsPDF } from "jspdf";
-import { fetchEventSource } from "@microsoft/fetch-event-source";
 
-// Replace this mock useAuth with your actual useAuth hook from AuthContext
-import { useAuth } from '../AuthContext'; 
-
-// Corrected Backend URLs to match SpikedAIrecall.tsx
 const BASE_URL = 'https://recall-backend-production-822359826336.us-central1.run.app';
 const SALES_ASSISTANT_BASE_URL = 'https://sales-assistant-service-822359826336.us-central1.run.app';
 
@@ -104,28 +101,16 @@ const initDB = (): Promise<IDBDatabase> => {
             reject(new Error('IndexedDB is not supported in this browser'));
             return;
         }
-
         const request = indexedDB.open(DB_NAME, DB_VERSION);
-        
-        request.onerror = () => {
-            console.error('IndexedDB error:', request.error);
-            reject(request.error);
-        };
-        
-        request.onsuccess = () => {
-            console.log('IndexedDB opened successfully');
-            resolve(request.result);
-        };
-        
+        request.onerror = () => { console.error('IndexedDB error:', request.error); reject(request.error); };
+        request.onsuccess = () => { console.log('IndexedDB opened successfully'); resolve(request.result); };
         request.onupgradeneeded = (event) => {
             console.log('IndexedDB upgrade needed, creating object stores');
             const db = (event.target as IDBOpenDBRequest).result;
-            
             if (!db.objectStoreNames.contains(TRANSCRIPTS_STORE)) {
                 console.log('Creating transcripts store');
                 db.createObjectStore(TRANSCRIPTS_STORE, { keyPath: 'meetingId' });
             }
-            
             if (!db.objectStoreNames.contains(CUSTOM_TEMPLATES_STORE)) {
                 console.log('Creating custom templates store');
                 const customTemplatesStore = db.createObjectStore(CUSTOM_TEMPLATES_STORE, { keyPath: 'id', autoIncrement: true });
@@ -208,10 +193,60 @@ const loadFromIndexedDB = async (storeName: string, key?: string): Promise<any> 
     }
 };
 
+// Enhanced Markdown Component with custom styling - Placed here to ensure proper scope
+const EnhancedMarkdown = ({ children, isDarkMode }: { children: string; isDarkMode: boolean }) => {
+    return (
+        <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[
+                rehypeRaw,
+                rehypeHighlight,
+                rehypeSlug,
+                [rehypeAutolinkHeadings, { behavior: 'wrap' }]
+            ]}
+            components={{
+                h1: ({ children }) => <h1 className={`text-3xl font-bold mb-4 text-red-600 dark:text-red-400`}>{children}</h1>,
+                h2: ({ children }) => <h2 className={`text-2xl font-bold mb-3 text-red-600 dark:text-red-400`}>{children}</h2>,
+                h3: ({ children }) => <h3 className={`text-xl font-bold mb-3 text-red-600 dark:text-red-400`}>{children}</h3>,
+                p: ({ children }) => <p className={`mb-3 leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{children}</p>,
+                ul: ({ children }) => <ul className={`mb-3 ml-4 space-y-1 list-disc ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{children}</ul>,
+                ol: ({ children }) => <ol className={`mb-3 ml-4 space-y-1 list-decimal ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{children}</ol>,
+                li: ({ children }) => <li className="mb-1">{children}</li>,
+                code: ({ node, className, children, ...props }) => {
+                    const match = /language-(\w+)/.exec(className || '');
+                    return !match ? (
+                        <code className={`px-1.5 py-0.5 rounded text-sm font-mono ${isDarkMode ? 'bg-slate-700 text-red-300' : 'bg-red-100 text-red-700'}`} {...props}>
+                            {children}
+                        </code>
+                    ) : (
+                        <div className={`mb-4 rounded-lg border overflow-hidden ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                            <div className={`flex items-center justify-between px-4 py-2 border-b ${isDarkMode ? 'border-slate-700 bg-slate-800/60' : 'border-slate-200 bg-slate-100'}`}>
+                                <span className={`text-xs font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{match[1]}</span>
+                                <button onClick={() => navigator.clipboard.writeText(String(children))} className={`text-xs px-2 py-1 rounded transition-colors ${isDarkMode ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-white text-slate-600 hover:bg-slate-200'}`}>
+                                    Copy
+                                </button>
+                            </div>
+                            <pre className="p-4 overflow-x-auto"><code className={`block text-sm font-mono ${className || ''}`} {...props}>{children}</code></pre>
+                        </div>
+                    );
+                },
+                blockquote: ({ children }) => <blockquote className={`border-l-4 pl-4 py-2 mb-3 italic ${isDarkMode ? 'border-red-500 bg-red-900/20 text-red-200' : 'border-red-400 bg-red-50 text-red-800'}`}>{children}</blockquote>,
+                table: ({ children }) => <div className="mb-4 overflow-x-auto"><table className={`w-full border-collapse border rounded-lg ${isDarkMode ? 'border-slate-700' : 'border-slate-200'}`}>{children}</table></div>,
+                thead: ({ children }) => <thead className={`${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>{children}</thead>,
+                th: ({ children }) => <th className={`px-3 py-2 text-left text-sm font-semibold border-b ${isDarkMode ? 'text-slate-200 border-slate-700' : 'text-slate-900 border-slate-200'}`}>{children}</th>,
+                td: ({ children }) => <td className={`px-3 py-2 text-sm border-b ${isDarkMode ? 'text-slate-300 border-slate-700' : 'text-slate-700 border-slate-200'}`}>{children}</td>,
+                a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer" className={`font-medium no-underline transition-colors ${isDarkMode ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-700'}`}>{children}</a>,
+                hr: () => <hr className={`my-4 ${isDarkMode ? 'border-slate-700' : 'border-slate-200'}`} />,
+            }}
+        >
+            {children}
+        </ReactMarkdown>
+    );
+};
+
 export default function Notetaker() {
     const { botId, setBotId } = useBotId();
     const { session, loading } = useAuth();
-
     const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
     const [isDarkMode, setIsDarkMode] = useState(false);
     
@@ -226,11 +261,9 @@ export default function Notetaker() {
         theme: 'blue'
     });
     
-    // State for column widths
     const [columnWidths, setColumnWidths] = useState([25, 45, 30]);
     const [resizingIndex, setResizingIndex] = useState<number | null>(null);
 
-    // Load custom templates from IndexedDB
     useEffect(() => {
         const loadCustomTemplates = async () => {
             try {
@@ -251,7 +284,6 @@ export default function Notetaker() {
         loadCustomTemplates();
     }, []);
 
-    // Check for mobile viewport - responsive behavior
     useEffect(() => {
         const checkMobile = () => {
             const isMobileView = window.innerWidth < 1024;
@@ -283,7 +315,6 @@ export default function Notetaker() {
     const chatEndRef = useRef<HTMLDivElement>(null);
     const sseRefs = useRef<{ transcript: AbortController | null; question: AbortController | null; }>({ transcript: null, question: null });
 
-    // Dynamic highlight.js theme loading
     useEffect(() => {
         const linkId = 'highlight-theme';
         let link = document.getElementById(linkId) as HTMLLinkElement;
@@ -298,12 +329,9 @@ export default function Notetaker() {
             : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css';
     }, [isDarkMode]);
 
-    // ** CONSOLIDATED AND CORRECTED CONNECTION LOGIC WITH AUTH **
     useEffect(() => {
-        // Log the botId to the console for debugging
         console.log("Notetaker: Current botId is", botId);
         
-        // Cleanup function for existing streams
         const cleanup = () => {
             if (sseRefs.current.transcript) {
                 sseRefs.current.transcript.abort();
@@ -316,10 +344,10 @@ export default function Notetaker() {
             console.log("Notetaker: SSE connections cleaned up.");
         };
 
-        // This is the key change. We now wait for BOTH botId AND session to be valid.
         if (botId && session?.access_token) {
             console.log("Notetaker: 🔗 botId and session are available. Connecting to streams...");
             cleanup();
+            setIsConnected(true);
 
             const fetchInitialTranscripts = async () => {
                 try {
@@ -393,7 +421,6 @@ export default function Notetaker() {
         return cleanup;
     }, [botId, session]);
 
-    // Load meeting URL from sessionStorage just for display
     useEffect(() => {
         const loadMeetingUrl = () => {
             const storedUrl = sessionStorage.getItem('spikedai_meeting_url');
@@ -424,7 +451,6 @@ export default function Notetaker() {
     }, []);
     
 
-    // Auto-scroll logic
     useEffect(() => {
         transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [transcript]);
@@ -566,7 +592,6 @@ export default function Notetaker() {
         return groups;
     };
 
-    // Custom template management functions
     const resetTemplateForm = () => {
         setTemplateForm({
             name: '',
@@ -661,7 +686,6 @@ export default function Notetaker() {
 
     const allTemplates = [...customTemplates, ...templates];
 
-    // Generate PDF from chat messages
     const generatePDF = () => {
         if (chatMessages.length === 0) return;
         setIsGeneratingPDF(true);
@@ -684,7 +708,6 @@ export default function Notetaker() {
         setIsGeneratingPDF(false);
     };
 
-    // Add missing handleShareClick function
     const handleShareClick = () => {
         setIsEmailDialogOpen(true);
     };
@@ -1142,18 +1165,6 @@ export default function Notetaker() {
                                 <Headphones className="w-4 h-4" />
                             </button>
                             <button 
-                                type="button"
-                                onClick={generatePDF}
-                                disabled={isGeneratingPDF || chatMessages.length === 0}
-                                className={`p-3 rounded-xl transition-all duration-200 hover:scale-105 ${
-                                    isDarkMode 
-                                        ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50' 
-                                        : 'bg-blue-500 text-white hover:bg-blue-600 disabled:bg-blue-400 disabled:opacity-50'
-                                }`}
-                            >
-                                <FileText className="w-4 h-4" />
-                            </button>
-                            <button 
                                 type="submit" 
                                 disabled={!chatInput.trim() || isAITyping} 
                                 className="p-3 text-white transition-all duration-200 shadow-lg rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-red-400 disabled:to-red-500 disabled:cursor-not-allowed hover:scale-105 disabled:hover:scale-100"
@@ -1165,7 +1176,6 @@ export default function Notetaker() {
                 </div>
             </div>
 
-            {/* Custom Template Creation Modal */}
             {showCreateTemplateModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className={`w-full max-w-2xl rounded-2xl shadow-2xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} max-h-[90vh] overflow-y-auto`}>

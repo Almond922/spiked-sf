@@ -1,3 +1,4 @@
+// src/pages/notetaker.tsx
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -34,61 +35,19 @@ import {
     Save
 } from 'lucide-react';
 import { jsPDF } from "jspdf";
+import { fetchEventSource } from "@microsoft/fetch-event-source";
 
-// Enhanced Markdown Component with custom styling
-const EnhancedMarkdown = ({ children, isDarkMode }: { children: string; isDarkMode: boolean }) => {
-    return (
-        <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[
-                rehypeRaw,
-                rehypeHighlight,
-                rehypeSlug,
-                [rehypeAutolinkHeadings, { behavior: 'wrap' }]
-            ]}
-            components={{
-                h1: ({ children }) => <h1 className={`text-3xl font-bold mb-4 text-red-600 dark:text-red-400`}>{children}</h1>,
-                h2: ({ children }) => <h2 className={`text-2xl font-bold mb-3 text-red-600 dark:text-red-400`}>{children}</h2>,
-                h3: ({ children }) => <h3 className={`text-xl font-bold mb-3 text-red-600 dark:text-red-400`}>{children}</h3>,
-                p: ({ children }) => <p className={`mb-3 leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{children}</p>,
-                ul: ({ children }) => <ul className={`mb-3 ml-4 space-y-1 list-disc ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{children}</ul>,
-                ol: ({ children }) => <ol className={`mb-3 ml-4 space-y-1 list-decimal ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{children}</ol>,
-                li: ({ children }) => <li className="mb-1">{children}</li>,
-                code: ({ node, className, children, ...props }) => {
-                    const match = /language-(\w+)/.exec(className || '');
-                    return !match ? (
-                        <code className={`px-1.5 py-0.5 rounded text-sm font-mono ${isDarkMode ? 'bg-slate-700 text-red-300' : 'bg-red-100 text-red-700'}`} {...props}>
-                            {children}
-                        </code>
-                    ) : (
-                        <div className={`mb-4 rounded-lg border overflow-hidden ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                            <div className={`flex items-center justify-between px-4 py-2 border-b ${isDarkMode ? 'border-slate-700 bg-slate-800/60' : 'border-slate-200 bg-slate-100'}`}>
-                                <span className={`text-xs font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{match[1]}</span>
-                                <button onClick={() => navigator.clipboard.writeText(String(children))} className={`text-xs px-2 py-1 rounded transition-colors ${isDarkMode ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-white text-slate-600 hover:bg-slate-200'}`}>
-                                    Copy
-                                </button>
-                            </div>
-                            <pre className="p-4 overflow-x-auto"><code className={`block text-sm font-mono ${className || ''}`} {...props}>{children}</code></pre>
-                        </div>
-                    );
-                },
-                blockquote: ({ children }) => <blockquote className={`border-l-4 pl-4 py-2 mb-3 italic ${isDarkMode ? 'border-red-500 bg-red-900/20 text-red-200' : 'border-red-400 bg-red-50 text-red-800'}`}>{children}</blockquote>,
-                table: ({ children }) => <div className="mb-4 overflow-x-auto"><table className={`w-full border-collapse border rounded-lg ${isDarkMode ? 'border-slate-700' : 'border-slate-200'}`}>{children}</table></div>,
-                thead: ({ children }) => <thead className={`${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>{children}</thead>,
-                th: ({ children }) => <th className={`px-3 py-2 text-left text-sm font-semibold border-b ${isDarkMode ? 'text-slate-200 border-slate-700' : 'text-slate-900 border-slate-200'}`}>{children}</th>,
-                td: ({ children }) => <td className={`px-3 py-2 text-sm border-b ${isDarkMode ? 'text-slate-300 border-slate-700' : 'text-slate-700 border-slate-200'}`}>{children}</td>,
-                a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer" className={`font-medium no-underline transition-colors ${isDarkMode ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-700'}`}>{children}</a>,
-                hr: () => <hr className={`my-4 ${isDarkMode ? 'border-slate-700' : 'border-slate-200'}`} />,
-            }}
-        >
-            {children}
-        </ReactMarkdown>
-    );
-};
+// Replace this mock useAuth with your actual useAuth hook from AuthContext
+import { useAuth } from '../AuthContext'; 
 
-
-const BASE_URL = 'https://recall-backend-822359826336.us-central1.run.app';
+// Corrected Backend URLs to match SpikedAIrecall.tsx
+const BASE_URL = 'https://recall-backend-production-822359826336.us-central1.run.app';
 const SALES_ASSISTANT_BASE_URL = 'https://sales-assistant-service-822359826336.us-central1.run.app';
+
+interface Session {
+    user: { id: string; email: string };
+    access_token: string;
+}
 
 interface Template {
     id: number;
@@ -109,13 +68,11 @@ interface CustomTemplateForm {
     theme: string;
 }
 
-// Updated interface for Recall.ai transcript format
 interface RecallTranscriptItem {
     speaker: string;
     text: string;
 }
 
-// Legacy interface for compatibility
 interface TranscriptSegment {
     id: number;
     start: number;
@@ -137,7 +94,7 @@ interface ChatMessage {
 }
 
 const DB_NAME = 'SpikedAI_Cache';
-const DB_VERSION = 2; // Incremented for custom templates
+const DB_VERSION = 2;
 const TRANSCRIPTS_STORE = 'transcripts';
 const CUSTOM_TEMPLATES_STORE = 'customTemplates';
 
@@ -181,34 +138,13 @@ const initDB = (): Promise<IDBDatabase> => {
 
 const saveToIndexedDB = async (storeName: string, data: any): Promise<boolean> => {
     try {
-        console.log('Initializing database for save operation');
         const db = await initDB();
-        console.log('Database initialized, starting transaction');
-        
         const transaction = db.transaction([storeName], 'readwrite');
         const store = transaction.objectStore(storeName);
-        
-        console.log('Adding data to store:', data);
         const request = store.add(data);
-        
         return new Promise((resolve) => {
-            request.onsuccess = () => {
-                console.log('Data saved successfully, generated ID:', request.result);
-                resolve(true);
-            };
-            request.onerror = () => {
-                console.error('Error saving data:', request.error);
-                resolve(false);
-            };
-            
-            transaction.oncomplete = () => {
-                console.log('Transaction completed successfully');
-            };
-            
-            transaction.onerror = () => {
-                console.error('Transaction error:', transaction.error);
-                resolve(false);
-            };
+            request.onsuccess = () => resolve(true);
+            request.onerror = () => resolve(false);
         });
     } catch (error) {
         console.error('Error in saveToIndexedDB:', error);
@@ -274,6 +210,8 @@ const loadFromIndexedDB = async (storeName: string, key?: string): Promise<any> 
 
 export default function Notetaker() {
     const { botId, setBotId } = useBotId();
+    const { session, loading } = useAuth();
+
     const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
     const [isDarkMode, setIsDarkMode] = useState(false);
     
@@ -289,7 +227,7 @@ export default function Notetaker() {
     });
     
     // State for column widths
-    const [columnWidths, setColumnWidths] = useState([25, 45, 30]); // Percentages for templates, transcript, AI
+    const [columnWidths, setColumnWidths] = useState([25, 45, 30]);
     const [resizingIndex, setResizingIndex] = useState<number | null>(null);
 
     // Load custom templates from IndexedDB
@@ -300,7 +238,7 @@ export default function Notetaker() {
                 if (customTemplatesData && customTemplatesData.length > 0) {
                     const formattedTemplates = customTemplatesData.map((template: any) => ({
                         ...template,
-                        icon: FileText, // Default icon for custom templates
+                        icon: FileText,
                         category: 'custom',
                         isCustom: true,
                     }));
@@ -318,10 +256,9 @@ export default function Notetaker() {
         const checkMobile = () => {
             const isMobileView = window.innerWidth < 1024;
             if (isMobileView) {
-                // Adjust column widths for mobile if needed
-                setColumnWidths([100, 100, 100]); // Stack columns on mobile
+                setColumnWidths([100, 100, 100]);
             } else {
-                setColumnWidths([25, 45, 30]); // Default desktop layout
+                setColumnWidths([25, 45, 30]);
             }
         };
         checkMobile();
@@ -341,235 +278,10 @@ export default function Notetaker() {
     const [additionalQuestions, setAdditionalQuestions] = useState<string[]>([]);
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
     const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
-
-    // Generate formatted email content
-    const generateEmailContent = () => {
-        if (!chatMessages || chatMessages.length === 0) {
-            alert('No conversation to share. Please start a chat first.');
-            return null;
-        }
-
-        const summary = chatMessages
-            .filter(msg => !msg.isUser)
-            .map(msg => msg.text)
-            .join('\n\n');
-
-        const emailSubject = `SpikedAI Meeting Summary - ${new Date().toLocaleDateString()}`;
-        const emailBody = `
-Meeting Summary from SpikedAI
-Date: ${new Date().toLocaleString()}
-Meeting URL: ${meetingUrl || 'N/A'}
-
-${summary}
-
----
-Generated by SpikedAI
-Visit us at: https://www.spiked.ai
-        `.trim();
-
-        return { subject: encodeURIComponent(emailSubject), body: encodeURIComponent(emailBody) };
-    };
-
-    // Share via Email Dialog
-    const handleShareClick = () => {
-        if (!chatMessages || chatMessages.length === 0) {
-            alert('No conversation to share. Please start a chat first.');
-            return;
-        }
-        setIsEmailDialogOpen(true);
-    };
-
-    // PDF Generation function
-    const generatePDF = () => {
-        if (!chatMessages || chatMessages.length === 0) {
-            alert('No conversation to export. Please start a chat first.');
-            return;
-        }
-
-        try {
-            setIsGeneratingPDF(true);
-            
-            const doc = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
-            
-            if (!doc) {
-                throw new Error('Failed to initialize PDF document');
-            }
-            
-            const accentRed = '#F44336';
-            const accentGreen = '#4CAF50';
-            const accentBlue = '#2196F3';
-            const textPrimary = '#212121';
-            const textSecondary = '#757575';
-            const borderLight = '#E0E0E0';
-            const logoBase64 = 'data:image/jpeg;base64,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';
-            let yPosition = 20;
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const margin = 20;
-            const contentWidth = pageWidth - (margin * 2);
-            const lineHeight = 7;
-
-            // Helper functions
-            const checkPageBreak = (requiredHeight: number): void => {
-                if (yPosition + requiredHeight > doc.internal.pageSize.height - 25) {
-                    addFooter();
-                    doc.addPage();
-                    addHeader();
-                    yPosition = 40;
-                }
-            };
-
-            const addHeader = (): void => {
-                // Add logo with a very small size (4mm x 4mm)
-                try {
-                    // Load and add the logo with a tiny size
-                    doc.addImage('/logo.png', 'PNG', margin, 15, 4, 4);
-                } catch (error) {
-                    console.error('Error adding logo:', error);
-                }
-
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(18);
-                doc.setTextColor(textPrimary);
-                doc.text('SpikedAI', margin + 18, 21);
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(10);
-                doc.setTextColor(textSecondary);
-                doc.text('Conversation Export', pageWidth - margin, 20, { align: 'right' });
-                doc.setDrawColor(accentRed);
-                doc.setLineWidth(0.5);
-                doc.line(margin, 25, pageWidth - margin, 25);
-            };
-
-            const addFooter = (): void => {
-                const pageNumber = doc.getNumberOfPages();
-                doc.setFontSize(8);
-                doc.setTextColor(textSecondary);
-                doc.text(`Page ${pageNumber}`, pageWidth - margin, 290, { align: 'right' });
-                doc.text('Confidential & Proprietary. All rights reserved to SpikedAI', margin, 290);
-            };
-
-            // Start document creation
-            addHeader();
-            yPosition = 40;
-
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(22);
-            doc.setTextColor(textPrimary);
-            doc.text('Conversation Summary', margin, yPosition);
-            yPosition += 15;
-
-            // Add metadata section
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            doc.setTextColor(textSecondary);
-            doc.text(`Meeting URL: ${meetingUrl || 'N/A'}`, margin, yPosition);
-            doc.text(`Export Date: ${new Date().toLocaleString()}`, margin, yPosition + 5);
-            doc.text(`Total Messages: ${chatMessages.length}`, margin, yPosition + 10);
-            yPosition += 20;
-
-            // Add conversation messages
-            if (chatMessages.length > 0) {
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(18);
-                doc.setTextColor(textPrimary);
-                doc.text('Chat Transcript', margin, yPosition);
-                yPosition += 10;
-
-                chatMessages.forEach((message) => {
-                    checkPageBreak(60);
-
-                    doc.setDrawColor(borderLight);
-                    doc.setLineWidth(0.2);
-                    doc.line(margin, yPosition - 5, pageWidth - margin, yPosition - 5);
-
-                    doc.setFontSize(11);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(message.isUser ? accentBlue : accentGreen);
-                    const role = message.isUser ? 'You' : 'AI Assistant';
-                    const timestamp = message.timestamp.toLocaleString();
-                    doc.text(`${role} (${timestamp})`, margin, yPosition + 5);
-
-                    // Clean and add message text
-                    let cleanText = message.text
-                        ? message.text
-                            .replace(/\*\*(.*?)\*\*/g, '$1')
-                            .replace(/\*(.*?)\*/g, '$1')
-                            .replace(/`(.*?)`/g, '$1')
-                            .replace(/#{1,6}\s/g, '')
-                            .replace(/```[\s\S]*?```/g, '[Code Block]')
-                            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-                            .trim()
-                        : '';
-
-                    if (cleanText) {
-                        doc.setFont('helvetica', 'normal');
-                        doc.setFontSize(10);
-                        doc.setTextColor(textPrimary);
-                        const lines = doc.splitTextToSize(cleanText, contentWidth);
-                        
-                        // Check if we need a page break for this message
-                        const messageHeight = lines.length * lineHeight + 20;
-                        checkPageBreak(messageHeight);
-                        
-                        doc.text(lines, margin, yPosition + 12);
-                        yPosition += messageHeight;
-                    } else {
-                        yPosition += 10; // Add some spacing even for empty messages
-                    }
-                });
-            }
-
-            // Add additional questions if any
-            if (additionalQuestions.length > 0) {
-                checkPageBreak(60);
-                
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(18);
-                doc.setTextColor(textPrimary);
-                doc.text('Suggested Follow-up Questions', margin, yPosition);
-                yPosition += 10;
-
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(10);
-                doc.setTextColor(textPrimary);
-
-                additionalQuestions.forEach((question, index) => {
-                    checkPageBreak(15);
-                    doc.text(`${index + 1}. ${question}`, margin, yPosition);
-                    yPosition += 7;
-                });
-            }
-
-            addFooter();
-
-            // Generate filename and save
-            const timestamp = new Date().toISOString().split('T')[0];
-            const filename = `SpikedAI_Conversation_${timestamp}.pdf`;
-            
-            try {
-                doc.save(filename);
-                console.log('PDF generated successfully:', filename);
-            } catch (saveError) {
-                console.error('Error saving PDF:', saveError);
-                throw new Error('Failed to save the PDF file');
-            }
-
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-            alert('Failed to generate PDF: ' + (error instanceof Error ? error.message : 'Unknown error'));
-        } finally {
-            setIsGeneratingPDF(false);
-        }
-    };
-
+    
     const transcriptEndRef = useRef<HTMLDivElement>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
-    const transcriptSourceRef = useRef<EventSource | null>(null);
-    const questionSourceRef = useRef<EventSource | null>(null);
+    const sseRefs = useRef<{ transcript: AbortController | null; question: AbortController | null; }>({ transcript: null, question: null });
 
     // Dynamic highlight.js theme loading
     useEffect(() => {
@@ -586,80 +298,91 @@ Visit us at: https://www.spiked.ai
             : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css';
     }, [isDarkMode]);
 
-    // Consolidate stream connection logic into a single useEffect hook
+    // ** CONSOLIDATED AND CORRECTED CONNECTION LOGIC WITH AUTH **
     useEffect(() => {
-        // Clear previous streams and state when botId changes or component unmounts
+        // Log the botId to the console for debugging
+        console.log("Notetaker: Current botId is", botId);
+        
+        // Cleanup function for existing streams
         const cleanup = () => {
-            if (transcriptSourceRef.current) {
-                transcriptSourceRef.current.close();
-                transcriptSourceRef.current = null;
+            if (sseRefs.current.transcript) {
+                sseRefs.current.transcript.abort();
+                sseRefs.current.transcript = null;
             }
-            if (questionSourceRef.current) {
-                questionSourceRef.current.close();
-                questionSourceRef.current = null;
+            if (sseRefs.current.question) {
+                sseRefs.current.question.abort();
+                sseRefs.current.question = null;
             }
+            console.log("Notetaker: SSE connections cleaned up.");
         };
 
-        if (botId) {
-            console.log("🔗 botId is available. Connecting to streams...");
-            cleanup(); // Ensure any old connections are closed before opening new ones
+        // This is the key change. We now wait for BOTH botId AND session to be valid.
+        if (botId && session?.access_token) {
+            console.log("Notetaker: 🔗 botId and session are available. Connecting to streams...");
+            cleanup();
 
-            setError('');
-            setIsConnected(true);
-
-            // Fetch initial transcripts (if any)
-            const fetchInitialData = async () => {
+            const fetchInitialTranscripts = async () => {
                 try {
-                    const response = await fetch(`${BASE_URL}/transcripts/${encodeURIComponent(botId)}`);
-                    if (!response.ok) {
-                        throw new Error(`Failed to fetch initial transcripts: ${response.statusText}`);
+                    const response = await fetch(`${BASE_URL}/transcripts/${encodeURIComponent(botId)}`, {
+                        headers: { Authorization: `Bearer ${session.access_token}` },
+                    });
+                    if (response.ok) {
+                        const initialTranscripts = await response.json();
+                        setTranscript(initialTranscripts);
                     }
-                    const initialTranscripts = await response.json();
-                    setTranscript(initialTranscripts);
                 } catch (err) {
-                    console.error('Failed to fetch initial data:', err);
-                    setError('Failed to load initial transcripts. The bot may have disconnected.');
+                    console.error('Notetaker: Failed to fetch initial transcripts:', err);
                 }
             };
-            fetchInitialData();
-
-            // Set up real-time stream for transcripts
+            fetchInitialTranscripts();
+            
+            const transcriptController = new AbortController();
+            sseRefs.current.transcript = transcriptController;
             const transcriptUrl = `${BASE_URL}/transcripts/${encodeURIComponent(botId)}`;
-            transcriptSourceRef.current = new EventSource(transcriptUrl);
-            transcriptSourceRef.current.onmessage = (event) => {
-                try {
-                    const newTranscript = JSON.parse(event.data);
-                    setTranscript(prev => [...prev, newTranscript]);
-                } catch (e) {
-                    console.error("Error parsing new transcript message:", e);
-                }
-            };
-            transcriptSourceRef.current.onerror = (err) => {
-                console.error('Transcript Stream Error:', err);
-                setError('Transcript stream failed. Please refresh the page.');
-                setIsConnected(false);
-                cleanup();
-            };
+            
+            fetchEventSource(transcriptUrl, {
+                signal: transcriptController.signal,
+                headers: { Authorization: `Bearer ${session.access_token}` },
+                onmessage(event) {
+                    try {
+                        const newTranscript = JSON.parse(event.data);
+                        setTranscript(prev => [...prev, newTranscript]);
+                    } catch (e) {
+                        console.error("Notetaker: Error parsing new transcript message:", e);
+                    }
+                },
+                onerror(err) {
+                    console.error('Notetaker: Transcript Stream Error:', err);
+                    setError('Transcript stream failed. Please refresh the page.');
+                    setIsConnected(false);
+                    cleanup();
+                },
+            });
 
-            // Set up real-time stream for questions
+            const questionController = new AbortController();
+            sseRefs.current.question = questionController;
             const questionUrl = `${BASE_URL}/questions/${encodeURIComponent(botId)}`;
-            questionSourceRef.current = new EventSource(questionUrl);
-            questionSourceRef.current.onmessage = (event) => {
-                try {
-                    const newQuestion = JSON.parse(event.data);
-                    setQuestions(prev => [...prev, newQuestion]);
-                } catch (e) {
-                    console.error("Error parsing new question message:", e);
-                }
-            };
-            questionSourceRef.current.onerror = (err) => {
-                console.error('Questions Stream Error:', err);
-                setError('Questions stream failed. Please refresh the page.');
-                cleanup();
-            };
+
+            fetchEventSource(questionUrl, {
+                signal: questionController.signal,
+                headers: { Authorization: `Bearer ${session.access_token}` },
+                onmessage(event) {
+                    try {
+                        const newQuestion = JSON.parse(event.data);
+                        setQuestions(prev => [...prev, newQuestion]);
+                    } catch (e) {
+                        console.error("Notetaker: Error parsing new question message:", e);
+                    }
+                },
+                onerror(err) {
+                    console.error('Notetaker: Questions Stream Error:', err);
+                    setError('Questions stream failed. Please refresh the page.');
+                    cleanup();
+                },
+            });
 
         } else {
-            console.log("Disconnected from bot. Clearing state.");
+            console.log("Notetaker: Disconnected from bot or session not found. Clearing state.");
             setTranscript([]);
             setQuestions([]);
             setIsConnected(false);
@@ -667,39 +390,19 @@ Visit us at: https://www.spiked.ai
             cleanup();
         }
 
-        return cleanup; // Return the cleanup function
-    }, [botId]); // This effect now correctly depends only on `botId`
+        return cleanup;
+    }, [botId, session]);
 
-    // Load meeting URL from sessionStorage and connect to existing streams (set by SpikedAI_recall.tsx)
+    // Load meeting URL from sessionStorage just for display
     useEffect(() => {
         const loadMeetingUrl = () => {
-            console.log('🔍 Attempting to load meeting URL from sessionStorage...');
-            try {
-                const possibleKeys = ['spikedai_meeting_url', 'meetingUrl', 'meeting_url'];
-                let foundUrl = null;
-                for (const key of possibleKeys) {
-                    const storedValue = sessionStorage.getItem(key);
-                    if (storedValue) {
-                        try {
-                            foundUrl = JSON.parse(storedValue);
-                        } catch {
-                            foundUrl = storedValue;
-                        }
-                        break;
-                    }
+            const storedUrl = sessionStorage.getItem('spikedai_meeting_url');
+            if (storedUrl) {
+                try {
+                    setMeetingUrl(JSON.parse(storedUrl));
+                } catch {
+                    setMeetingUrl(storedUrl);
                 }
-                if (foundUrl) {
-                    setMeetingUrl(foundUrl);
-                } else {
-                    console.warn('⚠️ No meeting URL found in sessionStorage');
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const urlFromParams = urlParams.get('meetingUrl');
-                    if (urlFromParams) {
-                        setMeetingUrl(urlFromParams);
-                    }
-                }
-            } catch (error) {
-                console.error('❌ Error loading meeting URL from sessionStorage:', error);
             }
         };
 
@@ -763,7 +466,7 @@ Visit us at: https://www.spiked.ai
     const handleChatSubmit = async (e: React.FormEvent, question?: string) => {
         e.preventDefault();
         const userQuestion = question || chatInput.trim();
-        if (!userQuestion) return;
+        if (!userQuestion || !session) return;
         const newUserMessage: ChatMessage = { id: Date.now(), text: userQuestion, isUser: true, timestamp: new Date() };
         setChatMessages((prev) => [...prev, newUserMessage]);
         setChatInput('');
@@ -771,7 +474,7 @@ Visit us at: https://www.spiked.ai
         setIsAITyping(true);
         const transcriptText = groupTranscriptBySpeaker(transcript).map(group => `${group.speaker || 'Unknown'}: ${group.text}`).join('\n\n');
         try {
-            const response = await fetch(`${SALES_ASSISTANT_BASE_URL}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: userQuestion, transcript: transcriptText, chat_history: chatMessages }) });
+            const response = await fetch(`${SALES_ASSISTANT_BASE_URL}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` }, body: JSON.stringify({ question: userQuestion, transcript: transcriptText, chat_history: chatMessages }) });
             if (!response.ok) throw new Error('Failed to get AI response');
             const data = await response.json();
             const botResponse: ChatMessage = { id: Date.now() + 1, text: data.response, isUser: false, timestamp: new Date() };
@@ -795,7 +498,7 @@ Visit us at: https://www.spiked.ai
         setChatMessages((prev) => [...prev, templateMessage]);
         setIsAITyping(true);
         try {
-            const response = await fetch(`${SALES_ASSISTANT_BASE_URL}/api/process-template`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: template.prompt, transcript: transcriptText }) });
+            const response = await fetch(`${SALES_ASSISTANT_BASE_URL}/api/process-template`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` }, body: JSON.stringify({ prompt: template.prompt, transcript: transcriptText }) });
             if (!response.ok) throw new Error('Failed to process template');
             const data = await response.json();
             const botResponse: ChatMessage = { id: Date.now() + 1, text: data.response, isUser: false, timestamp: new Date() };
@@ -897,7 +600,6 @@ Visit us at: https://www.spiked.ai
             return;
         }
 
-        // Create template data WITHOUT the icon (since React components can't be serialized)
         const templateData = {
             name: templateForm.name,
             description: templateForm.description,
@@ -908,47 +610,34 @@ Visit us at: https://www.spiked.ai
             isCustom: true
         };
 
-        console.log('Attempting to save template:', templateData);
-
         try {
             if (editingTemplate) {
-                // Update existing template
-                console.log('Updating existing template with ID:', editingTemplate.id);
                 const updatedTemplate = { ...templateData, id: editingTemplate.id };
                 const success = await updateInIndexedDB(CUSTOM_TEMPLATES_STORE, updatedTemplate);
-                console.log('Update result:', success);
                 if (success) {
-                    // Add the icon when updating the state
                     const templateWithIcon = { ...updatedTemplate, icon: FileText };
                     setCustomTemplates(prev => 
                         prev.map(t => t.id === editingTemplate.id ? templateWithIcon : t)
                     );
                 }
             } else {
-                // Create new template
-                console.log('Creating new template');
                 const success = await saveToIndexedDB(CUSTOM_TEMPLATES_STORE, templateData);
-                console.log('Save result:', success);
                 if (success) {
-                    // Reload custom templates to get the auto-generated ID
                     const updatedTemplates = await loadFromIndexedDB(CUSTOM_TEMPLATES_STORE);
-                    console.log('Loaded templates after save:', updatedTemplates);
                     const formattedTemplates = updatedTemplates.map((template: any) => ({
                         ...template,
-                        icon: FileText, // Add icon when loading from database
+                        icon: FileText,
                         category: 'custom',
                         isCustom: true,
                     }));
                     setCustomTemplates(formattedTemplates);
                 } else {
-                    console.error('Failed to save template to IndexedDB');
                     alert('Failed to save template. Please try again.');
                     return;
                 }
             }
             setShowCreateTemplateModal(false);
             resetTemplateForm();
-            console.log('Template operation completed successfully');
         } catch (error) {
             console.error('Error saving template:', error);
             alert('An error occurred while saving the template. Please try again.');
@@ -970,9 +659,36 @@ Visit us at: https://www.spiked.ai
         }
     };
 
-    // Combine custom and prebuilt templates (custom templates first)
     const allTemplates = [...customTemplates, ...templates];
-    
+
+    // Generate PDF from chat messages
+    const generatePDF = () => {
+        if (chatMessages.length === 0) return;
+        setIsGeneratingPDF(true);
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text("SpikedAI Meeting Summary", 10, 15);
+        doc.setFontSize(10);
+        let y = 25;
+        chatMessages.forEach((msg) => {
+            const sender = msg.isUser ? "You" : "AI";
+            const lines = doc.splitTextToSize(`${sender}: ${msg.text}`, 180);
+            if (y + lines.length * 7 > 280) {
+                doc.addPage();
+                y = 15;
+            }
+            doc.text(lines, 10, y);
+            y += lines.length * 7 + 3;
+        });
+        doc.save(`SpikedAI_Meeting_Summary_${new Date().toISOString().slice(0,10)}.pdf`);
+        setIsGeneratingPDF(false);
+    };
+
+    // Add missing handleShareClick function
+    const handleShareClick = () => {
+        setIsEmailDialogOpen(true);
+    };
+
     return (
         <div className={`flex flex-col lg:flex-row h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
             {/* Column 1: AI Templates */}
@@ -1161,14 +877,7 @@ Visit us at: https://www.spiked.ai
                                             if (url) {
                                                 console.log('🎯 Manual URL entered:', url);
                                                 setMeetingUrl(url);
-                                                // Save to sessionStorage for consistency
                                                 sessionStorage.setItem('spikedai_meeting_url', JSON.stringify(url));
-                            if (!isConnected) {
-                                if (botId) {
-                                    // To reconnect, just update botId state to itself to retrigger useEffect
-                                    setBotId(botId);
-                                }
-                            }
                                             }
                                         }}
                                     />
@@ -1219,12 +928,7 @@ Visit us at: https://www.spiked.ai
                                 
                                 {/* Refresh Connection Button */}
                                 <button 
-                                    onClick={() => {
-                                        console.log('🔄 Manual refresh connection triggered');
-                                        if (botId) {
-                                setTimeout(() => setBotId(botId), 1000); // Small delay to ensure component is ready
-                            }
-                                    }}
+                                    onClick={() => window.location.reload()}
                                     className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 hover:scale-105 flex items-center space-x-1 ${
                                         isDarkMode 
                                             ? 'bg-blue-600 text-white hover:bg-blue-700' 
@@ -1245,17 +949,18 @@ Visit us at: https://www.spiked.ai
                         )}
                         
                         {/* Debug Panel - shows sessionStorage state */}
-                        {!meetingUrl && (
-                            <div className={`text-xs p-3 rounded border ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
-                                <div className="font-semibold mb-2">Debug Info:</div>
-                                <div>Meeting URL: {meetingUrl || 'Not found'}</div>
-                                <div>SessionStorage keys: {Object.keys(sessionStorage).join(', ') || 'None'}</div>
-                                <div>spikedai_meeting_url: {sessionStorage.getItem('spikedai_meeting_url') || 'Not set'}</div>
-                                <div>Connection Status: {isConnected ? 'Connected' : 'Disconnected'}</div>
-                                <div>Transcript Count: {transcript.length}</div>
-                                <div>Questions Count: {questions.length}</div>
-                            </div>
-                        )}
+                        <div className={`text-xs p-3 rounded border ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
+                            <div className="font-semibold mb-2">Debug Info:</div>
+                            <div>Meeting URL: {meetingUrl || 'Not found'}</div>
+                            <div>SessionStorage keys: {Object.keys(sessionStorage).join(', ') || 'None'}</div>
+                            <div>spikedai_meeting_url: {sessionStorage.getItem('spikedai_meeting_url') || 'Not set'}</div>
+                            <div>Connection Status: {isConnected ? 'Connected' : 'Disconnected'}</div>
+                            <div>Transcript Count: {transcript.length}</div>
+                            <div>Questions Count: {questions.length}</div>
+                            {/* Adding botId log here for confirmation */}
+                            <div>Bot ID from Context: {botId || 'null'}</div>
+                            <div>Session Access Token: {session?.access_token ? 'Present' : 'Not Found'}</div>
+                        </div>
                     </div>
                 </div>
                 

@@ -688,24 +688,134 @@ export default function Notetaker() {
 
     const generatePDF = () => {
         if (chatMessages.length === 0) return;
-        setIsGeneratingPDF(true);
-        const doc = new jsPDF();
-        doc.setFontSize(16);
-        doc.text("SpikedAI Meeting Summary", 10, 15);
-        doc.setFontSize(10);
-        let y = 25;
-        chatMessages.forEach((msg) => {
-            const sender = msg.isUser ? "You" : "AI";
-            const lines = doc.splitTextToSize(`${sender}: ${msg.text}`, 180);
-            if (y + lines.length * 7 > 280) {
+        
+        try {
+            setIsGeneratingPDF(true);
+            const { jsPDF } = (window as any).jspdf;
+            const doc = new jsPDF();
+
+            // Define colors
+            const accentRed = '#F44336';
+            const textPrimary = '#212121';
+            const textSecondary = '#757575';
+            const borderLight = '#E0E0E0';
+
+        // Logo in base64 format
+        const logoBase64 = 'data:image/jpeg;base64,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';
+
+        let yPosition: number = 20;
+        const pageWidth: number = doc.internal.pageSize.getWidth();
+        const margin: number = 20;
+        const contentWidth: number = pageWidth - (margin * 2);
+
+        const checkPageBreak = (requiredHeight: number): void => {
+            if (yPosition + requiredHeight > 285) {
+                addFooter();
                 doc.addPage();
-                y = 15;
+                addHeader();
+                yPosition = 40;
             }
-            doc.text(lines, 10, y);
-            y += lines.length * 7 + 3;
+        };
+
+        const addHeader = (): void => {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(18);
+            doc.setTextColor(textPrimary);
+            doc.text('SpikedAI', margin, 21);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(textSecondary);
+            doc.text('AI Assistant Conversation', pageWidth - margin, 20, { align: 'right' });
+            doc.setDrawColor(accentRed);
+            doc.setLineWidth(0.5);
+            doc.line(margin, 25, pageWidth - margin, 25);
+        };
+
+        const addFooter = (): void => {
+            doc.setFontSize(8);
+            doc.setTextColor(textSecondary);
+            const pageNumber = (doc as any).internal.getNumberOfPages();
+            doc.text(`Page ${(doc as any).internal.getCurrentPageInfo().pageNumber} of ${pageNumber}`, pageWidth - margin, 290, { align: 'right' });
+            doc.text('Confidential & Proprietary. All rights reserved to SpikedAI', margin, 290);
+        };
+
+        // Initialize the document
+        addHeader();
+        yPosition = 40;
+
+        // Add conversation title
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(22);
+        doc.setTextColor(textPrimary);
+        doc.text('Conversation Summary', margin, yPosition);
+        yPosition += 15;
+
+        // Add date and time
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(textSecondary);
+        const date = new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
-        doc.save(`SpikedAI_Meeting_Summary_${new Date().toISOString().slice(0,10)}.pdf`);
-        setIsGeneratingPDF(false);
+        doc.text(`Generated on ${date}`, margin, yPosition);
+        yPosition += 15;
+
+        // Process messages
+        chatMessages.forEach((msg, index) => {
+            checkPageBreak(80);
+
+            // Add separator line
+            if (index > 0) {
+                doc.setDrawColor(borderLight);
+                doc.setLineWidth(0.2);
+                doc.line(margin, yPosition - 5, pageWidth - margin, yPosition - 5);
+            }
+
+            // Message sender
+            doc.setFontSize(11);
+            doc.setTextColor(accentRed);
+            doc.setFont('helvetica', 'bold');
+            const sender = msg.isUser ? 'You' : 'AI Assistant';
+            doc.text(sender, margin, yPosition + 5);
+            yPosition += 10;
+
+            // Message content
+            checkPageBreak(20);
+            doc.setFontSize(10);
+            doc.setTextColor(textPrimary);
+            doc.setFont('helvetica', 'normal');
+            const messageLines = doc.splitTextToSize(msg.text, contentWidth);
+            doc.text(messageLines, margin, yPosition);
+            yPosition += messageLines.length * 5 + 15;
+
+            // Add timestamp if available
+            if (msg.timestamp) {
+                doc.setFontSize(8);
+                doc.setTextColor(textSecondary);
+                doc.setFont('helvetica', 'italic');
+                const time = msg.timestamp.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                doc.text(time, pageWidth - margin, yPosition - 10, { align: 'right' });
+            }
+        });
+
+        // Add footer
+        addFooter();
+
+            // Save the PDF
+            const fileName = `SpikedAI_Conversation_${new Date().toISOString().split('T')[0]}.pdf`;
+            doc.save(fileName);
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+        } finally {
+            setIsGeneratingPDF(false);
+        }
     };
 
     const handleShareClick = () => {

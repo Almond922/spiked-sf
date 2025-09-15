@@ -221,10 +221,20 @@ interface CustomGoal {
   emoji_icon?: string;
 }
 
+// Update this interface 
 interface CustomGoalProgress {
   goal: CustomGoal;
   is_achieved: boolean;
-  evidence?: string;
+  evidences: Array<{
+    text: string;
+    timestamp: string;
+    primary_speaker: string;
+    match_score: number;
+    segment_index: number;
+  }>;
+  current_evidence_index: number;
+  total_evidence_count: number;
+  achievement_percentage: number;
   confidence_score?: number;
 }
 
@@ -1431,13 +1441,21 @@ useEffect(() => {
 
   const fetchParticipantDetails = async (speaker: string, type: 'buying-signals' | 'concerns') => {
     try {
-      const response = await fetch(`${service_url_recall}/sentiment/participant/${encodeURIComponent(speaker)}/${type}-details`);
+      const response = await fetch(`${service_url_recall}/sentiment/participant/${encodeURIComponent(speaker)}/${type}-details`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` }
+      });
       if (response.ok) {
         const data = await response.json();
+        console.log(`Fetched ${type} details for ${speaker}:`, data);
         setParticipantDetails(prev => ({ 
           ...prev, 
-          [speaker]: { ...prev[speaker], [type.replace('-', '_')]: data.details }
+          [speaker]: { 
+            ...prev[speaker], 
+            [type.replace('-', '_')]: data.details || []
+          }
         }));
+      } else {
+        console.error(`Failed to fetch ${type} details:`, response.status);
       }
     } catch (error) {
       console.error(`Error fetching ${type} details:`, error);
@@ -1456,7 +1474,56 @@ useEffect(() => {
     } else {
       setExpandedRecommendations(prev => new Set([...prev, speaker]));
       if (!detailedRecommendations[speaker]) {
-        await fetchDetailedRecommendation(speaker, participantData);
+        setLoadingRecommendations(prev => new Set([...prev, speaker]));
+        try {
+          console.log(`Fetching recommendation for ${speaker}`, participantData);
+          
+          const response = await fetch(`${service_url_recall}/sentiment/participant/${encodeURIComponent(speaker)}/detailed-recommendation`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session?.access_token}`,
+            },
+            body: JSON.stringify({
+              participant_data: {
+                status: participantData.status,
+                speaking_percentage: participantData.speaking_percentage,
+                buying_signals_count: participantData.buying_signals_count,
+                concerns_count: participantData.concerns_count,
+                role: participantData.role
+              }
+            })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`Received recommendation for ${speaker}:`, data);
+            setDetailedRecommendations(prev => ({ 
+              ...prev, 
+              [speaker]: data.recommendation 
+            }));
+          } else {
+            console.error(`Failed to fetch recommendation: ${response.status}`);
+            const errorText = await response.text();
+            console.error("Error details:", errorText);
+            setDetailedRecommendations(prev => ({ 
+              ...prev, 
+              [speaker]: "Unable to generate recommendation. Please try again." 
+            }));
+          }
+        } catch (error) {
+          console.error(`Error fetching recommendation for ${speaker}:`, error);
+          setDetailedRecommendations(prev => ({ 
+            ...prev, 
+            [speaker]: "Error generating recommendation. Please check your connection." 
+          }));
+        } finally {
+          setLoadingRecommendations(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(speaker);
+            return newSet;
+          });
+        }
       }
     }
   };
@@ -1923,51 +1990,177 @@ const deleteCustomGoal = async (goalId: string) => {
     direction: "next" | "prev"
   ) => {
     if (!meetingUrl) return;
-
+  
     console.log(`🔄 Navigating ${direction} in ${category}`);
-
+  
     try {
-      // Call backend navigation endpoint
-      const response = await navigateMedpicQnABackend(
-        meetingUrl,
-        category,
-        direction
-      );
-
-      if (response !== undefined) {
-        // ✅ IMMEDIATE UI UPDATE: Update local state immediately for better UX
-        setSentimentData((prev) => {
-          const categoryData = prev.medpic_progress[category];
-          if (!categoryData || !categoryData.qna_list.length) return prev;
-
-          const newIndex = response;
-          console.log(
-            `✅ Navigation successful: ${category} index ${categoryData.current_qna_index} → ${newIndex}`
-          );
-
-          return {
-            ...prev,
-            medpic_progress: {
-              ...prev.medpic_progress,
-              [category]: {
-                ...categoryData,
-                current_qna_index: newIndex,
-              },
+      // Get current state first
+      const categoryData = sentimentData.medpic_progress[category];
+      if (!categoryData || !categoryData.qna_list.length) {
+        console.log("No Q&A data available for navigation");
+        return;
+      }
+  
+      const currentIndex = categoryData.current_qna_index;
+      const totalCount = categoryData.qna_list.length;
+      
+      // Calculate new index locally first
+      let newIndex = currentIndex;
+      if (direction === "next" && currentIndex < totalCount - 1) {
+        newIndex = currentIndex + 1;
+      } else if (direction === "prev" && currentIndex > 0) {
+        newIndex = currentIndex - 1;
+      } else {
+        console.log(`Cannot navigate ${direction} from index ${currentIndex}`);
+        return;
+      }
+  
+      // Update UI immediately for better UX
+      setSentimentData((prev) => ({
+        ...prev,
+        medpic_progress: {
+          ...prev.medpic_progress,
+          [category]: {
+            ...categoryData,
+            current_qna_index: newIndex,
+          },
+        },
+        last_updated: new Date().toISOString(),
+      }));
+  
+      // Call backend to persist the change
+      const response = await fetch(`${service_url_recall}/sentiment/medpic/${extractGoogleMeetId(meetingUrl)}/navigate/${category}/${direction}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          current_index: currentIndex,
+          new_index: newIndex,
+          total_count: totalCount
+        })
+      });
+  
+      if (!response.ok) {
+        console.error("Backend navigation failed, reverting UI");
+        // Revert UI change if backend fails
+        setSentimentData((prev) => ({
+          ...prev,
+          medpic_progress: {
+            ...prev.medpic_progress,
+            [category]: {
+              ...categoryData,
+              current_qna_index: currentIndex, // Revert
             },
-            last_updated: new Date().toISOString(),
-          };
-        });
-
-        // ✅ FORCE REFRESH: Get fresh MEDPIC data after navigation
-        setTimeout(async () => {
-          await fetchSentimentComponent("medpic");
-        }, 500);
+          },
+        }));
+      } else {
+        const result = await response.json();
+        console.log(`✅ Navigation successful: ${category} index ${currentIndex} → ${result.current_index}`);
       }
     } catch (error) {
       console.error(`❌ Navigation failed for ${category}:`, error);
+      // Revert UI on error
+      setSentimentData((prev) => ({
+        ...prev,
+        medpic_progress: {
+          ...prev.medpic_progress,
+          [category]: {
+            ...prev.medpic_progress[category],
+            current_qna_index: prev.medpic_progress[category].current_qna_index,
+          },
+        },
+      }));
     }
   };
 
+  const navigateCustomGoalEvidence = async (goalId: string, direction: "next" | "prev") => {
+    if (!session) return;
+    
+    try {
+      console.log(`Navigating ${direction} for goal ${goalId}`);
+      
+      // Get current state
+      const currentProgress = sentimentData.custom_goals_progress.find(p => p.goal.id === goalId);
+      if (!currentProgress || !currentProgress.evidences.length) {
+        console.log("No progress or evidences found for goal", goalId);
+        return;
+      }
+  
+      const currentIndex = currentProgress.current_evidence_index || 0;
+      const totalEvidences = currentProgress.evidences.length;
+      
+      // Calculate new index
+      let newIndex = currentIndex;
+      if (direction === "next" && currentIndex < totalEvidences - 1) {
+        newIndex = currentIndex + 1;
+      } else if (direction === "prev" && currentIndex > 0) {
+        newIndex = currentIndex - 1;
+      } else {
+        console.log(`Navigation ${direction} not possible from index ${currentIndex}`);
+        return;
+      }
+  
+      console.log(`Navigating from index ${currentIndex} to ${newIndex}`);
+  
+      // Update local state immediately
+      setSentimentData((prev) => ({
+        ...prev,
+        custom_goals_progress: prev.custom_goals_progress.map(progress => 
+          progress.goal.id === goalId 
+            ? { ...progress, current_evidence_index: newIndex }
+            : progress
+        ),
+        last_updated: new Date().toISOString(),
+      }));
+  
+      // Sync with backend
+      const response = await fetch(`${service_url_recall}/sentiment/custom-goals/${goalId}/navigate/${direction}`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}` 
+        },
+        body: JSON.stringify({
+          current_index: currentIndex,
+          new_index: newIndex,
+          total_count: totalEvidences
+        })
+      });
+      
+      if (!response.ok) {
+        console.error("Backend navigation failed, reverting local state");
+        // Revert local state if backend call failed
+        setSentimentData((prev) => ({
+          ...prev,
+          custom_goals_progress: prev.custom_goals_progress.map(progress => 
+            progress.goal.id === goalId 
+              ? { ...progress, current_evidence_index: currentIndex }
+              : progress
+          ),
+        }));
+      } else {
+        const data = await response.json();
+        console.log(`Backend confirmed navigation to index: ${data.current_index}`);
+      }
+    } catch (error) {
+      console.error(`Navigation failed for custom goal ${goalId}:`, error);
+      // Revert to original state on error
+      const currentProgress = sentimentData.custom_goals_progress.find(p => p.goal.id === goalId);
+      if (currentProgress) {
+        setSentimentData((prev) => ({
+          ...prev,
+          custom_goals_progress: prev.custom_goals_progress.map(progress => 
+            progress.goal.id === goalId 
+              ? { ...progress, current_evidence_index: currentProgress.current_evidence_index }
+              : progress
+          ),
+        }));
+      }
+    }
+  };
+  
   const getMedpicSummary = async () => {
     if (!meetingUrl || !session) return;
 
@@ -2150,30 +2343,34 @@ const deleteCustomGoal = async (goalId: string) => {
     }
   };
 
-    const EyeButton = ({ onClick, isExpanded, isLoading = false }: { 
-      onClick: () => void; 
-      isExpanded: boolean; 
-      isLoading?: boolean; 
-    }) => (
-      <button
-        onClick={onClick}
-        disabled={isLoading}
-        className={`p-1.5 rounded-full transition-colors ${
-          isExpanded 
-            ? "bg-blue-500/20 text-blue-500" 
-            : isDarkMode
-            ? "hover:bg-slate-600/50 text-slate-400"
-            : "hover:bg-slate-200 text-slate-500"
-        }`}
-        title={isExpanded ? "Hide details" : "Show details"}
-      >
-        {isLoading ? (
-          <Loader className="w-3.5 h-3.5 animate-spin" />
-        ) : (
-          <Eye className="w-3.5 h-3.5" />
-        )}
-      </button>
-    );
+  const EyeButton = ({ onClick, isExpanded, isLoading = false }: { 
+    onClick: () => void; 
+    isExpanded: boolean; 
+    isLoading?: boolean; 
+  }) => (
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClick();
+      }}
+      disabled={isLoading}
+      className={`p-1.5 rounded-full transition-colors ${
+        isExpanded 
+          ? "bg-blue-500/20 text-blue-500" 
+          : isDarkMode
+          ? "hover:bg-slate-600/50 text-slate-400"
+          : "hover:bg-slate-200 text-slate-500"
+      } ${isLoading ? "cursor-not-allowed" : "cursor-pointer"}`}
+      title={isExpanded ? "Hide details" : "Show details"}
+    >
+      {isLoading ? (
+        <Loader className="w-3.5 h-3.5 animate-spin" />
+      ) : (
+        <Eye className="w-3.5 h-3.5" />
+      )}
+    </button>
+  );
 
     // Alert management functions
     useEffect(() => {
@@ -2210,51 +2407,75 @@ const deleteCustomGoal = async (goalId: string) => {
       setVisibleAlerts(unacknowledgedAlerts);
     }, [sentimentData.critical_alerts]);
 
-  const fetchSentimentDataStaggered = async () => {
-  try {
-    console.log("Fetching sentiment data...");
-
-    // Simple check - don't disconnect on first error
-    if (!isBotRunning || !session || !botId) {
-      console.log("No active bot session, skipping sentiment fetch");
-      return;
-    }
-
-    // Always fetch critical alerts first
-    try {
-      await fetchSentimentComponent("alerts");
-    } catch (error) {
-      console.error("Failed to fetch alerts:", error);
-      // Don't return - continue with other components
-    }
-
-    // Cycle through other components
-    const now = Date.now();
-    const cycleIndex = Math.floor(now / 1000) % 5;
-
-    try {
-      switch (cycleIndex) {
-        case 0:
-          await fetchSentimentComponent("participants");
-          break;
-        case 1:
-          await fetchSentimentComponent("buying-signals");
-          break;
-        case 2:
-          await fetchSentimentComponent("medpic");
-          break;
-        case 3:
-          await fetchSentimentComponent("custom-goals"); // ADD THIS CASE
-          break;
+    const fetchSentimentDataStaggered = async () => {
+      try {
+        console.log("Fetching sentiment data...");
+    
+        // Simple check - don't disconnect on first error
+        if (!isBotRunning || !session || !botId) {
+          console.log("No active bot session, skipping sentiment fetch");
+          return;
+        }
+    
+        // Always fetch critical alerts first
+        try {
+          await fetchSentimentComponent("alerts");
+        } catch (error) {
+          console.error("Failed to fetch alerts:", error);
+          // Don't return - continue with other components
+        }
+    
+        // FIXED: Fetch all components in a staggered manner but ensure data persistence
+        const now = Date.now();
+        const cycleIndex = Math.floor(now / 1000) % 4; // Reduced to 4 since we removed one case
+    
+        try {
+          switch (cycleIndex) {
+            case 0:
+              await fetchSentimentComponent("participants");
+              break;
+            case 1:
+              await fetchSentimentComponent("buying-signals");
+              break;
+            case 2:
+              await fetchSentimentComponent("medpic");
+              break;
+            case 3:
+              await fetchSentimentComponent("custom-goals");
+              break;
+          }
+          console.log(`Sentiment cycle ${cycleIndex} completed`);
+          
+          // FIXED: Fetch MEDPIC and custom goals more frequently to prevent disappearing
+          if (cycleIndex === 0 || cycleIndex === 2) {
+            // Also fetch custom goals when fetching participants or medpic
+            setTimeout(async () => {
+              try {
+                await fetchSentimentComponent("custom-goals");
+              } catch (error) {
+                console.error("Error fetching custom goals in background:", error);
+              }
+            }, 1000);
+          }
+          
+          if (cycleIndex === 1 || cycleIndex === 3) {
+            // Also fetch medpic when fetching buying signals or custom goals
+            setTimeout(async () => {
+              try {
+                await fetchSentimentComponent("medpic");
+              } catch (error) {
+                console.error("Error fetching medpic in background:", error);
+              }
+            }, 1000);
+          }
+          
+        } catch (error) {
+          console.error(`Error in sentiment cycle ${cycleIndex}:`, error);
+        }
+      } catch (error) {
+        console.error("Error in sentiment fetching:", error);
       }
-      console.log(`Sentiment cycle ${cycleIndex} completed`);
-    } catch (error) {
-      console.error(`Error in sentiment cycle ${cycleIndex}:`, error);
-    }
-  } catch (error) {
-    console.error("Error in sentiment fetching:", error);
-  }
-};
+    };
 
   const checkApiHealth = async () => {
     try {
@@ -3846,7 +4067,7 @@ useEffect(() => {
             </div>
           )}
 
-        {/* START: UPDATED CRITICAL ALERTS SECTION */}
+        {/* START: FIXED CRITICAL ALERTS SECTION */}
         {visibleAlerts.length > 0 && (
           <div className="space-y-4">
             <h4
@@ -3855,61 +4076,111 @@ useEffect(() => {
               }`}
             >
               <AlertTriangle className="w-5 h-5" />
-              <span>Alerts</span>
+              <span>Critical Alerts</span>
+              <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full">
+                {visibleAlerts.length}
+              </span>
             </h4>
             <div className="space-y-3">
               {visibleAlerts.map((alert) => (
                 <div
                   key={alert.id}
-                  className={`p-4 rounded-xl border-l-4 shadow-md transition-all ${
+                  className={`p-4 rounded-xl border-l-4 shadow-md transition-all duration-300 ${
                     alert.severity === "negative_high"
-                      ? "border-red-500 bg-red-50 dark:bg-red-900/20"
+                      ? "border-red-500 bg-red-50 dark:bg-red-900/20 animate-pulse"
                       : alert.alert_type === "positive"
                       ? "border-green-500 bg-green-50 dark:bg-green-900/20"
                       : "border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20"
                   }`}
                 >
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span
+                          className={`text-xs font-bold px-2 py-1 rounded-full ${
+                            alert.severity === "negative_high"
+                              ? "bg-red-500 text-white"
+                              : alert.alert_type === "positive"
+                              ? "bg-green-500 text-white"
+                              : "bg-yellow-500 text-white"
+                          }`}
+                        >
+                          {alert.severity.replace('_', ' ').toUpperCase()}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {formatTimeAgo(alert.timestamp)}
+                        </span>
+                      </div>
                       <p
-                        className={`font-bold text-sm ${
+                        className={`font-bold text-sm mb-2 ${
                           alert.severity === "negative_high"
                             ? "text-red-700 dark:text-red-300"
-                            : "text-yellow-700 dark:text-green-300"
+                            : alert.alert_type === "positive"
+                            ? "text-green-700 dark:text-green-300"
+                            : "text-yellow-700 dark:text-yellow-300"
                         }`}
                       >
-                        {alert.phrase}
+                        "{alert.phrase}"
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Speaker:{" "}
-                        <span className="font-medium">{alert.speaker}</span>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        Speaker: <span className="font-medium">{alert.speaker}</span>
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-2 italic">
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mb-3 italic">
                         "{alert.context}"
                       </p>
+                      {alert.suggestion && (
+                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                          <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                            💡 Suggestion:
+                          </p>
+                          <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">
+                            {alert.suggestion}
+                          </p>
+                        </div>
+                      )}
                     </div>
                     <button
-                      onClick={() => acknowledgeAlert(alert.id)}
-                      className={`ml-2 p-1.5 rounded-full transition-colors ${
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        try {
+                          console.log(`Acknowledging alert: ${alert.id}`);
+                          
+                          // Remove from visible alerts immediately
+                          setVisibleAlerts(prev => prev.filter(a => a.id !== alert.id));
+                          
+                          // Call acknowledge API
+                          const response = await fetch(`${service_url_recall}/sentiment/alerts/${alert.id}/acknowledge`, {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                              Authorization: `Bearer ${session?.access_token}`,
+                            },
+                          });
+                          
+                          if (!response.ok) {
+                            console.error("Failed to acknowledge alert");
+                            // Add back to visible alerts if API call failed
+                            setVisibleAlerts(prev => [...prev, alert]);
+                          } else {
+                            console.log(`Alert ${alert.id} acknowledged successfully`);
+                          }
+                        } catch (error) {
+                          console.error("Error acknowledging alert:", error);
+                          // Add back to visible alerts on error
+                          setVisibleAlerts(prev => [...prev, alert]);
+                        }
+                      }}
+                      className={`ml-2 p-2 rounded-full transition-all duration-200 hover:scale-110 ${
                         isDarkMode
-                          ? "hover:bg-slate-600/50"
-                          : "hover:bg-slate-200"
+                          ? "hover:bg-slate-600/50 text-slate-400 hover:text-white"
+                          : "hover:bg-slate-200 text-slate-500 hover:text-slate-700"
                       }`}
-                      title="Acknowledge Alert"
+                      title="Dismiss Alert"
                     >
-                      <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
-                  {alert.suggestion && (
-                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                      <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                        Suggestion:
-                      </p>
-                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">
-                        {alert.suggestion}
-                      </p>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
@@ -4139,7 +4410,7 @@ useEffect(() => {
             </div>
           )}
  
-        {/* Playbook Dashboard */}
+        {/* Playbook Dashboard - Enhanced UI matching Custom Goals */}
         {(selectedCategories.includes("all") ||
           selectedCategories.includes("playbook")) && (
           <React.Fragment>
@@ -4153,86 +4424,111 @@ useEffect(() => {
                   <TrendingUp className="w-5 h-5" />
                   <span>Live Playbook</span>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2.5 py-1 rounded-full font-medium">
+                    Sales Qualification
+                  </span>
+                </div>
               </h4>
 
-              {/* Buying Signals Counter - ENHANCED VERSION */}
-              <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-gray-700 dark:text-gray-300">
-                    Buying Signals
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center ${
-                        sentimentData.buying_signals.trend === "increasing"
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
-                          : sentimentData.buying_signals.trend === "decreasing"
-                          ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
-                          : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                      }`}
-                    >
-                      {sentimentData.buying_signals.trend === "increasing"
-                        ? "↑"
-                        : sentimentData.buying_signals.trend === "decreasing"
-                        ? "↓"
-                        : "→"}
-                      <span className="ml-1">
-                        {sentimentData.buying_signals.trend}
-                      </span>
-                    </span>
-                    {(sentimentData.buying_signals as any)?.analysis_method && (
-                      <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">
-                        {(sentimentData.buying_signals as any).analysis_method === "llm_enhanced" ? "AI Enhanced" : "Pattern Based"}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                  {sentimentData.buying_signals.total_score} points
-                </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                  {sentimentData.buying_signals.signal_count} signals detected
-                </div>
-                
-                {/* LLM Summary if available */}
-                {(sentimentData.buying_signals as any)?.llm_summary && (
-                  <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">
-                      AI Analysis:
-                    </p>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
-                      {(sentimentData.buying_signals as any).llm_summary}
-                    </p>
-                  </div>
-                )}
+              {/* Buying Signals Counter - Enhanced Card */}
+              <div className="group">
+                <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-200 hover:shadow-md">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-3 flex-1">
+                      {/* Signal Icon */}
+                      <div className="p-2 rounded-lg flex-shrink-0 bg-green-100 dark:bg-green-800/50">
+                        <span className="text-lg">💰</span>
+                      </div>
+                      
+                      {/* Signal Details */}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2 leading-snug">
+                          Buying Signals Detected
+                        </h4>
+                        
+                        {/* Score Display */}
+                        <div className="mb-2">
+                          <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                            {sentimentData.buying_signals.total_score} points
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {sentimentData.buying_signals.signal_count} signals detected
+                          </div>
+                        </div>
+                        
+                        {/* Trend Indicator */}
+                        <div className="flex items-center space-x-2 mb-3">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center ${
+                              sentimentData.buying_signals.trend === "increasing"
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                                : sentimentData.buying_signals.trend === "decreasing"
+                                ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
+                                : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                            }`}
+                          >
+                            {sentimentData.buying_signals.trend === "increasing"
+                              ? "↗"
+                              : sentimentData.buying_signals.trend === "decreasing"
+                              ? "↘"
+                              : "→"}
+                            <span className="ml-1">
+                              {sentimentData.buying_signals.trend}
+                            </span>
+                          </span>
+                          {(sentimentData.buying_signals as any)?.analysis_method && (
+                            <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">
+                              {(sentimentData.buying_signals as any).analysis_method === "llm_enhanced" ? "AI Enhanced" : "Pattern Based"}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* LLM Summary if available */}
+                        {(sentimentData.buying_signals as any)?.llm_summary && (
+                          <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                            <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">
+                              AI Analysis:
+                            </p>
+                            <p className="text-xs text-blue-700 dark:text-blue-300">
+                              {(sentimentData.buying_signals as any).llm_summary}
+                            </p>
+                          </div>
+                        )}
 
-                <div className="mt-2 space-y-1.5 border-t border-gray-200 dark:border-gray-700 pt-3">
-                  {Object.entries(
-                    sentimentData.buying_signals.signals_by_type
-                  ).map(([type, points]) => (
-                    <div
-                      key={type}
-                      className="flex justify-between text-sm items-center"
-                    >
-                      <span className="flex items-center text-gray-600 dark:text-gray-300">
-                        {getSignalTypeIcon(type)} {type.replace("_", " ").toUpperCase()}
-                      </span>
-                      <span className="font-medium text-gray-800 dark:text-gray-200">
-                        {points} pts
-                      </span>
+                        {/* Signal Types Breakdown */}
+                        <div className="mt-2 space-y-1.5 border-t border-gray-200 dark:border-gray-700 pt-3">
+                          {Object.entries(
+                            sentimentData.buying_signals.signals_by_type
+                          ).map(([type, points]) => (
+                            <div
+                              key={type}
+                              className="flex justify-between text-sm items-center"
+                            >
+                              <span className="flex items-center text-gray-600 dark:text-gray-300">
+                                {getSignalTypeIcon(type)} {type.replace("_", " ").toUpperCase()}
+                              </span>
+                              <span className="font-medium text-gray-800 dark:text-gray-200">
+                                {points} pts
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
               </div>
 
-              {/* MEDPIC Progress - ENHANCED VERSION */}
+              {/* MEDPIC Progress - Enhanced Card Layout */}
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-semibold text-gray-700 dark:text-gray-300">
-                    Playbook
+                <div className="flex items-center justify-between mb-4">
+                  <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+                    <span>📋</span>
+                    <span>MEDPIC Qualification Progress</span>
                   </span>
                   <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
-                    Sales Qualification
+                    Sales Framework
                   </span>
                 </div>
 
@@ -4252,59 +4548,82 @@ useEffect(() => {
                         category.qna_list[category.current_qna_index];
 
                       return (
-                        <div key={categoryName} className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <span className="text-sm">
-                                {getMedpicIcon(categoryName)}
-                              </span>
-                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                {getMedpicLabel(categoryName)}
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <span
-                                className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                                  category.discussed
-                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-                                    : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                                }`}
-                              >
-                                {category.discussed
-                                  ? `${category.percentage_of_meeting.toFixed(
-                                      1
-                                    )}%`
-                                  : "0%"}
-                              </span>
-                              <span
-                                className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                                  category.discussed
-                                    ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
-                                    : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
-                                }`}
-                              >
-                                {category.discussed ? "Discussed" : "Pending"}
-                              </span>
-                            </div>
-                          </div>
+                        <div key={categoryName} className="group">
+                          {/* Category Header Card */}
+                          <div className={`p-4 rounded-xl border transition-all duration-200 hover:shadow-md ${
+                            category.discussed 
+                              ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700/50" 
+                              : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50"
+                          }`}>
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start space-x-3 flex-1">
+                                {/* Category Icon */}
+                                <div className={`p-2 rounded-lg flex-shrink-0 ${
+                                  category.discussed 
+                                    ? "bg-blue-100 dark:bg-blue-800/50" 
+                                    : "bg-gray-100 dark:bg-gray-800/50"
+                                }`}>
+                                  <span className="text-lg">{getMedpicIcon(categoryName)}</span>
+                                </div>
+                                
+                                {/* Category Details */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                      {getMedpicLabel(categoryName)}
+                                    </h4>
+                                    <div className="flex items-center space-x-2">
+                                      <span
+                                        className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                                          category.discussed
+                                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                                            : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                                        }`}
+                                      >
+                                        {category.discussed
+                                          ? `${category.percentage_of_meeting.toFixed(1)}%`
+                                          : "0%"}
+                                      </span>
+                                      <span
+                                        className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                                          category.discussed
+                                            ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                                            : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
+                                        }`}
+                                      >
+                                        {category.discussed ? "Discussed" : "Pending"}
+                                      </span>
+                                    </div>
+                                  </div>
 
-                          {/* Enhanced Q&A Navigation and Display */}
-                          {category.discussed &&
-                            category.qna_list.length > 0 && (
-                              <div className="ml-6 mt-2">
-                                <details className="group">
-                                  <summary className="cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400 list-none flex items-center justify-between">
-                                    <span>
-                                      View Q&A Details (
-                                      {category.qna_list.length} conversations)
-                                    </span>
-                                    <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
+                                  {category.discussed && (
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                      Discussion time: {(category.total_discussion_seconds / 60).toFixed(1)} minutes
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Enhanced Q&A Navigation and Display */}
+                            {category.discussed && category.qna_list.length > 0 && (
+                              <div className="mt-4">
+                                <details className="group/qna">
+                                  <summary className="cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400 list-none flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors">
+                                    <div className="flex items-center space-x-2">
+                                      <span>📋 View Q&A Details</span>
+                                      <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-full text-xs">
+                                        {category.qna_list.length} conversations
+                                      </span>
+                                    </div>
+                                    <ChevronDown className="w-4 h-4 transition-transform group-open/qna:rotate-180" />
                                   </summary>
 
-                                  <div className="mt-3 space-y-3 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                                    {/* Navigation Buttons */}
+                                  <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200 dark:border-blue-800/30">
+                                    
+                                    {/* Navigation Controls */}
                                     {category.qna_list.length > 1 && (
-                                      <div className="flex items-center justify-between mb-3">
+                                      <div className="flex items-center justify-between mb-4 p-2 bg-white dark:bg-gray-800 rounded-lg">
                                         <button
                                           onClick={() =>
                                             navigateMedpicQnA(
@@ -4315,20 +4634,22 @@ useEffect(() => {
                                           disabled={
                                             category.current_qna_index === 0
                                           }
-                                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                                          className={`flex items-center space-x-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
                                             category.current_qna_index === 0
                                               ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                                               : "bg-blue-500 text-white hover:bg-blue-600"
                                           }`}
                                         >
-                                          ← Prev
+                                          <span>←</span>
+                                          <span>Previous</span>
                                         </button>
-
-                                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                                          {category.current_qna_index + 1} of{" "}
-                                          {category.qna_list.length}
-                                        </span>
-
+                                        
+                                        <div className="flex items-center space-x-2">
+                                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                                            Evidence {category.current_qna_index + 1} of {category.qna_list.length}
+                                          </span>
+                                        </div>
+                                        
                                         <button
                                           onClick={() =>
                                             navigateMedpicQnA(
@@ -4340,51 +4661,50 @@ useEffect(() => {
                                             category.current_qna_index ===
                                             category.qna_list.length - 1
                                           }
-                                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                                          className={`flex items-center space-x-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
                                             category.current_qna_index ===
                                             category.qna_list.length - 1
                                               ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                                               : "bg-blue-500 text-white hover:bg-blue-600"
                                           }`}
                                         >
-                                          Next →
+                                          <span>Next</span>
+                                          <span>→</span>
                                         </button>
                                       </div>
                                     )}
 
                                     {/* Current Q&A Display */}
                                     {currentQnA && (
-                                      <div className="space-y-2">
-                                        <div>
-                                          <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                                            Question:
-                                          </p>
-                                          <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">
+                                      <div className="space-y-3">
+                                        <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-green-200 dark:border-green-700/50">
+                                          <div className="flex items-start space-x-2 mb-2">
+                                            <span className="text-green-600 dark:text-green-400 text-xs font-semibold">💬 Question:</span>
+                                          </div>
+                                          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-3 rounded border">
                                             {currentQnA.question}
-                                          </p>
+                                          </div>
                                         </div>
-                                        <div className="pt-2">
-                                          <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                                            Answer:
-                                          </p>
-                                          <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">
+                                        
+                                        <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700/50">
+                                          <div className="flex items-start space-x-2 mb-2">
+                                            <span className="text-blue-600 dark:text-blue-400 text-xs font-semibold">💡 Answer:</span>
+                                          </div>
+                                          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-3 rounded border">
                                             {currentQnA.answer}
-                                          </p>
+                                          </div>
                                         </div>
-                                        <div className="pt-2 text-xs text-gray-500 dark:text-gray-400">
-                                          <span>
-                                            Duration:{" "}
-                                            {currentQnA.duration_seconds.toFixed(
-                                              1
-                                            )}{" "}
-                                            s
-                                          </span>
-                                          <span className="ml-3">
-                                            Time:{" "}
-                                            {new Date(
-                                              currentQnA.timestamp
-                                            ).toLocaleTimeString()}
-                                          </span>
+                                        
+                                        {/* Evidence Metadata */}
+                                        <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                          <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
+                                            <span>⏱</span>
+                                            <span>Duration: {currentQnA.duration_seconds.toFixed(1)}s</span>
+                                          </div>
+                                          <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
+                                            <span>🕐</span>
+                                            <span>{new Date(currentQnA.timestamp).toLocaleTimeString()}</span>
+                                          </div>
                                         </div>
                                       </div>
                                     )}
@@ -4392,18 +4712,7 @@ useEffect(() => {
                                 </details>
                               </div>
                             )}
-
-                          {category.discussed && (
-                            <div className="ml-6 mt-1">
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
-                                Discussion time:{" "}
-                                {(
-                                  category.total_discussion_seconds / 60
-                                ).toFixed(1)}{" "}
-                                minutes
-                              </span>
-                            </div>
-                          )}
+                          </div>
                         </div>
                       );
                     }
@@ -4412,23 +4721,19 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* Custom Goals Progress - Move this OUTSIDE of the MEDPIC section */}
+            {/* Custom Goals Progress - Enhanced Version */}
             {customGoals.length > 0 && (
             <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                <span className="font-semibold text-gray-700 dark:text-gray-300">
-                    Custom Goals
+                <div className="flex items-center justify-between mb-4">
+                <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+                    
+                    <span>Custom Goals</span>
                 </span>
                 <div className="flex items-center space-x-2">
-                    <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
+                    <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
                     {customGoals.length} goals
                     </span>
-                    <button
-                    onClick={() => {/* Add logic to show create goal modal */}}
-                    className="text-xs bg-blue-500 text-white px-2 py-1 rounded-full hover:bg-blue-600"
-                    >
-                    + Add Goal
-                    </button>
+                  
                 </div>
                 </div>
 
@@ -4436,56 +4741,172 @@ useEffect(() => {
                 {customGoals.map((goal) => {
                     const progress = sentimentData.custom_goals_progress.find(p => p.goal.id === goal.id);
                     const isAchieved = progress?.is_achieved || false;
+                    const achievementPercentage = progress?.achievement_percentage || 0;
+                    const evidences = progress?.evidences || [];
+                    const currentIndex = progress?.current_evidence_index || 0;
                     
                     return (
-                    <div key={goal.id} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                            <span className="text-sm">{goal.emoji_icon || "🎯"}</span>
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            {goal.goal_description}
-                            </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <span
-                            className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                                isAchieved
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
-                                : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                            }`}
-                            >
-                            {isAchieved ? "Achieved" : "Pending"}
-                            </span>
-                            <button
-                            onClick={() => updateCustomGoal(goal.id, {/* updated data */})}
-                            className="text-xs text-blue-500 hover:text-blue-700"
-                            >
-                            Edit
-                            </button>
+                    <div key={goal.id} className="group">
+                        {/* Goal Header Card */}
+                        <div className={`p-4 rounded-xl border transition-all duration-200 hover:shadow-md ${
+                        isAchieved 
+                            ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700/50" 
+                            : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50"
+                        }`}>
+                        <div className="flex items-start justify-between">
+                            <div className="flex items-start space-x-3 flex-1">
+                            {/* Goal Icon */}
+                            <div className={`p-2 rounded-lg flex-shrink-0 ${
+                                isAchieved 
+                                ? "bg-green-100 dark:bg-green-800/50" 
+                                : "bg-blue-100 dark:bg-blue-800/50"
+                            }`}>
+                                <span className="text-lg">{goal.emoji_icon || "🎯"}</span>
+                            </div>
+                            
+                            {/* Goal Details */}
+                            <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2 leading-snug">
+                                {goal.goal_description}
+                                </h4>
+                                
+                                {/* Progress Bar */}
+                                <div className="mb-2">
+                                <div className="flex items-center justify-between text-xs mb-1">
+                                    <span className="text-gray-600 dark:text-gray-400">Progress</span>
+                                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                                    {achievementPercentage.toFixed(1)}%
+                                    </span>
+                                </div>
+                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                    <div 
+                                    className={`h-2 rounded-full transition-all duration-500 ${
+                                        isAchieved ? "bg-green-500" : "bg-blue-500"
+                                    }`}
+                                    style={{ width: `${Math.min(achievementPercentage, 100)}%` }}
+                                    ></div>
+                                </div>
+                                </div>
+                                
+                                {/* Status and Evidence Count */}
+                                <div className="flex items-center space-x-2">
+                                <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                                    isAchieved
+                                    ? "bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300"
+                                    : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                                }`}>
+                                    {isAchieved ? "✅ Achieved" : "🔄 In Progress"}
+                                </span>
+                                
+                                {evidences.length > 0 && (
+                                    <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                                    {evidences.length} evidence{evidences.length !== 1 ? 's' : ''}
+                                    </span>
+                                )}
+                                
+                                {progress?.confidence_score && (
+                                    <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full">
+                                    {(progress.confidence_score * 100).toFixed(0)}% confidence
+                                    </span>
+                                )}
+                                </div>
+                            </div>
+                            </div>
+                            
+                            {/* Delete Button (Emoji Style) */}
                             <button
                             onClick={() => deleteCustomGoal(goal.id)}
-                            className="text-xs text-red-500 hover:text-red-700"
+                            className="ml-2 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-100 dark:hover:bg-red-900/30 hover:scale-110"
+                            title="Delete goal"
                             >
-                            Delete
+                            <span className="text-lg">🗑️</span>
                             </button>
                         </div>
                         </div>
 
-                        {/* Show evidence if achieved */}
-                        {isAchieved && progress?.evidence && (
-                        <div className="ml-6 mt-2">
-                            <details className="group">
-                            <summary className="cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400 list-none flex items-center justify-between">
-                                <span>View Evidence</span>
-                                <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
+                        {/* Evidence Section */}
+                        {evidences.length > 0 && (
+                        <div className="mt-3">
+                            <details className="group/evidence">
+                            <summary className="cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400 list-none flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors">
+                                <div className="flex items-center space-x-2">
+                                <span>📋 View Evidence Details</span>
+                                <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-full text-xs">
+                                    {evidences.length} found
+                                </span>
+                                </div>
+                                <ChevronDown className="w-4 h-4 transition-transform group-open/evidence:rotate-180" />
                             </summary>
-                            <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
-                                <p className="text-xs text-green-700 dark:text-green-300">
-                                {progress.evidence}
-                                </p>
-                                {progress.confidence_score && (
-                                <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                    Confidence: {(progress.confidence_score * 100).toFixed(1)}%
+
+                            <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200 dark:border-blue-800/30">
+                                
+                                {/* Navigation Controls */}
+                                {evidences.length > 1 && (
+                                <div className="flex items-center justify-between mb-4 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                                    <button
+                                    onClick={() => navigateCustomGoalEvidence(goal.id, "prev")}
+                                    disabled={currentIndex === 0}
+                                    className={`flex items-center space-x-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                                        currentIndex === 0
+                                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                        : "bg-blue-500 text-white hover:bg-blue-600"
+                                    }`}
+                                    >
+                                    <span>←</span>
+                                    <span>Previous</span>
+                                    </button>
+                                    
+                                    <div className="flex items-center space-x-2">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        Evidence {currentIndex + 1} of {evidences.length}
+                                    </span>
+                                    </div>
+                                    
+                                    <button
+                                    onClick={() => navigateCustomGoalEvidence(goal.id, "next")}
+                                    disabled={currentIndex === evidences.length - 1}
+                                    className={`flex items-center space-x-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                                        currentIndex === evidences.length - 1
+                                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                        : "bg-blue-500 text-white hover:bg-blue-600"
+                                    }`}
+                                    >
+                                    <span>Next</span>
+                                    <span>→</span>
+                                    </button>
+                                </div>
+                                )}
+                                
+                                {/* Current Evidence Display */}
+                                {evidences[currentIndex] && (
+                                <div className="space-y-3">
+                                    <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-green-200 dark:border-green-700/50">
+                                    <div className="flex items-start space-x-2 mb-2">
+                                        <span className="text-green-600 dark:text-green-400 text-xs font-semibold">💬 Evidence:</span>
+                                        <span className="text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">
+                                        {(evidences[currentIndex].match_score * 100).toFixed(1)}% match
+                                        </span>
+                                    </div>
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-3 rounded border">
+                                        {evidences[currentIndex].text}
+                                    </div>
+                                    </div>
+                                    
+                                    {/* Evidence Metadata */}
+                                    <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                    <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
+                                        <span>👤</span>
+                                        <span>{evidences[currentIndex].primary_speaker}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
+                                        <span>🕒</span>
+                                        <span>{new Date(evidences[currentIndex].timestamp).toLocaleTimeString()}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
+                                        <span>📍</span>
+                                        <span>Segment #{evidences[currentIndex].segment_index + 1}</span>
+                                    </div>
+                                    </div>
                                 </div>
                                 )}
                             </div>
@@ -4534,7 +4955,7 @@ useEffect(() => {
                 </div>
               </h4>
 
-              {/* Participant Cards Section - REPLACE ENTIRE SECTION */}
+              {/* Participant Cards Section - COMPLETE WITH ALL MODIFICATIONS */}
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-semibold text-gray-700 dark:text-gray-300">
@@ -4620,31 +5041,61 @@ useEffect(() => {
 
                               {/* Expanded Buying Signals */}
                               {expandedBuyingSignals.has(card.speaker) && (
-                                <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs">
-                                  <p className="font-semibold text-blue-600 dark:text-blue-400 mb-1">
+                                <div className="mb-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs">
+                                  <p className="font-semibold text-blue-600 dark:text-blue-400 mb-2">
                                     Buying Signals:
                                   </p>
-                                  {participantDetails[card.speaker]?.buying_signals?.map((signal: any, index: number) => (
-                                    <div key={index} className="mb-1">
-                                      <span className="text-blue-700 dark:text-blue-300">"{signal.phrase}"</span>
-                                      <span className="text-gray-500 ml-2">({signal.timestamp})</span>
+                                  {participantDetails[card.speaker]?.buying_signals ? (
+                                    participantDetails[card.speaker].buying_signals.length > 0 ? (
+                                      participantDetails[card.speaker].buying_signals.map((signal: any, index: number) => (
+                                        <div key={index} className="mb-2 p-2 bg-white dark:bg-blue-800/30 rounded border-l-2 border-blue-400">
+                                          <div className="font-medium text-blue-700 dark:text-blue-300">
+                                            "{signal.phrase}"
+                                          </div>
+                                          <div className="text-gray-600 dark:text-gray-400 mt-1">
+                                            Type: {signal.signal_type} • Points: {signal.points} • {new Date(signal.timestamp).toLocaleTimeString()}
+                                          </div>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <span className="text-gray-500">No buying signals detected yet</span>
+                                    )
+                                  ) : (
+                                    <div className="flex items-center space-x-2">
+                                      <Loader className="w-4 h-4 animate-spin" />
+                                      <span className="text-gray-500">Loading details...</span>
                                     </div>
-                                  )) || <span className="text-gray-500">Loading details...</span>}
+                                  )}
                                 </div>
                               )}
 
                               {/* Expanded Concerns */}
                               {expandedConcerns.has(card.speaker) && (
-                                <div className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs">
-                                  <p className="font-semibold text-red-600 dark:text-red-400 mb-1">
+                                <div className="mb-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-xs">
+                                  <p className="font-semibold text-red-600 dark:text-red-400 mb-2">
                                     Concerns:
                                   </p>
-                                  {participantDetails[card.speaker]?.concerns?.map((concern: any, index: number) => (
-                                    <div key={index} className="mb-1">
-                                      <span className="text-red-700 dark:text-red-300">"{concern.phrase}"</span>
-                                      <span className="text-gray-500 ml-2">({concern.context})</span>
+                                  {participantDetails[card.speaker]?.concerns ? (
+                                    participantDetails[card.speaker].concerns.length > 0 ? (
+                                      participantDetails[card.speaker].concerns.map((concern: any, index: number) => (
+                                        <div key={index} className="mb-2 p-2 bg-white dark:bg-red-800/30 rounded border-l-2 border-red-400">
+                                          <div className="font-medium text-red-700 dark:text-red-300">
+                                            "{concern.phrase}"
+                                          </div>
+                                          <div className="text-gray-600 dark:text-gray-400 mt-1">
+                                            Context: {concern.context} • {new Date(concern.timestamp).toLocaleTimeString()}
+                                          </div>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <span className="text-gray-500">No concerns detected yet</span>
+                                    )
+                                  ) : (
+                                    <div className="flex items-center space-x-2">
+                                      <Loader className="w-4 h-4 animate-spin" />
+                                      <span className="text-gray-500">Loading details...</span>
                                     </div>
-                                  )) || <span className="text-gray-500">Loading details...</span>}
+                                  )}
                                 </div>
                               )}
 
@@ -4665,8 +5116,13 @@ useEffect(() => {
                                       <p className="text-gray-700 dark:text-gray-300">
                                         {detailedRecommendations[card.speaker]}
                                       </p>
+                                    ) : loadingRecommendations.has(card.speaker) ? (
+                                      <div className="flex items-center space-x-2">
+                                        <Loader className="w-4 h-4 animate-spin" />
+                                        <span className="text-gray-500">Generating recommendation...</span>
+                                      </div>
                                     ) : (
-                                      <p className="text-gray-500">Loading detailed recommendation...</p>
+                                      <p className="text-gray-500">Click the eye icon to load recommendation</p>
                                     )}
                                   </div>
                                 )}
@@ -6918,5 +7374,3 @@ useEffect(() => {
 };
 
 export default SpikedAI;
-
-

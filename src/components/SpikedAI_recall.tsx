@@ -4525,7 +4525,7 @@ useEffect(() => {
                 <div className="flex items-center justify-between mb-4">
                   <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
                     <span>📋</span>
-                    <span>MEDPIC Qualification Progress</span>
+                    <span>Playbook</span>
                   </span>
                   <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
                     Sales Framework

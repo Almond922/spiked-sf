@@ -1584,22 +1584,7 @@ useEffect(() => {
   };
 
   const getMedpicIcon = (category: string) => {
-    switch (category) {
-      case "metrics":
-        return "📊";
-      case "economic_buyer":
-        return "💰";
-      case "decision_criteria":
-        return "📋";
-      case "decision_process":
-        return "⚙️";
-      case "identify_pain":
-        return "🩹";
-      case "champion":
-        return "🏆";
-      default:
-        return "📈";
-    }
+   return "";
   };
 
   const getMedpicLabel = (category: string) => {
@@ -4723,202 +4708,200 @@ useEffect(() => {
 
             {/* Custom Goals Progress - Enhanced Version */}
             {customGoals.length > 0 && (
-            <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
-                    
-                    <span>Custom Goals</span>
-                </span>
-                <div className="flex items-center space-x-2">
-                    <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
-                    {customGoals.length} goals
-                    </span>
-                  
-                </div>
-                </div>
-
-                <div className="space-y-3">
-                {customGoals.map((goal) => {
-                    const progress = sentimentData.custom_goals_progress.find(p => p.goal.id === goal.id);
-                    const isAchieved = progress?.is_achieved || false;
-                    const achievementPercentage = progress?.achievement_percentage || 0;
-                    const evidences = progress?.evidences || [];
-                    const currentIndex = progress?.current_evidence_index || 0;
-                    
-                    return (
-                    <div key={goal.id} className="group">
-                        {/* Goal Header Card */}
-                        <div className={`p-4 rounded-xl border transition-all duration-200 hover:shadow-md ${
-                        isAchieved 
-                            ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700/50" 
-                            : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50"
-                        }`}>
-                        <div className="flex items-start justify-between">
-                            <div className="flex items-start space-x-3 flex-1">
-                            {/* Goal Icon */}
-                            <div className={`p-2 rounded-lg flex-shrink-0 ${
-                                isAchieved 
-                                ? "bg-green-100 dark:bg-green-800/50" 
-                                : "bg-blue-100 dark:bg-blue-800/50"
-                            }`}>
-                                <span className="text-lg">{goal.emoji_icon || "🎯"}</span>
-                            </div>
-                            
-                            {/* Goal Details */}
-                            <div className="flex-1 min-w-0">
-                                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2 leading-snug">
-                                {goal.goal_description}
-                                </h4>
-                                
-                                {/* Progress Bar */}
-                                <div className="mb-2">
-                                <div className="flex items-center justify-between text-xs mb-1">
-                                    <span className="text-gray-600 dark:text-gray-400">Progress</span>
-                                    <span className="font-medium text-gray-900 dark:text-gray-100">
-                                    {achievementPercentage.toFixed(1)}%
-                                    </span>
-                                </div>
-                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                    <div 
-                                    className={`h-2 rounded-full transition-all duration-500 ${
-                                        isAchieved ? "bg-green-500" : "bg-blue-500"
-                                    }`}
-                                    style={{ width: `${Math.min(achievementPercentage, 100)}%` }}
-                                    ></div>
-                                </div>
-                                </div>
-                                
-                                {/* Status and Evidence Count */}
-                                <div className="flex items-center space-x-2">
-                                <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                                    isAchieved
-                                    ? "bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300"
-                                    : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                                }`}>
-                                    {isAchieved ? "✅ Achieved" : "🔄 In Progress"}
+                        <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+                            <div className="flex items-center justify-between mb-4">
+                            <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+                                <span>Custom Goals</span>
+                            </span>
+                            <div className="flex items-center space-x-2">
+                                <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
+                                {customGoals.length} goals
                                 </span>
-                                
-                                {evidences.length > 0 && (
-                                    <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
-                                    {evidences.length} evidence{evidences.length !== 1 ? 's' : ''}
-                                    </span>
-                                )}
-                                
-                                {progress?.confidence_score && (
-                                    <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full">
-                                    {(progress.confidence_score * 100).toFixed(0)}% confidence
-                                    </span>
-                                )}
-                                </div>
                             </div>
                             </div>
-                            
-                            {/* Delete Button (Emoji Style) */}
-                            <button
-                            onClick={() => deleteCustomGoal(goal.id)}
-                            className="ml-2 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-100 dark:hover:bg-red-900/30 hover:scale-110"
-                            title="Delete goal"
-                            >
-                            <span className="text-lg">🗑️</span>
-                            </button>
-                        </div>
-                        </div>
 
-                        {/* Evidence Section */}
-                        {evidences.length > 0 && (
-                        <div className="mt-3">
-                            <details className="group/evidence">
-                            <summary className="cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400 list-none flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors">
-                                <div className="flex items-center space-x-2">
-                                <span>📋 View Evidence Details</span>
-                                <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-full text-xs">
-                                    {evidences.length} found
-                                </span>
-                                </div>
-                                <ChevronDown className="w-4 h-4 transition-transform group-open/evidence:rotate-180" />
-                            </summary>
+                            <div className="space-y-3">
+                            {customGoals.map((goal, index) => {
+                                const progress = sentimentData.custom_goals_progress.find(p => p.goal.id === goal.id);
+                                const isAchieved = progress?.is_achieved || false;
+                                const achievementPercentage = progress?.achievement_percentage || 0;
+                                const evidences = progress?.evidences || [];
+                                const currentIndex = progress?.current_evidence_index || 0;
+                                
+                                return (
+                                <div key={goal.id} className="group">
+                                    {/* Goal Header Card */}
+                                    <div className={`p-4 rounded-xl border transition-all duration-200 hover:shadow-md ${
+                                    isAchieved 
+                                        ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700/50" 
+                                        : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50"
+                                    }`}>
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-start space-x-3 flex-1">
+                                        {/* Goal Icon (Now a Number) */}
+                                        <div className={`flex items-center justify-center p-2 rounded-lg flex-shrink-0 w-8 h-8 ${
+                                            isAchieved 
+                                            ? "bg-green-100 dark:bg-green-800/50" 
+                                            : "bg-blue-100 dark:bg-blue-800/50"
+                                        }`}>
+                                            <span className="font-bold text-blue-800 dark:text-blue-200">{index + 1}</span>
+                                        </div>
+                                        
+                                        {/* Goal Details */}
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2 leading-snug">
+                                            {goal.goal_description}
+                                            </h4>
+                                            
+                                            {/* Progress Bar */}
+                                            <div className="mb-2">
+                                            <div className="flex items-center justify-between text-xs mb-1">
+                                                <span className="text-gray-600 dark:text-gray-400">Progress</span>
+                                                <span className="font-medium text-gray-900 dark:text-gray-100">
+                                                {achievementPercentage.toFixed(1)}%
+                                                </span>
+                                            </div>
+                                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                                <div 
+                                                className={`h-2 rounded-full transition-all duration-500 ${
+                                                    isAchieved ? "bg-green-500" : "bg-blue-500"
+                                                }`}
+                                                style={{ width: `${Math.min(achievementPercentage, 100)}%` }}
+                                                ></div>
+                                            </div>
+                                            </div>
+                                            
+                                            {/* Status and Evidence Count */}
+                                            <div className="flex items-center space-x-2">
+                                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                                                isAchieved
+                                                ? "bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300"
+                                                : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                                            }`}>
+                                                {isAchieved ? "✅ Achieved" : "🔄 In Progress"}
+                                            </span>
+                                            
+                                            {evidences.length > 0 && (
+                                                <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                                                {evidences.length} evidence{evidences.length !== 1 ? 's' : ''}
+                                                </span>
+                                            )}
+                                            
+                                            {progress?.confidence_score && (
+                                                <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full">
+                                                {(progress.confidence_score * 100).toFixed(0)}% confidence
+                                                </span>
+                                            )}
+                                            </div>
+                                        </div>
+                                        </div>
+                                        
+                                        {/* Delete Button (Emoji Style) */}
+                                        <button
+                                        onClick={() => deleteCustomGoal(goal.id)}
+                                        className="ml-2 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-100 dark:hover:bg-red-900/30 hover:scale-110"
+                                        title="Delete goal"
+                                        >
+                                        <span className="text-lg">🗑️</span>
+                                        </button>
+                                    </div>
+                                    </div>
 
-                            <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200 dark:border-blue-800/30">
-                                
-                                {/* Navigation Controls */}
-                                {evidences.length > 1 && (
-                                <div className="flex items-center justify-between mb-4 p-2 bg-white dark:bg-gray-800 rounded-lg">
-                                    <button
-                                    onClick={() => navigateCustomGoalEvidence(goal.id, "prev")}
-                                    disabled={currentIndex === 0}
-                                    className={`flex items-center space-x-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                        currentIndex === 0
-                                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                        : "bg-blue-500 text-white hover:bg-blue-600"
-                                    }`}
-                                    >
-                                    <span>←</span>
-                                    <span>Previous</span>
-                                    </button>
-                                    
-                                    <div className="flex items-center space-x-2">
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                        Evidence {currentIndex + 1} of {evidences.length}
-                                    </span>
+                                    {/* Evidence Section */}
+                                    {evidences.length > 0 && (
+                                    <div className="mt-3">
+                                        <details className="group/evidence">
+                                        <summary className="cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400 list-none flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors">
+                                            <div className="flex items-center space-x-2">
+                                            <span>📋 View Evidence Details</span>
+                                            <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-full text-xs">
+                                                {evidences.length} found
+                                            </span>
+                                            </div>
+                                            <ChevronDown className="w-4 h-4 transition-transform group-open/evidence:rotate-180" />
+                                        </summary>
+
+                                        <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200 dark:border-blue-800/30">
+                                            
+                                            {/* Navigation Controls */}
+                                            {evidences.length > 1 && (
+                                            <div className="flex items-center justify-between mb-4 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                                                <button
+                                                onClick={() => navigateCustomGoalEvidence(goal.id, "prev")}
+                                                disabled={currentIndex === 0}
+                                                className={`flex items-center space-x-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                                                    currentIndex === 0
+                                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                                    : "bg-blue-500 text-white hover:bg-blue-600"
+                                                }`}
+                                                >
+                                                <span>←</span>
+                                                <span>Previous</span>
+                                                </button>
+                                                
+                                                <div className="flex items-center space-x-2">
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                    Evidence {currentIndex + 1} of {evidences.length}
+                                                </span>
+                                                </div>
+                                                
+                                                <button
+                                                onClick={() => navigateCustomGoalEvidence(goal.id, "next")}
+                                                disabled={currentIndex === evidences.length - 1}
+                                                className={`flex items-center space-x-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                                                    currentIndex === evidences.length - 1
+                                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                                    : "bg-blue-500 text-white hover:bg-blue-600"
+                                                }`}
+                                                >
+                                                <span>Next</span>
+                                                <span>→</span>
+                                                </button>
+                                            </div>
+                                            )}
+                                            
+                                            {/* Current Evidence Display */}
+                                            {evidences[currentIndex] && (
+                                            <div className="space-y-3">
+                                                <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-green-200 dark:border-green-700/50">
+                                                <div className="flex items-start space-x-2 mb-2">
+                                                    <span className="text-green-600 dark:text-green-400 text-xs font-semibold">💬 Evidence:</span>
+                                                    <span className="text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">
+                                                    {(evidences[currentIndex].match_score * 100).toFixed(1)}% match
+                                                    </span>
+                                                </div>
+                                                <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-3 rounded border">
+                                                    {evidences[currentIndex].text}
+                                                </div>
+                                                </div>
+                                                
+                                                {/* Evidence Metadata (Restored to Emojis) */}
+                                                <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                                <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
+                                                    <span>👤</span>
+                                                    <span>{evidences[currentIndex].primary_speaker}</span>
+                                                </div>
+                                                <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
+                                                    <span>🕒</span>
+                                                    <span>{new Date(evidences[currentIndex].timestamp).toLocaleTimeString()}</span>
+                                                </div>
+                                                <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
+                                                    <span>📍</span>
+                                                    <span>Segment #{evidences[currentIndex].segment_index + 1}</span>
+                                                </div>
+                                                </div>
+                                            </div>
+                                            )}
+                                        </div>
+                                        </details>
                                     </div>
-                                    
-                                    <button
-                                    onClick={() => navigateCustomGoalEvidence(goal.id, "next")}
-                                    disabled={currentIndex === evidences.length - 1}
-                                    className={`flex items-center space-x-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                        currentIndex === evidences.length - 1
-                                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                        : "bg-blue-500 text-white hover:bg-blue-600"
-                                    }`}
-                                    >
-                                    <span>Next</span>
-                                    <span>→</span>
-                                    </button>
+                                    )}
                                 </div>
-                                )}
-                                
-                                {/* Current Evidence Display */}
-                                {evidences[currentIndex] && (
-                                <div className="space-y-3">
-                                    <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-green-200 dark:border-green-700/50">
-                                    <div className="flex items-start space-x-2 mb-2">
-                                        <span className="text-green-600 dark:text-green-400 text-xs font-semibold">💬 Evidence:</span>
-                                        <span className="text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">
-                                        {(evidences[currentIndex].match_score * 100).toFixed(1)}% match
-                                        </span>
-                                    </div>
-                                    <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-3 rounded border">
-                                        {evidences[currentIndex].text}
-                                    </div>
-                                    </div>
-                                    
-                                    {/* Evidence Metadata */}
-                                    <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                    <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
-                                        <span>👤</span>
-                                        <span>{evidences[currentIndex].primary_speaker}</span>
-                                    </div>
-                                    <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
-                                        <span>🕒</span>
-                                        <span>{new Date(evidences[currentIndex].timestamp).toLocaleTimeString()}</span>
-                                    </div>
-                                    <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
-                                        <span>📍</span>
-                                        <span>Segment #{evidences[currentIndex].segment_index + 1}</span>
-                                    </div>
-                                    </div>
-                                </div>
-                                )}
+                                );
+                            })}
                             </div>
-                            </details>
                         </div>
                         )}
-                    </div>
-                    );
-                })}
-                </div>
-            </div>
-            )}
 
             {/* ADDED: Clear Sentiment Button */}
             <div className="mt-6 flex justify-left">

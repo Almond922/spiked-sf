@@ -32,10 +32,11 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useAuth } from "../AuthContext";
+import { saveAs } from "file-saver"; 
 
 // --- CONFIGURATION ---
 const API_BASE_URL =
-  "https://spikedai-production-application-822359826336.us-central1.run.app";
+  "https://spikedai-production-application-409019309412.us-central1.run.app";
 const BEARER_TOKEN = "";
 
 // --- TYPESCRIPT INTERFACES ---
@@ -936,11 +937,13 @@ const SourceCard = ({
   onUpdate,
   onDelete,
   onRecrawl,
+  token,
 }: {
   source: Source;
   onUpdate: (updatedSource: Source) => void;
   onDelete: (source: Source) => void;
   onRecrawl?: (source: Source) => void;
+  token?: string;
 }) => {
   const isWebsite = !source.url.startsWith("gcs:");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -957,6 +960,50 @@ const SourceCard = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  const handleDownload = async () => {
+    if (!token) {
+      console.error("No auth token provided for download.");
+      alert("Authentication error. Cannot download file.");
+      return;
+    }
+    try {
+      const response = await fetch(`${API_BASE_URL}/download/${source.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || "Download failed. Please try again.");
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = source.filename;
+
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+)"/);
+        if (match?.[1]) {
+          filename = match[1];
+        }
+      }
+
+      // --- PDF logic ---
+      if (filename.toLowerCase().endsWith(".pdf")) {
+        const pdfUrl = URL.createObjectURL(blob);
+        window.open(pdfUrl, "_blank");
+        // Optionally revoke after some time
+        setTimeout(() => URL.revokeObjectURL(pdfUrl), 60000);
+      } else {
+        saveAs(blob, filename);
+      }
+    } catch (error: any) {
+      console.error("Error downloading file:", error);
+      alert(`Download Error: ${error.message}`);
+    }
+  };
 
   const handleMenuAction = (action: () => void) => {
     action();
@@ -1006,20 +1053,28 @@ const SourceCard = ({
                   : "opacity-0 pointer-events-none"
               }`}
             >
-              <a
-                href={
-                  isWebsite
-                    ? source.url
-                    : `${API_BASE_URL}/download/${source.id}`
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                title={isWebsite ? "Open URL" : "Download File"}
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                {isWebsite ? "Open URL" : "Open/Download"}
-              </a>
+              {isWebsite ? (
+                <a
+                  href={source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  title="Open URL"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Open URL
+                </a>
+              ) : (
+                <button
+                  onClick={() => handleMenuAction(handleDownload)}
+                  className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  title="Download File"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Open/Download
+                </button>
+              )}
+
               {isWebsite && onRecrawl && (
                 <button
                   onClick={() => handleMenuAction(() => onRecrawl(source))}
@@ -1058,6 +1113,7 @@ const SourcesListPage = ({
   searchQuery,
   setSearchQuery,
   onRecrawl,
+  token,
 }: {
   sources: Source[];
   type: "document" | "website";
@@ -1069,6 +1125,7 @@ const SourcesListPage = ({
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onRecrawl?: (source: Source) => void;
+  token?: string;
 }) => {
   const filteredSources = sources.filter(
     (s) =>
@@ -1121,6 +1178,7 @@ const SourcesListPage = ({
                 onUpdate={onUpdate}
                 onDelete={onDelete}
                 onRecrawl={onRecrawl}
+                token={token}
               />
             ))
           ) : (
@@ -1255,6 +1313,7 @@ const DocumentsPage = () => {
         onAdd={() => setShowUploadModal(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        token={session?.access_token}
       />
       {showUploadModal && (
         <DocumentUploadModal
@@ -1313,6 +1372,7 @@ const WebsitesPage = () => {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onRecrawl={handleRecrawl}
+        token={session?.access_token}
       />
       {showCrawlModal && (
         <WebsiteCrawlModal
@@ -1903,7 +1963,7 @@ const ConnectorsPage = () => {
         />
       </div>
 
-      {filteredCategories.length > 0 ? (
+      {filteredCategories.length >  0 ? (
         filteredCategories.map((category) => (
           <div key={category.name}>
             <div className="flex items-center space-x-3 mb-6">
@@ -1991,7 +2051,7 @@ const App: React.FC = () => {
     browse: {
       title: "Browse Chunks",
       description: "Review extracted text chunks from all sources",
-      Component: BrowsePage,
+      Component: () => <ComingSoonPage title="Browse Chunks" />,
     },
     vectorconfig: {
       title: "Vector Configuration",

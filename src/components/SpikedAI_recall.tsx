@@ -5479,8 +5479,8 @@ useEffect(() => {
               {/* Meeting Prep Button */}
               <div className="relative group">
                 <button
-                  onClick={() => window.open("/meeting-prep", "_blank")}
                   
+                  onClick={() => navigate("/meeting-prep")}
                   className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
                     isDarkMode
                       ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
@@ -5634,7 +5634,8 @@ useEffect(() => {
               {/* User Button */}
               <div className="relative group">
                 <button
-                  onClick={() => window.open("/admin", "_blank")}
+                  onClick={() => navigate("/admin")}
+            
                   className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
                     isDarkMode
                       ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
@@ -5709,7 +5710,7 @@ useEffect(() => {
             </div>
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => window.open("/documents", "_blank")}
+                onClick={() => navigate("/documents")}
                 className={`p-2 rounded-lg transition-all duration-300 hover:scale-105 ${
                   isDarkMode
                     ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50"

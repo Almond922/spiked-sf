@@ -204,7 +204,7 @@ const EnhancedMarkdown = ({ children, isDarkMode }: { children: string; isDarkMo
                 h3: ({ children }) => <h3 className={`text-xl font-bold mb-3 text-red-600 dark:text-red-400`}>{children}</h3>,
                 p: ({ children }) => <p className={`mb-3 leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{children}</p>,
                 ul: ({ children }) => <ul className={`mb-3 ml-4 space-y-1 list-disc ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{children}</ul>,
-                ol: ({ children }) => <ol className={`mb-3 ml-4 space-y-1 list-decimal ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{children}</ul>,
+                ol: ({ children }) => <ol className={`mb-3 ml-4 space-y-1 list-decimal ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{children}</ol>,
                 li: ({ children }) => <li className="mb-1">{children}</li>,
                 code: ({ node, className, children, ...props }) => {
                     const match = /language-(\w+)/.exec(className || '');
@@ -383,7 +383,7 @@ export default function Notetaker() {
                 onmessage(event) {
                     try {
                         const newTranscript = JSON.parse(event.data);
-                        setTranscript(prev => {
+                        setTranscript((prev: TranscriptSegment[]) => {
                             // Check for unique lines before adding
                             const lastLine = prev.length > 0 ? prev[prev.length - 1].text : '';
                             if (newTranscript.text.trim() === lastLine.trim()) {

@@ -1,5 +1,5 @@
 // src/pages/notetaker.tsx
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -188,7 +188,6 @@ const loadFromIndexedDB = async (storeName: string, key?: string): Promise<any> 
     }
 };
 
-// Enhanced Markdown Component with custom styling - Placed here to ensure proper scope
 const EnhancedMarkdown = ({ children, isDarkMode }: { children: string; isDarkMode: boolean }) => {
     return (
         <ReactMarkdown
@@ -205,7 +204,7 @@ const EnhancedMarkdown = ({ children, isDarkMode }: { children: string; isDarkMo
                 h3: ({ children }) => <h3 className={`text-xl font-bold mb-3 text-red-600 dark:text-red-400`}>{children}</h3>,
                 p: ({ children }) => <p className={`mb-3 leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{children}</p>,
                 ul: ({ children }) => <ul className={`mb-3 ml-4 space-y-1 list-disc ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{children}</ul>,
-                ol: ({ children }) => <ol className={`mb-3 ml-4 space-y-1 list-decimal ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{children}</ol>,
+                ol: ({ children }) => <ol className={`mb-3 ml-4 space-y-1 list-decimal ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{children}</ul>,
                 li: ({ children }) => <li className="mb-1">{children}</li>,
                 code: ({ node, className, children, ...props }) => {
                     const match = /language-(\w+)/.exec(className || '');
@@ -215,7 +214,7 @@ const EnhancedMarkdown = ({ children, isDarkMode }: { children: string; isDarkMo
                         </code>
                     ) : (
                         <div className={`mb-4 rounded-lg border overflow-hidden ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                            <div className={`flex items-center justify-between px-4 py-2 border-b ${isDarkMode ? 'border-slate-700 bg-slate-800/60' : 'border-slate-200 bg-slate-100'}`}>
+                            <div className={`flex items-center justify-between px-4 py-2 border-b ${isDarkMode ? 'border-slate-700 bg-slate-800/60' : 'bg-slate-100'}`}>
                                 <span className={`text-xs font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{match[1]}</span>
                                 <button onClick={() => navigator.clipboard.writeText(String(children))} className={`text-xs px-2 py-1 rounded transition-colors ${isDarkMode ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-white text-slate-600 hover:bg-slate-200'}`}>
                                     Copy
@@ -239,13 +238,29 @@ const EnhancedMarkdown = ({ children, isDarkMode }: { children: string; isDarkMo
     );
 };
 
+const loadFromSessionStorage = (key: string, defaultValue: any) => {
+    try {
+        const item = window.sessionStorage.getItem(key);
+        return item ? JSON.parse(item) : defaultValue;
+    } catch (error) {
+        return defaultValue;
+    }
+};
+
+const saveToSessionStorage = (key: string, value: any) => {
+    try {
+        window.sessionStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+        console.error('Error saving to sessionStorage:', error);
+    }
+};
+
 export default function Notetaker() {
     const { botId, setBotId } = useBotId();
-    const { session, loading } = useAuth();
+    const { session } = useAuth();
     const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
     const [isDarkMode, setIsDarkMode] = useState(false);
     
-    // Custom template management state
     const [customTemplates, setCustomTemplates] = useState<Template[]>([]);
     const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
@@ -258,6 +273,22 @@ export default function Notetaker() {
     
     const [columnWidths, setColumnWidths] = useState([25, 45, 30]);
     const [resizingIndex, setResizingIndex] = useState<number | null>(null);
+
+    const [meetingUrl, setMeetingUrl] = useState(loadFromSessionStorage('spikedai_meeting_url', ''));
+    const [transcript, setTranscript] = useState(loadFromSessionStorage('spikedai_transcript', []));
+    const [isConnected, setIsConnected] = useState(false);
+    const [error, setError] = useState('');
+    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+    const [chatInput, setChatInput] = useState('');
+    const [isProcessingTemplate, setIsProcessingTemplate] = useState(false);
+    const [isAITyping, setIsAITyping] = useState(false);
+    const [additionalQuestions, setAdditionalQuestions] = useState<string[]>([]);
+    const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+    const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+    
+    const transcriptEndRef = useRef<HTMLDivElement>(null);
+    const chatEndRef = useRef<HTMLDivElement>(null);
+    const sseRefs = useRef<{ transcript: AbortController | null; }>({ transcript: null });
 
     useEffect(() => {
         const loadCustomTemplates = async () => {
@@ -293,22 +324,6 @@ export default function Notetaker() {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    const [meetingUrl, setMeetingUrl] = useState('');
-    const [transcript, setTranscript] = useState<TranscriptSegment[]>([]);
-    const [isConnected, setIsConnected] = useState(false);
-    const [error, setError] = useState('');
-    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-    const [chatInput, setChatInput] = useState('');
-    const [isProcessingTemplate, setIsProcessingTemplate] = useState(false);
-    const [isAITyping, setIsAITyping] = useState(false);
-    const [additionalQuestions, setAdditionalQuestions] = useState<string[]>([]);
-    const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-    const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
-    
-    const transcriptEndRef = useRef<HTMLDivElement>(null);
-    const chatEndRef = useRef<HTMLDivElement>(null);
-    const sseRefs = useRef<{ transcript: AbortController | null; }>({ transcript: null });
-
     useEffect(() => {
         const linkId = 'highlight-theme';
         let link = document.getElementById(linkId) as HTMLLinkElement;
@@ -324,32 +339,36 @@ export default function Notetaker() {
     }, [isDarkMode]);
 
     useEffect(() => {
-        console.log("Notetaker: Current botId is", botId);
-        
         const cleanup = () => {
             if (sseRefs.current.transcript) {
                 sseRefs.current.transcript.abort();
                 sseRefs.current.transcript = null;
             }
-            console.log("Notetaker: SSE connections cleaned up.");
         };
 
+        const currentBotId = loadFromSessionStorage('spikedai_botId', null);
+        if (currentBotId) {
+            setBotId(currentBotId);
+        }
+
         if (botId && session?.access_token) {
-            console.log("Notetaker: 🔗 botId and session are available. Connecting to streams...");
             cleanup();
             setIsConnected(true);
 
             const fetchInitialTranscripts = async () => {
-                try {
-                    const response = await fetch(`${BASE_URL}/transcripts/${encodeURIComponent(botId)}`, {
-                        headers: { Authorization: `Bearer ${session.access_token}` },
-                    });
-                    if (response.ok) {
-                        const initialTranscripts = await response.json();
-                        setTranscript(initialTranscripts);
+                if (transcript.length === 0) {
+                    try {
+                        const response = await fetch(`${BASE_URL}/transcripts/${encodeURIComponent(botId)}`, {
+                            headers: { Authorization: `Bearer ${session.access_token}` },
+                        });
+                        if (response.ok) {
+                            const initialTranscripts = await response.json();
+                            setTranscript(initialTranscripts);
+                            saveToSessionStorage('spikedai_transcript', initialTranscripts);
+                        }
+                    } catch (err) {
+                        console.error('Failed to fetch initial transcripts:', err);
                     }
-                } catch (err) {
-                    console.error('Notetaker: Failed to fetch initial transcripts:', err);
                 }
             };
             fetchInitialTranscripts();
@@ -364,13 +383,22 @@ export default function Notetaker() {
                 onmessage(event) {
                     try {
                         const newTranscript = JSON.parse(event.data);
-                        setTranscript(prev => [...prev, newTranscript]);
+                        setTranscript(prev => {
+                            // Check for unique lines before adding
+                            const lastLine = prev.length > 0 ? prev[prev.length - 1].text : '';
+                            if (newTranscript.text.trim() === lastLine.trim()) {
+                                return prev; // Skip duplicate lines
+                            }
+                            const newTranscripts = [...prev, newTranscript];
+                            saveToSessionStorage('spikedai_transcript', newTranscripts);
+                            return newTranscripts;
+                        });
                     } catch (e) {
-                        console.error("Notetaker: Error parsing new transcript message:", e);
+                        console.error("Error parsing new transcript message:", e);
                     }
                 },
                 onerror(err) {
-                    console.error('Notetaker: Transcript Stream Error:', err);
+                    console.error('Transcript Stream Error:', err);
                     setError('Transcript stream failed. Please refresh the page.');
                     setIsConnected(false);
                     cleanup();
@@ -378,7 +406,6 @@ export default function Notetaker() {
             });
 
         } else {
-            console.log("Notetaker: Disconnected from bot or session not found. Clearing state.");
             setTranscript([]);
             setIsConnected(false);
             setError('No active meeting bot found. Please start a session in the main interface.');
@@ -389,27 +416,15 @@ export default function Notetaker() {
     }, [botId, session]);
 
     useEffect(() => {
-        const loadMeetingUrl = () => {
-            const storedUrl = sessionStorage.getItem('spikedai_meeting_url');
-            if (storedUrl) {
-                try {
-                    setMeetingUrl(JSON.parse(storedUrl));
-                } catch {
-                    setMeetingUrl(storedUrl);
-                }
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'spikedai_meeting_url' && e.newValue) {
+                setMeetingUrl(JSON.parse(e.newValue));
+            }
+            if (e.key === 'spikedai_botId' && e.newValue) {
+                setBotId(JSON.parse(e.newValue));
             }
         };
 
-        loadMeetingUrl();
-        const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === 'spikedai_meeting_url' && e.newValue) {
-                try {
-                    setMeetingUrl(JSON.parse(e.newValue));
-                } catch {
-                    setMeetingUrl(e.newValue);
-                }
-            }
-        };
         window.addEventListener('storage', handleStorageChange);
         
         return () => {
@@ -417,7 +432,6 @@ export default function Notetaker() {
         };
     }, []);
     
-
     useEffect(() => {
         transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [transcript]);
@@ -587,7 +601,6 @@ export default function Notetaker() {
 
     const handleSaveTemplate = async () => {
         if (!templateForm.name.trim() || !templateForm.description.trim() || !templateForm.prompt.trim()) {
-            console.log('Validation failed: Missing required fields');
             alert('Please fill in all required fields (Name, Description, and Prompt)');
             return;
         }
@@ -661,121 +674,109 @@ export default function Notetaker() {
             const { jsPDF } = (window as any).jspdf;
             const doc = new jsPDF();
 
-            // Define colors
             const accentRed = '#F44336';
             const textPrimary = '#212121';
             const textSecondary = '#757575';
             const borderLight = '#E0E0E0';
 
-        // Logo in base64 format
-        const logoBase64 = 'data:image/jpeg;base64,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';
+            const logoBase64 = 'data:image/jpeg;base64,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';
 
-        let yPosition: number = 20;
-        const pageWidth: number = doc.internal.pageSize.getWidth();
-        const margin: number = 20;
-        const contentWidth: number = pageWidth - (margin * 2);
+            let yPosition: number = 20;
+            const pageWidth: number = doc.internal.pageSize.getWidth();
+            const margin: number = 20;
+            const contentWidth: number = pageWidth - (margin * 2);
 
-        const checkPageBreak = (requiredHeight: number): void => {
-            if (yPosition + requiredHeight > 285) {
-                addFooter();
-                doc.addPage();
-                addHeader();
-                yPosition = 40;
-            }
-        };
+            const checkPageBreak = (requiredHeight: number): void => {
+                if (yPosition + requiredHeight > 285) {
+                    addFooter();
+                    doc.addPage();
+                    addHeader();
+                    yPosition = 40;
+                }
+            };
 
-        const addHeader = (): void => {
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(18);
-            doc.setTextColor(textPrimary);
-            doc.text('SpikedAI', margin, 21);
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            doc.setTextColor(textSecondary);
-            doc.text('AI Assistant Conversation', pageWidth - margin, 20, { align: 'right' });
-            doc.setDrawColor(accentRed);
-            doc.setLineWidth(0.5);
-            doc.line(margin, 25, pageWidth - margin, 25);
-        };
+            const addHeader = (): void => {
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(18);
+                doc.setTextColor(textPrimary);
+                doc.text('SpikedAI', margin, 21);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                doc.setTextColor(textSecondary);
+                doc.text('AI Assistant Conversation', pageWidth - margin, 20, { align: 'right' });
+                doc.setDrawColor(accentRed);
+                doc.setLineWidth(0.5);
+                doc.line(margin, 25, pageWidth - margin, 25);
+            };
 
-        const addFooter = (): void => {
-            doc.setFontSize(8);
-            doc.setTextColor(textSecondary);
-            const pageNumber = (doc as any).internal.getNumberOfPages();
-            doc.text(`Page ${(doc as any).internal.getCurrentPageInfo().pageNumber} of ${pageNumber}`, pageWidth - margin, 290, { align: 'right' });
-            doc.text('Confidential & Proprietary. All rights reserved to SpikedAI', margin, 290);
-        };
-
-        // Initialize the document
-        addHeader();
-        yPosition = 40;
-
-        // Add conversation title
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(22);
-        doc.setTextColor(textPrimary);
-        doc.text('Conversation Summary', margin, yPosition);
-        yPosition += 15;
-
-        // Add date and time
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        doc.setTextColor(textSecondary);
-        const date = new Date().toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-        doc.text(`Generated on ${date}`, margin, yPosition);
-        yPosition += 15;
-
-        // Process messages
-        chatMessages.forEach((msg, index) => {
-            checkPageBreak(80);
-
-            // Add separator line
-            if (index > 0) {
-                doc.setDrawColor(borderLight);
-                doc.setLineWidth(0.2);
-                doc.line(margin, yPosition - 5, pageWidth - margin, yPosition - 5);
-            }
-
-            // Message sender
-            doc.setFontSize(11);
-            doc.setTextColor(accentRed);
-            doc.setFont('helvetica', 'bold');
-            const sender = msg.isUser ? 'You' : 'AI Assistant';
-            doc.text(sender, margin, yPosition + 5);
-            yPosition += 10;
-
-            // Message content
-            checkPageBreak(20);
-            doc.setFontSize(10);
-            doc.setTextColor(textPrimary);
-            doc.setFont('helvetica', 'normal');
-            const messageLines = doc.splitTextToSize(msg.text, contentWidth);
-            doc.text(messageLines, margin, yPosition);
-            yPosition += messageLines.length * 5 + 15;
-
-            // Add timestamp if available
-            if (msg.timestamp) {
+            const addFooter = (): void => {
                 doc.setFontSize(8);
                 doc.setTextColor(textSecondary);
-                doc.setFont('helvetica', 'italic');
-                const time = msg.timestamp.toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                doc.text(time, pageWidth - margin, yPosition - 10, { align: 'right' });
-            }
-        });
+                const pageNumber = (doc as any).internal.getNumberOfPages();
+                doc.text(`Page ${(doc as any).internal.getCurrentPageInfo().pageNumber} of ${pageNumber}`, pageWidth - margin, 290, { align: 'right' });
+                doc.text('Confidential & Proprietary. All rights reserved to SpikedAI', margin, 290);
+            };
 
-        // Add footer
-        addFooter();
+            addHeader();
+            yPosition = 40;
 
-            // Save the PDF
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(22);
+            doc.setTextColor(textPrimary);
+            doc.text('Conversation Summary', margin, yPosition);
+            yPosition += 15;
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(textSecondary);
+            const date = new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            doc.text(`Generated on ${date}`, margin, yPosition);
+            yPosition += 15;
+
+            chatMessages.forEach((msg, index) => {
+                checkPageBreak(80);
+
+                if (index > 0) {
+                    doc.setDrawColor(borderLight);
+                    doc.setLineWidth(0.2);
+                    doc.line(margin, yPosition - 5, pageWidth - margin, yPosition - 5);
+                }
+
+                doc.setFontSize(11);
+                doc.setTextColor(accentRed);
+                doc.setFont('helvetica', 'bold');
+                const sender = msg.isUser ? 'You' : 'AI Assistant';
+                doc.text(sender, margin, yPosition + 5);
+                yPosition += 10;
+
+                checkPageBreak(20);
+                doc.setFontSize(10);
+                doc.setTextColor(textPrimary);
+                doc.setFont('helvetica', 'normal');
+                const messageLines = doc.splitTextToSize(msg.text, contentWidth);
+                doc.text(messageLines, margin, yPosition);
+                yPosition += messageLines.length * 5 + 15;
+
+                if (msg.timestamp) {
+                    doc.setFontSize(8);
+                    doc.setTextColor(textSecondary);
+                    doc.setFont('helvetica', 'italic');
+                    const time = msg.timestamp.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    doc.text(time, pageWidth - margin, yPosition - 10, { align: 'right' });
+                }
+            });
+
+            addFooter();
+
             const fileName = `SpikedAI_Conversation_${new Date().toISOString().split('T')[0]}.pdf`;
             doc.save(fileName);
         } catch (error) {
@@ -791,7 +792,6 @@ export default function Notetaker() {
 
     return (
         <div className={`flex flex-col lg:flex-row h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-            {/* Column 1: AI Templates */}
             <div className={`flex flex-col border-r ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'} min-w-0`} style={{ width: `${columnWidths[0]}%`, minWidth: '280px' }}>
                 <div className={`flex items-center space-x-4 p-5 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex-shrink-0`}>
                     <a href="/" className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
@@ -804,7 +804,6 @@ export default function Notetaker() {
                     </div>
                 </div>
                 <div className="flex-1 p-3 space-y-2 overflow-y-auto">
-                    {/* Create Custom Template Button */}
                     <div 
                         onClick={handleCreateTemplate}
                         className={`group p-4 rounded-xl border-2 border-dashed cursor-pointer transition-all duration-300 hover:shadow-lg
@@ -820,11 +819,8 @@ export default function Notetaker() {
                             </div>
                         </div>
                     </div>
-
-                    {/* Template Categories */}
                     {allTemplates.length > 0 && (
                         <>
-                            {/* Custom Templates */}
                             {customTemplates.length > 0 && (
                                 <div className="pt-2">
                                     <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -876,8 +872,6 @@ export default function Notetaker() {
                                     })}
                                 </div>
                             )}
-
-                            {/* Prebuilt Templates */}
                             <div className="pt-2">
                                 <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                     Prebuilt Templates
@@ -917,7 +911,6 @@ export default function Notetaker() {
                 <div className={`w-0.5 h-8 rounded-full ${isDarkMode ? 'bg-gray-600 group-hover:bg-white' : 'bg-gray-300 group-hover:bg-white'} transition-colors`}></div>
             </div>
 
-            {/* Column 2: Live Transcription */}
             <div className="flex flex-col flex-1 min-w-0" style={{ width: `${columnWidths[1]}%` }}>
                 <div className={`flex items-center justify-between p-5 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex-shrink-0`}>
                     <div className="flex items-center flex-1 min-w-0 space-x-4">
@@ -937,10 +930,8 @@ export default function Notetaker() {
                     </div>
                 </div>
                 
-                {/* Meeting Status Display */}
                 <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
                     <div className="space-y-3">
-                        {/* Meeting URL Display */}
                         {meetingUrl ? (
                             <div className="space-y-2">
                                 <div className="flex items-center space-x-2">
@@ -958,50 +949,14 @@ export default function Notetaker() {
                         ) : (
                             <div className={`py-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                 <div className="text-center mb-3">
-                                    <p className="text-sm">No meeting URL found</p>
-                                    <p className="text-xs mt-1">Please set a meeting URL in the main SpikedAI interface or enter manually below</p>
-                                </div>
-                                
-                                {/* Manual URL Input */}
-                                <div className="space-y-2">
-                                    <input
-                                        type="url"
-                                        placeholder="Enter Google Meet URL (e.g., https://meet.google.com/abc-defg-hij)"
-                                        className={`w-full px-3 py-2 text-xs rounded-lg border transition-colors ${
-                                            isDarkMode 
-                                                ? 'bg-gray-700 border-gray-600 text-gray-300 placeholder-gray-500' 
-                                                : 'bg-white border-gray-300 text-gray-700 placeholder-gray-400'
-                                        } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                                        onChange={(e) => {
-                                            const url = e.target.value.trim();
-                                            if (url) {
-                                                console.log('🎯 Manual URL entered:', url);
-                                                setMeetingUrl(url);
-                                                sessionStorage.setItem('spikedai_meeting_url', JSON.stringify(url));
-                                            }
-                                        }}
-                                    />
-                                    <button
-                                        onClick={() => {
-                                            console.log('🔄 Force reload URL from main interface');
-                                            window.location.reload();
-                                        }}
-                                        className={`w-full px-3 py-2 text-xs rounded-lg transition-colors ${
-                                            isDarkMode 
-                                                ? 'bg-yellow-600 text-white hover:bg-yellow-700' 
-                                                : 'bg-yellow-500 text-white hover:bg-yellow-600'
-                                        }`}
-                                    >
-                                        Reload Page (if URL was set in main interface)
-                                    </button>
+                                    <p className="text-sm">No active meeting session found</p>
+                                    <p className="text-xs mt-1">Please start a session from the main dashboard to begin transcription</p>
                                 </div>
                             </div>
                         )}
                         
-                        {/* Control Buttons */}
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
-                                {/* Stream Status */}
                                 <div className="flex items-center space-x-2">
                                     <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
                                     <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -1010,9 +965,7 @@ export default function Notetaker() {
                                 </div>
                             </div>
                             
-                            {/* Action Buttons */}
                             <div className="flex items-center space-x-2">
-                                {/* Connection status display */}
                                 {meetingUrl && (
                                     <div className={`px-3 py-1.5 rounded-lg text-xs flex items-center space-x-2 ${
                                         isDarkMode 
@@ -1026,7 +979,6 @@ export default function Notetaker() {
                                     </div>
                                 )}
                                 
-                                {/* Refresh Connection Button */}
                                 <button 
                                     onClick={() => window.location.reload()}
                                     className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 hover:scale-105 flex items-center space-x-1 ${
@@ -1047,24 +999,10 @@ export default function Notetaker() {
                                 {error}
                             </div>
                         )}
-                        
-                        {/* Debug Panel - shows sessionStorage state */}
-                        <div className={`text-xs p-3 rounded border ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
-                            <div className="font-semibold mb-2">Debug Info:</div>
-                            <div>Meeting URL: {meetingUrl || 'Not found'}</div>
-                            <div>SessionStorage keys: {Object.keys(sessionStorage).join(', ') || 'None'}</div>
-                            <div>spikedai_meeting_url: {sessionStorage.getItem('spikedai_meeting_url') || 'Not set'}</div>
-                            <div>Connection Status: {isConnected ? 'Connected' : 'Disconnected'}</div>
-                            <div>Transcript Count: {transcript.length}</div>
-                            {/* Adding botId log here for confirmation */}
-                            <div>Bot ID from Context: {botId || 'null'}</div>
-                            <div>Session Access Token: {session?.access_token ? 'Present' : 'Not Found'}</div>
-                        </div>
                     </div>
                 </div>
                 
                 <div className="flex-1 flex flex-col overflow-hidden">
-                    {/* Transcript Section */}
                     <div className="flex-1 p-4 space-y-4 overflow-y-auto">
                         {transcript.length > 0 ? (
                             groupTranscriptBySpeaker(transcript).map((group) => (
@@ -1096,7 +1034,6 @@ export default function Notetaker() {
                  <div className={`w-0.5 h-8 rounded-full ${isDarkMode ? 'bg-gray-600 group-hover:bg-white' : 'bg-gray-300 group-hover:bg-white'} transition-colors`}></div>
             </div>
 
-            {/* Column 3: AI Assistant */}
             <div className={`flex flex-col border-l ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'} min-w-0`} style={{ width: `${columnWidths[2]}%`, minWidth: '320px' }}>
                 <div className={`flex items-center space-x-4 p-5 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex-shrink-0`}>
                     <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-green-900/20' : 'bg-green-100'}`}><MessageSquare className={`w-5 h-5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} /></div>
@@ -1141,7 +1078,6 @@ export default function Notetaker() {
                             <span>Share</span>
                         </button>
 
-                        {/* Email Dialog */}
                         <EmailDialog
                             isOpen={isEmailDialogOpen}
                             onClose={() => setIsEmailDialogOpen(false)}
@@ -1247,7 +1183,6 @@ export default function Notetaker() {
                         </div>
                         
                         <div className="p-6 space-y-6">
-                            {/* Template Name */}
                             <div>
                                 <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                                     Template Name *
@@ -1265,7 +1200,6 @@ export default function Notetaker() {
                                 />
                             </div>
 
-                            {/* Template Description */}
                             <div>
                                 <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                                     Description *
@@ -1283,7 +1217,6 @@ export default function Notetaker() {
                                 />
                             </div>
 
-                            {/* Theme Color */}
                             <div>
                                 <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                                     Theme Color
@@ -1309,7 +1242,6 @@ export default function Notetaker() {
                                 </div>
                             </div>
 
-                            {/* Template Prompt */}
                             <div>
                                 <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                                     Analysis Prompt *

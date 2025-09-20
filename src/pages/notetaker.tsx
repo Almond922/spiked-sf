@@ -10,7 +10,6 @@ import EmailDialog from '../components/EmailDialog';
 import { useBotId } from '../BotIdContext';
 import { useAuth } from '../AuthContext';
 import { fetchEventSource } from "@microsoft/fetch-event-source";
-
 import {
     Send,
     Users,
@@ -34,12 +33,17 @@ import {
     Trash2,
     UserCheck,
     X,
-    Save
+    Save,
+    ChevronDown,
+    TrendingUp,
+    CheckCircle,
+    Loader
 } from 'lucide-react';
 import { jsPDF } from "jspdf";
 
 const BASE_URL = 'https://recall-backend-production-822359826336.us-central1.run.app';
 const SALES_ASSISTANT_BASE_URL = 'https://sales-assistant-service-822359826336.us-central1.run.app';
+const service_url_recall = "https://recall-backend-production-409019309412.us-central1.run.app";
 
 interface Session {
     user: { id: string; email: string };
@@ -83,6 +87,35 @@ interface ChatMessage {
     isUser: boolean;
     timestamp: Date;
     speaker?: string;
+}
+
+interface CustomGoal {
+    id: string;
+    goal_description: string;
+    evaluation_strictness?: string;
+    emoji_icon?: string;
+}
+
+interface CustomGoalProgress {
+    goal: CustomGoal;
+    is_achieved: boolean;
+    evidences: Array<{
+        text: string;
+        timestamp: string;
+        primary_speaker: string;
+        match_score: number;
+        segment_index: number;
+    }>;
+    current_evidence_index: number;
+    total_evidence_count: number;
+    achievement_percentage: number;
+    confidence_score?: number;
+}
+
+interface MeetingGoalUpdate {
+    goal_description?: string;
+    evaluation_strictness?: string;
+    emoji_icon?: string;
 }
 
 const DB_NAME = 'SpikedAI_Cache';
@@ -285,10 +318,119 @@ export default function Notetaker() {
     const [additionalQuestions, setAdditionalQuestions] = useState<string[]>([]);
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
     const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
-    
+    const [customGoals, setCustomGoals] = useState<CustomGoal[]>([]);
+    const [customGoalsProgress, setCustomGoalsProgress] = useState<CustomGoalProgress[]>([]);
+    const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
+
     const transcriptEndRef = useRef<HTMLDivElement>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const sseRefs = useRef<{ transcript: AbortController | null; }>({ transcript: null });
+
+    // API calls for Custom Goals
+    const fetchCustomGoals = async () => {
+        if (!session) return;
+        try {
+            const response = await fetch(`${service_url_recall}/meetingGoals`, {
+                headers: { Authorization: `Bearer ${session.access_token}` },
+            });
+            if (response.ok) {
+                const goals = await response.json();
+                setCustomGoals(goals);
+            }
+        } catch (error) {
+            console.error("Error fetching custom goals:", error);
+        }
+    };
+
+    const fetchCustomGoalsProgress = async () => {
+        if (!session) return;
+        try {
+            const response = await fetch(`${service_url_recall}/sentiment/custom-goals`, {
+                headers: { Authorization: `Bearer ${session.access_token}` },
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setCustomGoalsProgress(data.custom_goals_progress || []);
+            }
+        } catch (error) {
+            console.error("Error fetching custom goals progress:", error);
+        }
+    };
+
+    const navigateCustomGoalEvidence = async (goalId: string, direction: "next" | "prev") => {
+        if (!session) return;
+        
+        try {
+            const currentProgress = customGoalsProgress.find(p => p.goal.id === goalId);
+            if (!currentProgress || !currentProgress.evidences.length) {
+                console.log("No progress or evidences found for goal", goalId);
+                return;
+            }
+    
+            const currentIndex = currentProgress.current_evidence_index || 0;
+            const totalEvidences = currentProgress.evidences.length;
+            
+            let newIndex = currentIndex;
+            if (direction === "next" && currentIndex < totalEvidences - 1) {
+                newIndex = currentIndex + 1;
+            } else if (direction === "prev" && currentIndex > 0) {
+                newIndex = currentIndex - 1;
+            } else {
+                console.log(`Navigation ${direction} not possible from index ${currentIndex}`);
+                return;
+            }
+    
+            setCustomGoalsProgress((prev) => prev.map(progress => 
+                progress.goal.id === goalId
+                    ? { ...progress, current_evidence_index: newIndex }
+                    : progress
+            ));
+    
+            const response = await fetch(`${service_url_recall}/sentiment/custom-goals/${goalId}/navigate/${direction}`, {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({
+                    current_index: currentIndex,
+                    new_index: newIndex,
+                    total_count: totalEvidences
+                })
+            });
+            
+            if (!response.ok) {
+                console.error("Backend navigation failed, reverting local state");
+                setCustomGoalsProgress((prev) => prev.map(progress => 
+                    progress.goal.id === goalId
+                        ? { ...progress, current_evidence_index: currentIndex }
+                        : progress
+                ));
+            }
+        } catch (error) {
+            console.error(`Navigation failed for custom goal ${goalId}:`, error);
+            const currentProgress = customGoalsProgress.find(p => p.goal.id === goalId);
+            if (currentProgress) {
+                setCustomGoalsProgress((prev) => prev.map(progress => 
+                    progress.goal.id === goalId
+                        ? { ...progress, current_evidence_index: currentProgress.current_evidence_index }
+                        : progress
+                ));
+            }
+        }
+    };
+
+    const toggleGoalExpansion = (goalId: string) => {
+        setExpandedGoals(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(goalId)) {
+                newSet.delete(goalId);
+            } else {
+                newSet.add(goalId);
+            }
+            return newSet;
+        });
+    };
 
     useEffect(() => {
         const loadCustomTemplates = async () => {
@@ -354,6 +496,8 @@ export default function Notetaker() {
         if (botId && session?.access_token) {
             cleanup();
             setIsConnected(true);
+            fetchCustomGoals();
+            fetchCustomGoalsProgress();
 
             const fetchInitialTranscripts = async () => {
                 if (transcript.length === 0) {
@@ -384,10 +528,9 @@ export default function Notetaker() {
                     try {
                         const newTranscript = JSON.parse(event.data);
                         setTranscript((prev: TranscriptSegment[]) => {
-                            // Check for unique lines before adding
                             const lastLine = prev.length > 0 ? prev[prev.length - 1].text : '';
                             if (newTranscript.text.trim() === lastLine.trim()) {
-                                return prev; // Skip duplicate lines
+                                return prev;
                             }
                             const newTranscripts = [...prev, newTranscript];
                             saveToSessionStorage('spikedai_transcript', newTranscripts);
@@ -679,34 +822,21 @@ export default function Notetaker() {
             const textSecondary = '#757575';
             const borderLight = '#E0E0E0';
 
-            const logoBase64 = 'data:image/jpeg;base64,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';
-
-            let yPosition: number = 20;
-            const pageWidth: number = doc.internal.pageSize.getWidth();
-            const margin: number = 20;
-            const contentWidth: number = pageWidth - (margin * 2);
-
-            const checkPageBreak = (requiredHeight: number): void => {
-                if (yPosition + requiredHeight > 285) {
-                    addFooter();
-                    doc.addPage();
-                    addHeader();
-                    yPosition = 40;
-                }
-            };
+            const logoBase64 = 'data:image/jpeg;base64,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';
+            doc.addImage(logoBase64, 'JPEG', margin, 21, 10, 10);
 
             const addHeader = (): void => {
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(18);
                 doc.setTextColor(textPrimary);
-                doc.text('SpikedAI', margin, 21);
+                doc.text('SpikedAI', margin + 12, 29);
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(10);
                 doc.setTextColor(textSecondary);
-                doc.text('AI Assistant Conversation', pageWidth - margin, 20, { align: 'right' });
+                doc.text('AI Assistant Conversation', pageWidth - margin, 29, { align: 'right' });
                 doc.setDrawColor(accentRed);
                 doc.setLineWidth(0.5);
-                doc.line(margin, 25, pageWidth - margin, 25);
+                doc.line(margin, 35, pageWidth - margin, 35);
             };
 
             const addFooter = (): void => {
@@ -718,7 +848,7 @@ export default function Notetaker() {
             };
 
             addHeader();
-            yPosition = 40;
+            yPosition = 50;
 
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(22);
@@ -819,59 +949,72 @@ export default function Notetaker() {
                             </div>
                         </div>
                     </div>
-                    {allTemplates.length > 0 && (
-                        <>
-                            {customTemplates.length > 0 && (
-                                <div className="pt-2">
-                                    <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                        Custom Templates
-                                    </h4>
-                                    {customTemplates.map((template) => {
-                                        const currentTheme = themeClasses[template.theme];
-                                        return (
-                                            <div key={template.id} className="relative group">
-                                                <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)} 
-                                                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg mb-2
-                                                    ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`} 
-                                                    ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
-                                                    <div className="flex items-start space-x-3">
-                                                        <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
-                                                            {isProcessingTemplate && selectedTemplate?.id === template.id ? 
-                                                                <div className={`w-4 h-4 border-2 ${currentTheme.icon} rounded-full border-t-transparent animate-spin`} /> : 
-                                                                <template.icon className={`w-4 h-4 ${currentTheme.icon}`} />
-                                                            }
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <h3 className={`mb-1 text-sm font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-1`}>{template.name}</h3>
-                                                            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} line-clamp-2`}>{template.description}</p>
-                                                        </div>
-                                                        <div className="flex items-center space-x-1 flex-shrink-0">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleEditTemplate(template);
-                                                                }}
-                                                                className={`p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 ${isDarkMode ? 'hover:bg-gray-600 text-gray-400' : 'hover:bg-gray-200 text-gray-600'}`}
-                                                            >
-                                                                <Edit className="w-3 h-3" />
-                                                            </button>
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleDeleteTemplate(template);
-                                                                }}
-                                                                className={`p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 ${isDarkMode ? 'hover:bg-red-600 text-gray-400 hover:text-white' : 'hover:bg-red-100 text-gray-600 hover:text-red-600'}`}
-                                                            >
-                                                                <Trash2 className="w-3 h-3" />
-                                                            </button>
-                                                        </div>
+                    {customGoals.length > 0 && (
+                        <div className="pt-2">
+                            <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                Custom Goals
+                            </h4>
+                            {customGoals.map((goal, index) => {
+                                const progress = customGoalsProgress.find(p => p.goal.id === goal.id);
+                                const isAchieved = progress?.is_achieved || false;
+                                const evidences = progress?.evidences || [];
+                                const currentIndex = progress?.current_evidence_index || 0;
+
+                                return (
+                                    <div key={goal.id} className="relative group">
+                                        <div onClick={() => toggleGoalExpansion(goal.id)}
+                                            className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg mb-2
+                                            ${isAchieved ? 'border-green-500' : 'border-blue-500'}
+                                            ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+                                            <div className="flex items-start space-x-3">
+                                                <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${isAchieved ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
+                                                    {isAchieved ? <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" /> : <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className={`mb-1 text-sm font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-1`}>{goal.goal_description}</h3>
+                                                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                        {isAchieved ? 'Achieved' : 'In Progress'} - {evidences.length} evidence{evidences.length !== 1 ? 's' : ''} found
+                                                    </p>
+                                                </div>
+                                                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} ${expandedGoals.has(goal.id) ? 'rotate-180' : ''}`} />
+                                            </div>
+                                        </div>
+                                        {expandedGoals.has(goal.id) && evidences.length > 0 && (
+                                            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2 mb-2">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                                        Evidence {currentIndex + 1} of {evidences.length}
+                                                    </span>
+                                                    <div className="flex space-x-2">
+                                                        <button
+                                                            onClick={() => navigateCustomGoalEvidence(goal.id, 'prev')}
+                                                            disabled={currentIndex === 0}
+                                                            className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} disabled:opacity-50`}
+                                                        >
+                                                            <ChevronRight className="w-4 h-4 rotate-180" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => navigateCustomGoalEvidence(goal.id, 'next')}
+                                                            disabled={currentIndex === evidences.length - 1}
+                                                            className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} disabled:opacity-50`}
+                                                        >
+                                                            <ChevronRight className="w-4 h-4" />
+                                                        </button>
                                                     </div>
                                                 </div>
+                                                <div className={`p-2 rounded-md ${isDarkMode ? 'bg-gray-900 text-gray-300' : 'bg-white text-gray-800'}`}>
+                                                    <p className="text-sm italic">"{evidences[currentIndex]?.text}"</p>
+                                                    <p className="text-xs mt-2 text-gray-500 text-right"> - {evidences[currentIndex]?.primary_speaker}</p>
+                                                </div>
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                    {allTemplates.length > 0 && (
+                        <>
                             <div className="pt-2">
                                 <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                     Prebuilt Templates
@@ -880,14 +1023,14 @@ export default function Notetaker() {
                                     const currentTheme = themeClasses[template.theme];
                                     return (
                                         <div key={template.id} className="relative group">
-                                            <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)} 
+                                            <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)}
                                                 className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg mb-2
-                                                ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`} 
+                                                ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
                                                 ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
                                                 <div className="flex items-start space-x-3">
                                                     <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
-                                                        {isProcessingTemplate && selectedTemplate?.id === template.id ? 
-                                                            <div className={`w-4 h-4 border-2 ${currentTheme.icon} rounded-full border-t-transparent animate-spin`} /> : 
+                                                        {isProcessingTemplate && selectedTemplate?.id === template.id ?
+                                                            <div className={`w-4 h-4 border-2 ${currentTheme.icon} rounded-full border-t-transparent animate-spin`} /> :
                                                             <template.icon className={`w-4 h-4 ${currentTheme.icon}`} />
                                                         }
                                                     </div>
@@ -968,8 +1111,8 @@ export default function Notetaker() {
                             <div className="flex items-center space-x-2">
                                 {meetingUrl && (
                                     <div className={`px-3 py-1.5 rounded-lg text-xs flex items-center space-x-2 ${
-                                        isDarkMode 
-                                            ? 'bg-gray-700 text-gray-300' 
+                                        isDarkMode
+                                            ? 'bg-gray-700 text-gray-300'
                                             : 'bg-gray-100 text-gray-600'
                                     }`}>
                                         <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
@@ -982,8 +1125,8 @@ export default function Notetaker() {
                                 <button 
                                     onClick={() => window.location.reload()}
                                     className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 hover:scale-105 flex items-center space-x-1 ${
-                                        isDarkMode 
-                                            ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                                        isDarkMode
+                                            ? 'bg-blue-600 text-white hover:bg-blue-700'
                                             : 'bg-blue-500 text-white hover:bg-blue-600'
                                     }`}
                                     title="Refresh connection to streams"
@@ -1031,7 +1174,7 @@ export default function Notetaker() {
             </div>
 
             <div onMouseDown={handleMouseDown(1)} className={`hidden lg:flex w-2 cursor-col-resize items-center justify-center group ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'} hover:bg-gradient-to-r hover:from-red-500 hover:to-red-600 transition-all duration-200`}>
-                 <div className={`w-0.5 h-8 rounded-full ${isDarkMode ? 'bg-gray-600 group-hover:bg-white' : 'bg-gray-300 group-hover:bg-white'} transition-colors`}></div>
+                    <div className={`w-0.5 h-8 rounded-full ${isDarkMode ? 'bg-gray-600 group-hover:bg-white' : 'bg-gray-300 group-hover:bg-white'} transition-colors`}></div>
             </div>
 
             <div className={`flex flex-col border-l ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'} min-w-0`} style={{ width: `${columnWidths[2]}%`, minWidth: '320px' }}>

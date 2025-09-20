@@ -55,7 +55,7 @@ import { useAuth } from "../AuthContext";
 import { useBotId } from '../BotIdContext';
 
 const service_url_recall =
-  "https://recall-backend-production-822359826336.us-central1.run.app";
+  "https://recall-backend-production-409019309412.us-central1.run.app";
 const service_url_base =
   "https://sales-assistant-service-822359826336.us-central1.run.app";
 const BASE_URL_PROD =
@@ -7356,5 +7356,6 @@ useEffect(() => {
     </div>
   );
 };
+
 
 export default SpikedAI;

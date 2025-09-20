@@ -949,104 +949,87 @@ export default function Notetaker() {
                             </div>
                         </div>
                     </div>
-                    {customGoals.length > 0 && (
+                    {customTemplates.length > 0 && (
                         <div className="pt-2">
                             <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                Custom Goals
+                                Custom Templates
                             </h4>
-                            {customGoals.map((goal, index) => {
-                                const progress = customGoalsProgress.find(p => p.goal.id === goal.id);
-                                const isAchieved = progress?.is_achieved || false;
-                                const evidences = progress?.evidences || [];
-                                const currentIndex = progress?.current_evidence_index || 0;
-
+                            {customTemplates.map((template) => {
+                                const currentTheme = themeClasses[template.theme];
                                 return (
-                                    <div key={goal.id} className="relative group">
-                                        <div onClick={() => toggleGoalExpansion(goal.id)}
+                                    <div key={template.id} className="relative group">
+                                        <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)}
                                             className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg mb-2
-                                            ${isAchieved ? 'border-green-500' : 'border-blue-500'}
-                                            ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+                                            ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
+                                            ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
                                             <div className="flex items-start space-x-3">
-                                                <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${isAchieved ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
-                                                    {isAchieved ? <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" /> : <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                                                <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
+                                                    {isProcessingTemplate && selectedTemplate?.id === template.id ?
+                                                        <div className={`w-4 h-4 border-2 ${currentTheme.icon} rounded-full border-t-transparent animate-spin`} /> :
+                                                        <template.icon className={`w-4 h-4 ${currentTheme.icon}`} />
+                                                    }
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <h3 className={`mb-1 text-sm font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-1`}>{goal.goal_description}</h3>
-                                                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                                        {isAchieved ? 'Achieved' : 'In Progress'} - {evidences.length} evidence{evidences.length !== 1 ? 's' : ''} found
-                                                    </p>
+                                                    <h3 className={`mb-1 text-sm font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-1`}>{template.name}</h3>
+                                                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} line-clamp-2`}>{template.description}</p>
                                                 </div>
-                                                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} ${expandedGoals.has(goal.id) ? 'rotate-180' : ''}`} />
+                                                <div className="flex items-center space-x-1 flex-shrink-0">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleEditTemplate(template);
+                                                        }}
+                                                        className={`p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 ${isDarkMode ? 'hover:bg-gray-600 text-gray-400' : 'hover:bg-gray-200 text-gray-600'}`}
+                                                    >
+                                                        <Edit className="w-3 h-3" />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteTemplate(template);
+                                                        }}
+                                                        className={`p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 ${isDarkMode ? 'hover:bg-red-600 text-gray-400 hover:text-white' : 'hover:bg-red-100 text-gray-600 hover:text-red-600'}`}
+                                                    >
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
-                                        {expandedGoals.has(goal.id) && evidences.length > 0 && (
-                                            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2 mb-2">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                                                        Evidence {currentIndex + 1} of {evidences.length}
-                                                    </span>
-                                                    <div className="flex space-x-2">
-                                                        <button
-                                                            onClick={() => navigateCustomGoalEvidence(goal.id, 'prev')}
-                                                            disabled={currentIndex === 0}
-                                                            className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} disabled:opacity-50`}
-                                                        >
-                                                            <ChevronRight className="w-4 h-4 rotate-180" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => navigateCustomGoalEvidence(goal.id, 'next')}
-                                                            disabled={currentIndex === evidences.length - 1}
-                                                            className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} disabled:opacity-50`}
-                                                        >
-                                                            <ChevronRight className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div className={`p-2 rounded-md ${isDarkMode ? 'bg-gray-900 text-gray-300' : 'bg-white text-gray-800'}`}>
-                                                    <p className="text-sm italic">"{evidences[currentIndex]?.text}"</p>
-                                                    <p className="text-xs mt-2 text-gray-500 text-right"> - {evidences[currentIndex]?.primary_speaker}</p>
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
                                 );
                             })}
                         </div>
                     )}
-                    {allTemplates.length > 0 && (
-                        <>
-                            <div className="pt-2">
-                                <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                    Prebuilt Templates
-                                </h4>
-                                {allTemplates.filter(t => t.category === 'prebuilt').map((template) => {
-                                    const currentTheme = themeClasses[template.theme];
-                                    return (
-                                        <div key={template.id} className="relative group">
-                                            <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)}
-                                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg mb-2
-                                                ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
-                                                ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
-                                                <div className="flex items-start space-x-3">
-                                                    <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
-                                                        {isProcessingTemplate && selectedTemplate?.id === template.id ?
-                                                            <div className={`w-4 h-4 border-2 ${currentTheme.icon} rounded-full border-t-transparent animate-spin`} /> :
-                                                            <template.icon className={`w-4 h-4 ${currentTheme.icon}`} />
-                                                        }
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <h3 className={`mb-1 text-sm font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-1`}>{template.name}</h3>
-                                                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} line-clamp-2`}>{template.description}</p>
-                                                    </div>
-                                                    <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} group-hover:translate-x-1 group-hover:${currentTheme.icon} flex-shrink-0`} />
-                                                </div>
+                    <div className="pt-2">
+                        <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Prebuilt Templates
+                        </h4>
+                        {allTemplates.filter(t => t.category === 'prebuilt').map((template) => {
+                            const currentTheme = themeClasses[template.theme];
+                            return (
+                                <div key={template.id} className="relative group">
+                                    <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)}
+                                        className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg mb-2
+                                        ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
+                                        ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
+                                        <div className="flex items-start space-x-3">
+                                            <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
+                                                {isProcessingTemplate && selectedTemplate?.id === template.id ?
+                                                    <div className={`w-4 h-4 border-2 ${currentTheme.icon} rounded-full border-t-transparent animate-spin`} /> :
+                                                    <template.icon className={`w-4 h-4 ${currentTheme.icon}`} />
+                                                }
                                             </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className={`mb-1 text-sm font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-1`}>{template.name}</h3>
+                                                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} line-clamp-2`}>{template.description}</p>
+                                            </div>
+                                            <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} group-hover:translate-x-1 group-hover:${currentTheme.icon} flex-shrink-0`} />
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        </>
-                    )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 

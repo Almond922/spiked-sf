@@ -57,9 +57,9 @@ import { useBotId } from '../BotIdContext';
 const service_url_recall =
   "https://recall-backend-production-409019309412.us-central1.run.app";
 const service_url_base =
-  "https://sales-assistant-service-822359826336.us-central1.run.app";
+  "https://spikedai-old-backend-409019309412.us-central1.run.app";
 const BASE_URL_PROD =
-  "https://spikedai-production-application-822359826336.us-central1.run.app";
+  "https://spikedai-production-application-409019309412.us-central1.run.app";
 
 interface MarkdownProps extends Options {
   className?: string;
@@ -7359,3 +7359,4 @@ useEffect(() => {
 
 
 export default SpikedAI;
+

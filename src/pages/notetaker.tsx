@@ -1013,38 +1013,36 @@ export default function Notetaker() {
                             })}
                         </div>
                     )}
-                    <div>
-      <div className="pt-2">
-        <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Prebuilt Templates
-        </h4>
-        {allTemplates.filter(t => t.category === 'prebuilt').map((template) => {
-          const currentTheme = themeClasses[template.theme];
-          return (
-            <div key={template.id} className="relative group">
-              <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)}
-                   className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg mb-2
-                   ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
-                   ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
-                <div className="flex items-start space-x-3">
-                  <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
-                    {isProcessingTemplate && selectedTemplate?.id === template.id ?
-                       <div className={`w-4 h-4 border-2 ${currentTheme.icon} rounded-full border-t-transparent animate-spin`} /> :
-                       <template.icon className={`w-4 h-4 ${currentTheme.icon}`} />
-                    }
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className={`mb-1 text-sm font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-1`}>{template.name}</h3>
-                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} line-clamp-2`}>{template.description}</p>
-                  </div>
-                  <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} group-hover:translate-x-1 group-hover:${currentTheme.icon} flex-shrink-0`} />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+                    <div className="pt-2">
+                        <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Prebuilt Templates
+                        </h4>
+                        {allTemplates.filter(t => t.category === 'prebuilt').map((template) => {
+                            const currentTheme = themeClasses[template.theme];
+                            return (
+                                <div key={template.id} className="relative group">
+                                    <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)}
+                                        className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg mb-2
+                                        ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
+                                        ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
+                                        <div className="flex items-start space-x-3">
+                                            <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
+                                                {isProcessingTemplate && selectedTemplate?.id === template.id ?
+                                                     <div className={`w-4 h-4 border-2 ${currentTheme.icon} rounded-full border-t-transparent animate-spin`} /> :
+                                                     <template.icon className={`w-4 h-4 ${currentTheme.icon}`} />
+                                                }
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className={`mb-1 text-sm font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-1`}>{template.name}</h3>
+                                                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} line-clamp-2`}>{template.description}</p>
+                                            </div>
+                                            <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} group-hover:translate-x-1 group-hover:${currentTheme.icon} flex-shrink-0`} />
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 

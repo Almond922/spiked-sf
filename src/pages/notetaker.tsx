@@ -40,9 +40,9 @@ import {
 } from 'lucide-react';
 import { jsPDF } from "jspdf";
 
-const BASE_URL = 'https://recall-backend-production-822359826336.us-central1.run.app';
-const SALES_ASSISTANT_BASE_URL = 'https://sales-assistant-service-822359826336.us-central1.run.app';
-const service_url_recall = "https://recall-backend-production-409019309412.us-central1.run.app";
+const BASE_URL = 'https://recall-backend-production-409019309412.us-central1.run.app';
+const SALES_ASSISTANT_BASE_URL = 'https://spikedai-old-backend-409019309412.us-central1.run.app';
+const service_url_recall = "https://spikedai-production-application-409019309412.us-central1.run.app";
 
 interface Session {
     user: { id: string; email: string };

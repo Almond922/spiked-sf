@@ -511,7 +511,7 @@ const SpikedAI = () => {
   );
 
   const BASE_URL =
-    "https://sales-assistant-service-822359826336.us-central1.run.app";
+    "https://spikedai-old-backend-409019309412.us-central1.run.app";
 
   /**
    * Resets the sentiment data to its initial empty state.

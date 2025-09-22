@@ -9,7 +9,7 @@ import {
 import jsPDF from "jspdf";
 
 // --- CONSTANTS ---
-const BASE_URL = 'https://sales-assistant-service-822359826336.us-central1.run.app/train';
+const BASE_URL = 'https://spikedai-old-backend-409019309412.us-central1.run.app/train';
 const CACHE_KEY_DOCUMENTS = 'meetingPrep_existingDocuments';
 const CACHE_EXPIRATION_MS = 60 * 60 * 1000; // 1 hour
 

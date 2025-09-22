@@ -80,7 +80,7 @@ const EnhancedMarkdown = ({ children, isDarkMode }: { children: string; isDarkMo
 };
 
 
-const BASE_URL = 'https://sales-assistant-service-822359826336.us-central1.run.app';
+const BASE_URL = 'https://spikedai-old-backend-409019309412.us-central1.run.app';
 
 interface Template {
     id: number;

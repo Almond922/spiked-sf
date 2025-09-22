@@ -982,6 +982,48 @@ export default function Notetaker() {
                             })}
                         </div>
                     )}
+
+{/* CUSTOM GOALS SECTION */}
+<div className="mb-4">
+                        <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Meeting Goals ({customGoals.length})
+                        </h4>
+                        {customGoals.length > 0 ? (
+                            customGoals.map((goal) => {
+                                const emoji = goal.emoji_icon || '🎯';
+                                return (
+                                    <div key={goal.id} className={`p-3 rounded-xl border mb-2 transition-all duration-200 hover:shadow-md ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+                                        <div className="flex items-start space-x-3">
+                                            <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${isDarkMode ? 'bg-purple-900/30' : 'bg-purple-100'}`}>
+                                                <span className="text-sm">{emoji}</span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className={`text-sm font-bold mb-1 line-clamp-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                                    {goal.goal_description}
+                                                </h3>
+                                                {goal.evaluation_criteria && (
+                                                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} line-clamp-2 mb-1`}>
+                                                        {goal.evaluation_criteria}
+                                                    </p>
+                                                )}
+                                                {goal.created_at && (
+                                                    <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                                                        {new Date(goal.created_at).toLocaleDateString()}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className={`p-3 rounded-xl border-2 border-dashed text-center ${isDarkMode ? 'border-gray-600 bg-gray-800/30' : 'border-gray-300 bg-gray-50'}`}>
+                                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                    No meeting goals found
+                                </p>
+                            </div>
+                        )}
+                    </div>
                     <div className="pt-2">
                         <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                             Prebuilt Templates
@@ -1038,47 +1080,7 @@ export default function Notetaker() {
                      </div>
                 </div>
                 
-{/* CUSTOM GOALS SECTION */}
-<div className="mb-4">
-                        <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                            Meeting Goals ({customGoals.length})
-                        </h4>
-                        {customGoals.length > 0 ? (
-                            customGoals.map((goal) => {
-                                const emoji = goal.emoji_icon || '🎯';
-                                return (
-                                    <div key={goal.id} className={`p-3 rounded-xl border mb-2 transition-all duration-200 hover:shadow-md ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
-                                        <div className="flex items-start space-x-3">
-                                            <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${isDarkMode ? 'bg-purple-900/30' : 'bg-purple-100'}`}>
-                                                <span className="text-sm">{emoji}</span>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className={`text-sm font-bold mb-1 line-clamp-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                                                    {goal.goal_description}
-                                                </h3>
-                                                {goal.evaluation_criteria && (
-                                                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} line-clamp-2 mb-1`}>
-                                                        {goal.evaluation_criteria}
-                                                    </p>
-                                                )}
-                                                {goal.created_at && (
-                                                    <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                                                        {new Date(goal.created_at).toLocaleDateString()}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        ) : (
-                            <div className={`p-3 rounded-xl border-2 border-dashed text-center ${isDarkMode ? 'border-gray-600 bg-gray-800/30' : 'border-gray-300 bg-gray-50'}`}>
-                                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                    No meeting goals found
-                                </p>
-                            </div>
-                        )}
-                    </div>
+
 
                 <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
                     <div className="space-y-3">

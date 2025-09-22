@@ -89,10 +89,12 @@ interface ChatMessage {
 }
 
 interface CustomGoal {
-    id: string;
-    goal_description: string;
-    evaluation_strictness?: string;
-    emoji_icon?: string;
+    id: string;
+    goal_description: string;
+    evaluation_criteria?: string;
+    emoji_icon?: string;
+    created_at?: string;
+    updated_at?: string;
 }
 
 interface CustomGoalProgress {
@@ -384,7 +386,7 @@ export default function Notetaker() {
             return newSet;
         });
     };
-    
+    
     const fetchTemplatesAndGoals = () => {
       const loadCustomTemplates = async () => {
         try {
@@ -770,7 +772,7 @@ export default function Notetaker() {
     };
 
     const allTemplates = useMemo(() => [...customTemplates, ...templates], [customTemplates, templates]);
-    
+    
     const generatePDF = () => {
         if (chatMessages.length === 0) return;
         
@@ -1051,11 +1053,11 @@ export default function Notetaker() {
                         ) : (
                             <div className={`py-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                 <div className="text-center mb-3">
-                                    <div className={`p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                                    <div className={`p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
                                         <Headphones className="w-8 h-8 text-gray-400" />
                                     </div>
                                     <h3 className="mb-2 text-lg font-bold text-black-600 dark:text-red-400">No Transcription Data</h3>
-                                    <p className="text-sm text-gray-500">Enter a meeting URL and click Start to begin recording.</p>
+                                    <p className="text-sm text-gray-500">Please connect a meeting to start live transcription.</p>
                                 </div>
                             </div>
                         )}
@@ -1171,14 +1173,12 @@ export default function Notetaker() {
 
             <div className={`flex flex-col border-l ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'} min-w-0`} style={{ width: `${columnWidths[2]}%`, minWidth: '320px' }}>
                 <div className={`flex items-center space-x-4 p-5 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex-shrink-0`}>
-                    <div className="flex items-center flex-1 min-w-0 space-x-4">
-                        <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-green-900/20' : 'bg-green-100'}`}><MessageSquare className={`w-5 h-5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} /></div>
-                        <div className="flex-1 min-w-0">
-                            <h2 className="text-xl font-bold truncate text-black-600 dark:text-red-400">AI Assistant</h2>
-                            <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} truncate`}>Ask me anything</p>
-                        </div>
+                    <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-green-900/20' : 'bg-green-100'}`}><MessageSquare className={`w-5 h-5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} /></div>
+                    <div className="flex-1 min-w-0">
+                        <h2 className="text-xl font-bold truncate text-black-600 dark:text-red-400">AI Assistant</h2>
+                        <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} truncate`}>Ask me anything</p>
                     </div>
-                    <div className="flex items-center flex-shrink-0 space-x-2">
+                    <div className="flex items-center space-x-2">
                         <button
                             onClick={generatePDF}
                             disabled={isGeneratingPDF || chatMessages.length === 0}
@@ -1300,6 +1300,48 @@ export default function Notetaker() {
                     </form>
                 </div>
             </div>
+
+{/* CUSTOM GOALS SECTION */}
+<div className="mb-4">
+                        <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Meeting Goals ({customGoals.length})
+                        </h4>
+                        {customGoals.length > 0 ? (
+                            customGoals.map((goal) => {
+                                const emoji = goal.emoji_icon || '🎯';
+                                return (
+                                    <div key={goal.id} className={`p-3 rounded-xl border mb-2 transition-all duration-200 hover:shadow-md ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+                                        <div className="flex items-start space-x-3">
+                                            <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${isDarkMode ? 'bg-purple-900/30' : 'bg-purple-100'}`}>
+                                                <span className="text-sm">{emoji}</span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className={`text-sm font-bold mb-1 line-clamp-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                                    {goal.goal_description}
+                                                </h3>
+                                                {goal.evaluation_criteria && (
+                                                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} line-clamp-2 mb-1`}>
+                                                        {goal.evaluation_criteria}
+                                                    </p>
+                                                )}
+                                                {goal.created_at && (
+                                                    <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                                                        {new Date(goal.created_at).toLocaleDateString()}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className={`p-3 rounded-xl border-2 border-dashed text-center ${isDarkMode ? 'border-gray-600 bg-gray-800/30' : 'border-gray-300 bg-gray-50'}`}>
+                                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                    No meeting goals found
+                                </p>
+                            </div>
+                        )}
+                    </div>
 
             {showCreateTemplateModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

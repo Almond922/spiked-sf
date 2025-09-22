@@ -21,7 +21,7 @@ import {
 import { useAuth } from "../AuthContext";
 
 const API_BASE_URL =
-  "https://spikedai-production-application-822359826336.us-central1.run.app";
+  "https://spikedai-production-application-409019309412.us-central1.run.app";
 
 // Main settings model, goals are now handled separately
 interface SettingsModel {

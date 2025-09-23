@@ -986,7 +986,7 @@ export default function Notetaker() {
 {/* CUSTOM GOALS SECTION */}
 <div className="mb-4">
                         <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                            Meeting Goals ({customGoals.length})
+                            Custom Goals ({customGoals.length})
                         </h4>
                         {customGoals.length > 0 ? (
                             customGoals.map((goal) => {

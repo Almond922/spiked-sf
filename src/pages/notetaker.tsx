@@ -355,6 +355,10 @@ export default function Notetaker() {
         includeInstances: false,
     });
 
+    // NEW STATE for goal-specific analysis
+    const [goalAnalyses, setGoalAnalyses] = useState<Map<string, string>>(new Map());
+    const [analyzingGoals, setAnalyzingGoals] = useState<Set<string>>(new Set());
+
     const transcriptEndRef = useRef<HTMLDivElement>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const sseRefs = useRef<{ transcript: AbortController | null; }>({ transcript: null });
@@ -811,34 +815,25 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
         return groups;
     };
 
+    // MODIFIED: handleCustomGoalClick to update `goalAnalyses` state
     const handleCustomGoalClick = async (goal: CustomGoal, progress?: CustomGoalProgress) => {
-        const goalQuestion = `Analyze the custom goal: "${goal.goal_description}" based on the current meeting transcript. ${progress ? `Current status: ${progress.is_achieved ? 'Achieved' : 'In Progress'}. ` : ''}Please provide detailed insights including progress assessment, evidence found, recommendations, and next steps.`;
-        
-        const newUserMessage: ChatMessage = { 
-            id: Date.now(), 
-            text: goalQuestion, 
-            isUser: true, 
-            timestamp: new Date() 
-        };
-        
-        setChatMessages((prev) => [...prev, newUserMessage]);
+        if (!session) return;
+        setAnalyzingGoals(prev => new Set(prev).add(goal.id));
         setAdditionalQuestions([]);
-        setIsAITyping(true);
-        
-        const transcriptText = groupTranscriptBySpeaker(transcript).map(group => 
-            `${group.speaker || 'Unknown'}: ${group.text}`
-        ).join('\n\n');
-        
+
+        const goalQuestion = `Analyze the custom goal: "${goal.goal_description}" based on the current meeting transcript. ${progress ? `Current status: ${progress.is_achieved ? 'Achieved' : 'In Progress'}. ` : ''}Please provide detailed insights including progress assessment, evidence found, recommendations, and next steps.`;
+        const transcriptText = groupTranscriptBySpeaker(transcript).map(group => `${group.speaker || 'Unknown'}: ${group.text}`).join('\n\n');
+
         try {
-            const response = await fetch(`${SALES_ASSISTANT_BASE_URL}/api/chat`, { 
-                method: 'POST', 
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'Authorization': `Bearer ${session?.access_token}` 
-                }, 
-                body: JSON.stringify({ 
-                    question: goalQuestion, 
-                    transcript: transcriptText, 
+            const response = await fetch(`${SALES_ASSISTANT_BASE_URL}/api/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({
+                    question: goalQuestion,
+                    transcript: transcriptText,
                     chat_history: chatMessages,
                     goal_context: {
                         goal_id: goal.id,
@@ -847,32 +842,23 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                         current_progress: progress,
                         emoji: goal.emoji_icon
                     }
-                }) 
+                })
             });
-            
+
             if (!response.ok) throw new Error('Failed to get AI response');
-            
+
             const data = await response.json();
-            const botResponse: ChatMessage = { 
-                id: Date.now() + 1, 
-                text: data.response, 
-                isUser: false, 
-                timestamp: new Date() 
-            };
-            
-            setChatMessages((prev) => [...prev, botResponse]);
+            setGoalAnalyses(prev => new Map(prev).set(goal.id, data.response));
             setAdditionalQuestions(data.additional_questions || []);
         } catch (error) {
             console.error('Error handling custom goal analysis:', error);
-            const errorResponse: ChatMessage = { 
-                id: Date.now() + 1, 
-                text: `Sorry, I'm having trouble analyzing the goal "${goal.goal_description}". Please try again.`, 
-                isUser: false, 
-                timestamp: new Date() 
-            };
-            setChatMessages((prev) => [...prev, errorResponse]);
+            setGoalAnalyses(prev => new Map(prev).set(goal.id, `Sorry, I'm having trouble analyzing the goal "${goal.goal_description}". Please try again.`));
         } finally {
-            setIsAITyping(false);
+            setAnalyzingGoals(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(goal.id);
+                return newSet;
+            });
         }
     };
     
@@ -902,94 +888,6 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
         setEditingTemplate(template);
         setShowCreateTemplateModal(true);
     };
-
-    {customGoalsProgress.map((progress) => {
-        const goal = progress.goal;
-        const isAchieved = progress.is_achieved || false;
-        const evidences = progress.evidences || [];
-        const currentIndex = progress.current_evidence_index || 0;
-        const emoji = goal.emoji_icon || (isAchieved ? '✅' : '🎯');
-        const currentEvidence = evidences[currentIndex];
-    
-        return (
-            <div key={goal.id} className={`p-4 rounded-xl border-2 transition-all duration-200 ${isAchieved ? 'border-green-500' : 'border-blue-500'} ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleGoalExpansion(goal.id)}>
-                    <div className="flex items-center space-x-3 flex-1">
-                        <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${isAchieved ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
-                            <span className="text-xl leading-none">{emoji}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <h3 className={`text-sm font-bold mb-1 line-clamp-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                                {goal.goal_description}
-                            </h3>
-                            <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                <div className="flex items-center">
-                                    <span className="font-medium mr-1">Summary:</span>
-                                    <span className="truncate">{progress.summary || 'No summary available.'}</span>
-                                </div>
-                            </div>
-                            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                {isAchieved ? 'Achieved' : 'In Progress'} - {evidences.length} evidence{evidences.length !== 1 ? 's' : ''} found
-                            </p>
-                        </div>
-                        <ChevronDown
-                            className={`w-4 h-4 transition-transform duration-300 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} ${expandedGoals.has(goal.id) ? 'rotate-180' : ''}`}
-                        />
-                    </div>
-                </div>
-                
-                {/* Add AI Analysis Button here too */}
-                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleCustomGoalClick(goal, progress);
-                        }}
-                        className={`w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 ${
-                            isDarkMode
-                                ? 'bg-red-600 hover:bg-red-700 text-white'
-                                : 'bg-red-600 hover:bg-red-700 text-white'
-                        }`}
-                    >
-                        <MessageSquare className="w-4 h-4" />
-                        <span>Analyze with AI</span>
-                    </button>
-                </div>
-                
-                {expandedGoals.has(goal.id) && evidences.length > 0 && (
-                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg space-y-2">
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                                Evidence {currentIndex + 1} of {evidences.length}
-                            </span>
-                            <div className="flex space-x-2">
-                                <button
-                                    onClick={() => navigateCustomGoalEvidence(goal.id, 'prev')}
-                                    disabled={currentIndex === 0}
-                                    className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} disabled:opacity-50`}
-                                >
-                                    <ChevronRight className="w-4 h-4 rotate-180" />
-                                </button>
-                                <button
-                                    onClick={() => navigateCustomGoalEvidence(goal.id, 'next')}
-                                    disabled={currentIndex === evidences.length - 1}
-                                    className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} disabled:opacity-50`}
-                                >
-                                    <ChevronRight className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                        {currentEvidence && (
-                            <div className={`p-2 rounded-md ${isDarkMode ? 'bg-gray-900 text-gray-300' : 'bg-white text-gray-800'}`}>
-                                <p className="text-sm italic">"{currentEvidence.text}"</p>
-                                <p className="text-xs mt-2 text-gray-500 text-right"> - {currentEvidence.primary_speaker}</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-        );
-    })}
 
     const handleSaveTemplate = async () => {
         if (!templateForm.name.trim() || !templateForm.description.trim() || !templateForm.prompt.trim()) {
@@ -1241,111 +1139,101 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                             </div>
                             <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isCollapsibleOpen.customGoals ? 'rotate-180' : ''}`} />
                         </div>
-                        {customGoals.length > 0 ? (
-    customGoals.map((goal) => {
-        const progress = customGoalsProgress.find(p => p.goal.id === goal.id);
-        const isAchieved = progress?.is_achieved || false;
-        const evidenceCount = progress?.evidences.length || 0;
-        const emoji = goal.emoji_icon || (isAchieved ? '✅' : '🎯');
-        const theme = isAchieved ? 'green' : 'blue';
-        const currentTheme = themeClasses[theme];
-        
-        return (
-            <div key={goal.id} className="relative">
-                <div
-                    className={`group p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg
-                        ${currentTheme.hoverBorder} ${currentTheme.hoverBg}
-                        ${expandedGoals.has(goal.id) ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`
-                    }
-                >
-                    <div 
-                        className="flex items-center space-x-3"
-                        onClick={() => toggleGoalExpansion(goal.id)}
-                    >
-                        <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
-                            <span className="text-xl leading-none">{emoji}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <h3 className={`text-sm font-bold mb-1 line-clamp-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                                {goal.goal_description}
-                            </h3>
-                            {progress && (
-                                <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                    <div className="flex items-center">
-                                        <span className="font-medium mr-1">Summary:</span>
-                                        <span className="truncate">{progress.summary || 'No summary available.'}</span>
+                        {isCollapsibleOpen.customGoals && (
+                            <div className="space-y-2">
+                                {customGoals.length > 0 ? (
+                                    customGoals.map((goal) => {
+                                        const progress = customGoalsProgress.find(p => p.goal.id === goal.id);
+                                        const isAchieved = progress?.is_achieved || false;
+                                        const evidenceCount = progress?.evidences.length || 0;
+                                        const emoji = goal.emoji_icon || (isAchieved ? '✅' : '🎯');
+                                        const theme = isAchieved ? 'green' : 'blue';
+                                        const currentTheme = themeClasses[theme];
+                                        const analysisText = goalAnalyses.get(goal.id);
+
+                                        return (
+                                            <div key={goal.id} className="relative">
+                                                <div
+                                                    className={`group p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg
+                                                        ${currentTheme.hoverBorder} ${currentTheme.hoverBg}
+                                                        ${expandedGoals.has(goal.id) ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`
+                                                    }
+                                                >
+                                                    <div 
+                                                        className="flex items-center space-x-3"
+                                                        onClick={() => toggleGoalExpansion(goal.id)}
+                                                    >
+                                                        <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
+                                                            <span className="text-xl leading-none">{emoji}</span>
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <h3 className={`text-sm font-bold mb-1 line-clamp-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                                                {goal.goal_description}
+                                                            </h3>
+                                                            {progress && (
+                                                                <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                                    <div className="flex items-center">
+                                                                        <span className="font-medium mr-1">Summary:</span>
+                                                                        <span className="truncate">{progress.summary || 'No summary available.'}</span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                                {isAchieved ? 'Achieved' : 'In Progress'} - {evidenceCount} evidence{evidenceCount !== 1 ? 's' : ''} found
+                                                            </p>
+                                                        </div>
+                                                        <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} ${expandedGoals.has(goal.id) ? 'rotate-180' : ''}`} />
+                                                    </div>
+                                                    
+                                                    {/* NEW: AI Analysis Button - ADD THIS SECTION */}
+                                                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleCustomGoalClick(goal, progress);
+                                                            }}
+                                                            disabled={analyzingGoals.has(goal.id) || !session}
+                                                            className={`w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                                isDarkMode
+                                                                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                                                                    : 'bg-red-600 hover:bg-red-700 text-white'
+                                                                }`}
+                                                        >
+                                                            {analyzingGoals.has(goal.id) ? (
+                                                                <>
+                                                                    <Loader className="w-4 h-4 animate-spin" />
+                                                                    <span>Analyzing...</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <MessageSquare className="w-4 h-4" />
+                                                                    <span>Analyze with AI</span>
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                
+                                                {expandedGoals.has(goal.id) && analysisText && (
+                                                    <div className={`mt-2 p-3 rounded-xl ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border border-gray-200 dark:border-gray-700`}>
+                                                        <h5 className={`text-sm font-bold mb-2 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>AI Analysis:</h5>
+                                                        <EnhancedMarkdown isDarkMode={isDarkMode}>
+                                                            {analysisText}
+                                                        </EnhancedMarkdown>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className={`p-3 rounded-xl border-2 border-dashed text-center ${isDarkMode ? 'border-gray-600 bg-gray-800/30' : 'border-gray-300 bg-gray-50'}`}>
+                                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                            No meeting goals found
+                                        </p>
                                     </div>
-                                </div>
-                            )}
-                            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                {isAchieved ? 'Achieved' : 'In Progress'} - {evidenceCount} evidence{evidenceCount !== 1 ? 's' : ''} found
-                            </p>
-                        </div>
-                        <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} ${expandedGoals.has(goal.id) ? 'rotate-180' : ''}`} />
-                    </div>
-                    
-                    {/* New AI Analysis Button */}
-                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleCustomGoalClick(goal, progress);
-                            }}
-                            className={`w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 ${
-                                isDarkMode
-                                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                                    : 'bg-red-600 hover:bg-red-700 text-white'
-                            }`}
-                        >
-                            <MessageSquare className="w-4 h-4" />
-                            <span>Analyze with AI</span>
-                        </button>
-                    </div>
-                </div>
-                
-                {expandedGoals.has(goal.id) && progress && progress.evidences.length > 0 && (
-                    <div className={`mt-2 p-3 rounded-xl ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border border-gray-200 dark:border-gray-700`}>
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                                Evidence {progress.current_evidence_index + 1} of {progress.evidences.length}
-                            </span>
-                            <div className="flex space-x-2">
-                                <button
-                                    onClick={() => navigateCustomGoalEvidence(goal.id, 'prev')}
-                                    disabled={progress.current_evidence_index === 0}
-                                    className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} disabled:opacity-50`}
-                                >
-                                    <ChevronRight className="w-4 h-4 rotate-180" />
-                                </button>
-                                <button
-                                    onClick={() => navigateCustomGoalEvidence(goal.id, 'next')}
-                                    disabled={progress.current_evidence_index === progress.evidences.length - 1}
-                                    className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} disabled:opacity-50`}
-                                >
-                                    <ChevronRight className="w-4 h-4" />
-                                </button>
+                                )}
                             </div>
-                        </div>
-                        <div className={`mt-2 p-3 rounded-md border ${isDarkMode ? 'bg-gray-900 text-gray-300 border-gray-700' : 'bg-gray-50 text-gray-800 border-gray-200'}`}>
-                            <p className="text-sm italic">
-                                {`"${progress.evidences[progress.current_evidence_index].text}"`}
-                            </p>
-                            <p className="text-xs mt-2 text-gray-500 text-right">
-                                - {progress.evidences[progress.current_evidence_index].primary_speaker} ({new Date(progress.evidences[progress.current_evidence_index].timestamp).toLocaleTimeString()})
-                            </p>
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    })
-) : (
-    <div className={`p-3 rounded-xl border-2 border-dashed text-center ${isDarkMode ? 'border-gray-600 bg-gray-800/30' : 'border-gray-300 bg-gray-50'}`}>
-        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            No meeting goals found
-        </p>
-    </div>
-)}
+                        )}
                     </div>
 
                     {/* CUSTOM TEMPLATES SECTION - NEW COLLAPSIBLE UI */}
@@ -1360,124 +1248,50 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                                 </h4>
                                 <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isCollapsibleOpen.customTemplates ? 'rotate-180' : ''}`} />
                             </div>
-                            {isCollapsibleOpen.customGoals && (
-    <div className="space-y-2">
-        {customGoals.length > 0 ? (
-            customGoals.map((goal) => {
-                const progress = customGoalsProgress.find(p => p.goal.id === goal.id);
-                const isAchieved = progress?.is_achieved || false;
-                const evidenceCount = progress?.evidences.length || 0;
-                const emoji = goal.emoji_icon || (isAchieved ? '✅' : '🎯');
-                const theme = isAchieved ? 'green' : 'blue';
-                const currentTheme = themeClasses[theme];
-                return (
-                    <div key={goal.id} className="relative">
-                        <div
-                            className={`group p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg
-                                ${currentTheme.hoverBorder} ${currentTheme.hoverBg}
-                                ${expandedGoals.has(goal.id) ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`
-                            }
-                        >
-                            <div 
-                                className="flex items-center space-x-3"
-                                onClick={() => toggleGoalExpansion(goal.id)}
-                            >
-                                <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
-                                    <span className="text-xl leading-none">{emoji}</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <h3 className={`text-sm font-bold mb-1 line-clamp-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                                        {goal.goal_description}
-                                    </h3>
-                                    {progress && (
-                                        <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                            <div className="flex items-center">
-                                                <span className="font-medium mr-1">Summary:</span>
-                                                <span className="truncate">{progress.summary || 'No summary available.'}</span>
+                            {isCollapsibleOpen.customTemplates && (
+                                <div>
+                                    {allTemplates.filter(t => t.category === 'custom').map((template) => {
+                                        const currentTheme = themeClasses[template.theme];
+                                        return (
+                                            <div key={template.id} className="relative group">
+                                                <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)}
+                                                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg mb-2
+                                                    ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
+                                                    ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
+                                                    <div className="flex items-start space-x-3">
+                                                        <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
+                                                            {isProcessingTemplate && selectedTemplate?.id === template.id ?
+                                                                <div className={`w-4 h-4 border-2 ${currentTheme.icon} rounded-full border-t-transparent animate-spin`} /> :
+                                                                <template.icon className={`w-4 h-4 ${currentTheme.icon}`} />
+                                                            }
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <h3 className={`mb-1 text-sm font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-1`}>{template.name}</h3>
+                                                            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} line-clamp-2`}>{template.description}</p>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2">
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleEditTemplate(template); }}
+                                                                className={`p-1 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} text-gray-500 hover:text-blue-500`}
+                                                                title="Edit Template"
+                                                            >
+                                                                <Edit className="w-3 h-3" />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleDeleteTemplate(template); }}
+                                                                className={`p-1 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} text-gray-500 hover:text-red-500`}
+                                                                title="Delete Template"
+                                                            >
+                                                                <Trash2 className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
-                                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                        {isAchieved ? 'Achieved' : 'In Progress'} - {evidenceCount} evidence{evidenceCount !== 1 ? 's' : ''} found
-                                    </p>
+                                        );
+                                    })}
                                 </div>
-                                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} ${expandedGoals.has(goal.id) ? 'rotate-180' : ''}`} />
-                            </div>
-                            
-                            {/* NEW: AI Analysis Button - ADD THIS SECTION */}
-                            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleCustomGoalClick(goal, progress);
-                                    }}
-                                    disabled={isAITyping || !session}
-                                    className={`w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
-                                        isDarkMode
-                                            ? 'bg-red-600 hover:bg-red-700 text-white'
-                                            : 'bg-red-600 hover:bg-red-700 text-white'
-                                    }`}
-                                >
-                                    {isAITyping ? (
-                                        <>
-                                            <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
-                                            <span>Analyzing...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <MessageSquare className="w-4 h-4" />
-                                            <span>Analyze with AI</span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                        
-                        {expandedGoals.has(goal.id) && progress && progress.evidences.length > 0 && (
-                            <div className={`mt-2 p-3 rounded-xl ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border border-gray-200 dark:border-gray-700`}>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                                        Evidence {progress.current_evidence_index + 1} of {progress.evidences.length}
-                                    </span>
-                                    <div className="flex space-x-2">
-                                        <button
-                                            onClick={() => navigateCustomGoalEvidence(goal.id, 'prev')}
-                                            disabled={progress.current_evidence_index === 0}
-                                            className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} disabled:opacity-50`}
-                                        >
-                                            <ChevronRight className="w-4 h-4 rotate-180" />
-                                        </button>
-                                        <button
-                                            onClick={() => navigateCustomGoalEvidence(goal.id, 'next')}
-                                            disabled={progress.current_evidence_index === progress.evidences.length - 1}
-                                            className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} disabled:opacity-50`}
-                                        >
-                                            <ChevronRight className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className={`mt-2 p-3 rounded-md border ${isDarkMode ? 'bg-gray-900 text-gray-300 border-gray-700' : 'bg-gray-50 text-gray-800 border-gray-200'}`}>
-                                    <p className="text-sm italic">
-                                        {`"${progress.evidences[progress.current_evidence_index].text}"`}
-                                    </p>
-                                    <p className="text-xs mt-2 text-gray-500 text-right">
-                                        - {progress.evidences[progress.current_evidence_index].primary_speaker} ({new Date(progress.evidences[progress.current_evidence_index].timestamp).toLocaleTimeString()})
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                );
-            })
-        ) : (
-            <div className={`p-3 rounded-xl border-2 border-dashed text-center ${isDarkMode ? 'border-gray-600 bg-gray-800/30' : 'border-gray-300 bg-gray-50'}`}>
-                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    No meeting goals found
-                </p>
-            </div>
-        )}
-    </div>
-)}
+                            )}
                         </div>
                     )}
 
@@ -1757,17 +1571,17 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                         </div>
                     ))}
                      {isAITyping && (
-                         <div className="flex justify-start">
-                             <div className={`p-4 rounded-xl shadow-sm ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                                 <div className="flex items-center space-x-2">
-                                     <div className="w-2 h-2 bg-red-500 rounded-full animate-bounce"></div>
-                                     <div className="w-2 h-2 bg-red-500 rounded-full animate-bounce [animation-delay:0.1s]"></div>
-                                     <div className="w-2 h-2 bg-red-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                                     <span className="text-xs font-medium">AI is thinking...</span>
-                                 </div>
-                             </div>
-                         </div>
-                     )}
+                          <div className="flex justify-start">
+                              <div className={`p-4 rounded-xl shadow-sm ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                                  <div className="flex items-center space-x-2">
+                                      <div className="w-2 h-2 bg-red-500 rounded-full animate-bounce"></div>
+                                      <div className="w-2 h-2 bg-red-500 rounded-full animate-bounce [animation-delay:0.1s]"></div>
+                                      <div className="w-2 h-2 bg-red-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                                      <span className="text-xs font-medium">AI is thinking...</span>
+                                  </div>
+                              </div>
+                          </div>
+                      )}
                     <div ref={chatEndRef} />
                 </div>
                 <div className={`p-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex-shrink-0`}>

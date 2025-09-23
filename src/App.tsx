@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapPin, Camera, Users, Award, TrendingUp, Shield, Car, Train, Bus, Home, Star, Trophy, Clock, Eye, BarChart3, PieChart, Activity, Zap, Target, Gift } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Cell, BarChart, Bar, AreaChart, Area } from 'recharts';
+import { MapPin, Camera, Users, Award, TrendingUp, Shield, Car, Train, Bus, Home, Star, Trophy, Clock, Eye, BarChart3, PieChart, Activity, Zap, Target, Gift, Download, X } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 
 const TransportDataPlatform = () => {
   const [activeTab, setActiveTab] = useState('live-tracking');
@@ -9,14 +9,16 @@ const TransportDataPlatform = () => {
   const [currentLocation, setCurrentLocation] = useState({ lat: 19.0760, lng: 72.8777, type: 'Home' });
   const [connectedUsers] = useState(847);
   const [todayCollections] = useState(23);
-  
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+
   // Simulated live data
   const [liveUsers, setLiveUsers] = useState([
-    { id: 1, name: 'Alex Kumar', location: 'Mumbai Metro', transport: 'metro', points: 890, level: 2, lat: 19.0760, lng: 72.8777 },
-    { id: 2, name: 'Priya Shah', location: 'BEST Bus', transport: 'bus', points: 1340, level: 4, lat: 19.0896, lng: 72.8656 },
-    { id: 3, name: 'Rohit Patel', location: 'Local Train', transport: 'train', points: 756, level: 2, lat: 19.0544, lng: 72.8714 },
-    { id: 4, name: 'Maya Singh', location: 'Taxi', transport: 'car', points: 1120, level: 3, lat: 19.1136, lng: 72.8697 },
-    { id: 5, name: 'Arjun Mehta', location: 'Home', transport: 'home', points: 2100, level: 5, lat: 19.0728, lng: 72.8826 }
+    { id: 1, name: 'Alex Kumar', location: 'Mumbai Metro', transport: 'metro', points: 890, level: 2, lat: 19.0760, lng: 72.8777, icon: 'metro' },
+    { id: 2, name: 'Priya Shah', location: 'BEST Bus', transport: 'bus', points: 1340, level: 4, lat: 19.0896, lng: 72.8656, icon: 'bus' },
+    { id: 3, name: 'Rohit Patel', location: 'Local Train', transport: 'train', points: 756, level: 2, lat: 19.0544, lng: 72.8714, icon: 'train' },
+    { id: 4, name: 'Maya Singh', location: 'Taxi', transport: 'car', points: 1120, level: 3, lat: 19.1136, lng: 72.8697, icon: 'car' },
+    { id: 5, name: 'Arjun Mehta', location: 'Home', transport: 'home', points: 2100, level: 5, lat: 19.0728, lng: 72.8826, icon: 'home' }
   ]);
 
   const [dataCollections] = useState([
@@ -64,7 +66,7 @@ const TransportDataPlatform = () => {
   }, []);
 
   const getTransportIcon = (type) => {
-    switch(type) {
+    switch (type) {
       case 'metro': return <Train className="h-4 w-4" />;
       case 'bus': return <Bus className="h-4 w-4" />;
       case 'train': return <Train className="h-4 w-4" />;
@@ -85,7 +87,7 @@ const TransportDataPlatform = () => {
   };
 
   const getCrowdColor = (level) => {
-    switch(level) {
+    switch (level) {
       case 'Low': return 'text-green-600 bg-green-50';
       case 'Medium': return 'text-yellow-600 bg-yellow-50';
       case 'High': return 'text-orange-600 bg-orange-50';
@@ -94,37 +96,92 @@ const TransportDataPlatform = () => {
     }
   };
 
+  const downloadReport = () => {
+    setPdfGenerating(true);
+    setShowPdfModal(true);
+
+    setTimeout(() => {
+      setPdfGenerating(false);
+      // In a real app, this is where you'd trigger a PDF generation library
+      // e.g., html2canvas and jsPDF to capture the current view.
+      // For this demo, we'll just show the user a success message.
+      alert('Report has been successfully generated and downloaded!');
+      setShowPdfModal(false);
+    }, 3000); // Simulate a 3-second generation process
+  };
+
+  // PDF Generation Modal
+  const PdfGenerationModal = () => {
+    if (!showPdfModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 transition-all duration-300">
+        <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-fade-in-up">
+          <div className="flex justify-end">
+            <button onClick={() => setShowPdfModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+          <div className="text-center">
+            <Download className="h-12 w-12 text-blue-600 mx-auto mb-4 animate-bounce" />
+            <h3 className="text-xl font-bold text-gray-800 mb-2">{pdfGenerating ? "Generating Report..." : "Report Ready!"}</h3>
+            <p className="text-gray-600 mb-6">
+              {pdfGenerating
+                ? "Please wait while we compile your personalized data report."
+                : "Your detailed report is ready for download."}
+            </p>
+            {pdfGenerating ? (
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div className="bg-blue-600 h-2.5 rounded-full animate-pulse-width"></div>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  alert("Download started!");
+                  setShowPdfModal(false);
+                }}
+                className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Download Now
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 font-sans">
       {/* Header */}
-      <header className="bg-white shadow-lg border-b border-gray-200">
+      <header className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
-                <MapPin className="h-8 w-8 text-white" />
+              <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shimmer">
+                <MapPin className="h-8 w-8 text-white animate-float" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  TransportTracker Pro
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Transport<span className="font-extrabold">Tracker</span> Pro
                 </h1>
                 <p className="text-sm text-gray-600">Real-time Transport Data Collection Platform</p>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-6">
-              <div className="text-center">
+              <div className="hidden sm:block text-center">
                 <div className="text-2xl font-bold text-blue-600">{connectedUsers}</div>
                 <div className="text-xs text-gray-500">Active Users</div>
               </div>
-              <div className="text-center">
+              <div className="hidden sm:block text-center">
                 <div className="text-2xl font-bold text-purple-600">{todayCollections}</div>
                 <div className="text-xs text-gray-500">Data Points Today</div>
               </div>
               <div className="flex items-center space-x-3 bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-2 rounded-xl">
-                <Trophy className="h-5 w-5 text-yellow-500" />
+                <Trophy className="h-5 w-5 text-yellow-500 animate-pulse" />
                 <div>
-                  <div className="font-semibold text-gray-800">{userPoints} Points</div>
+                  <div className="font-semibold text-gray-800">{userPoints} Pts</div>
                   <div className="text-xs text-gray-600">Level {userLevel}</div>
                 </div>
               </div>
@@ -134,9 +191,9 @@ const TransportDataPlatform = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-6">
-        <div className="flex gap-6">
+        <div className="flex gap-6 relative">
           {/* Sidebar */}
-          <div className="w-64 bg-white rounded-2xl shadow-lg p-6 h-fit">
+          <div className="w-64 bg-white rounded-2xl shadow-xl p-6 h-fit sticky top-28">
             <nav className="space-y-2">
               {[
                 { id: 'live-tracking', label: 'Live Tracking', icon: MapPin },
@@ -147,7 +204,7 @@ const TransportDataPlatform = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 btn-press ${
                     activeTab === tab.id
                       ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
                       : 'text-gray-700 hover:bg-gray-50'
@@ -159,10 +216,9 @@ const TransportDataPlatform = () => {
               ))}
             </nav>
 
-            {/* Quick Stats */}
             <div className="mt-8 space-y-4">
               <h3 className="font-semibold text-gray-800 mb-4">Quick Stats</h3>
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl">
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl card-hover">
                 <div className="flex items-center justify-between">
                   <Users className="h-8 w-8 text-blue-600" />
                   <div className="text-right">
@@ -171,8 +227,7 @@ const TransportDataPlatform = () => {
                   </div>
                 </div>
               </div>
-              
-              <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-xl">
+              <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-xl card-hover">
                 <div className="flex items-center justify-between">
                   <Activity className="h-8 w-8 text-purple-600" />
                   <div className="text-right">
@@ -181,8 +236,7 @@ const TransportDataPlatform = () => {
                   </div>
                 </div>
               </div>
-
-              <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-xl">
+              <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-xl card-hover">
                 <div className="flex items-center justify-between">
                   <Shield className="h-8 w-8 text-green-600" />
                   <div className="text-right">
@@ -198,8 +252,8 @@ const TransportDataPlatform = () => {
           <div className="flex-1">
             {/* Live Tracking Tab */}
             {activeTab === 'live-tracking' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-2xl shadow-lg p-6">
+              <div className="space-y-6 slide-in-right">
+                <div className="bg-white rounded-2xl shadow-xl p-6">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-gray-800">Live User Tracking</h2>
                     <div className="flex items-center space-x-2 text-green-600">
@@ -208,63 +262,38 @@ const TransportDataPlatform = () => {
                     </div>
                   </div>
 
-                  {/* Map Simulation */}
-                  <div className="bg-gradient-to-br from-blue-100 to-purple-100 rounded-xl p-8 mb-6">
-                    <div className="text-center mb-4">
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-8 mb-6 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[url('https://www.gstatic.com/earth/social/00_general_share.png')] bg-cover opacity-20"></div>
+                    <div className="relative text-center mb-4">
                       <h3 className="text-lg font-semibold text-gray-700">Mumbai Transport Network</h3>
                       <p className="text-sm text-gray-600">Real-time user locations and transport modes</p>
                     </div>
-                    <div className="relative h-64 bg-gradient-to-br from-blue-200 to-blue-300 rounded-lg overflow-hidden">
+                    <div className="relative h-96 rounded-lg overflow-hidden">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        allowFullScreen=""
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3771.865955620953!2d72.87148567503738!3d19.02701198215984!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7cf16f06a19f9%3A0xc3f1464455f65313!2sCSMT%20Station!5e0!3m2!1sen!2sin!4v1695420468087!5m2!1sen!2sin"
+                        title="Mumbai Transport Network"
+                      ></iframe>
+                    </div>
+
+                    <div className="absolute top-8 left-8 flex flex-col space-y-4">
                       {liveUsers.map((user, index) => (
-                        <div
-                          key={user.id}
-                          className="absolute animate-pulse"
-                          style={{
-                            left: `${20 + (index * 15)}%`,
-                            top: `${30 + (index * 10)}%`,
-                          }}
-                        >
-                          <div className="bg-white rounded-full p-2 shadow-lg">
+                        <div key={user.id} className="bg-white p-3 rounded-xl shadow-lg flex items-center space-x-3">
+                          <div className={`p-2 rounded-full ${user.icon === 'metro' ? 'bg-blue-200' : user.icon === 'bus' ? 'bg-green-200' : user.icon === 'train' ? 'bg-purple-200' : 'bg-orange-200'}`}>
                             {getTransportIcon(user.transport)}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-800 text-sm">{user.name}</p>
+                            <p className="text-xs text-gray-600">{user.location}</p>
                           </div>
                         </div>
                       ))}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4">
-                          <MapPin className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                          <p className="text-sm font-medium text-gray-700">Interactive Map View</p>
-                        </div>
-                      </div>
                     </div>
-                  </div>
-
-                  {/* User List */}
-                  <div className="grid gap-4">
-                    {liveUsers.map(user => (
-                      <div key={user.id} className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-4">
-                            <div className="bg-white p-2 rounded-full">
-                              {getTransportIcon(user.transport)}
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-gray-800">{user.name}</h3>
-                              <p className="text-sm text-gray-600">{user.location}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-4">
-                            <div className="text-center">
-                              <div className="text-lg font-bold text-blue-600">{user.points}</div>
-                              <div className="text-xs text-gray-500">Points</div>
-                            </div>
-                            <div className={`px-3 py-1 rounded-full text-xs font-medium ${getLevelBadge(user.level)}`}>
-                              Level {user.level}
-                            </div>
-                            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 </div>
               </div>
@@ -272,17 +301,16 @@ const TransportDataPlatform = () => {
 
             {/* Data Collection Tab */}
             {activeTab === 'data-collection' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-2xl shadow-lg p-6">
+              <div className="space-y-6 slide-in-right">
+                <div className="bg-white rounded-2xl shadow-xl p-6">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-gray-800">Data Collection Records</h2>
-                    <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all">
+                    <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all btn-press">
                       <Camera className="h-4 w-4 inline mr-2" />
                       New Collection
                     </button>
                   </div>
 
-                  {/* Collection Form */}
                   <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Data Entry</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -300,17 +328,16 @@ const TransportDataPlatform = () => {
                         <option>High</option>
                         <option>Very High</option>
                       </select>
-                      <button className="bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition-colors">
+                      <button className="bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition-colors btn-press">
                         Submit Data
                       </button>
                     </div>
                   </div>
 
-                  {/* Recent Collections */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-gray-800">Recent Collections</h3>
                     {dataCollections.map(collection => (
-                      <div key={collection.id} className="bg-gray-50 rounded-xl p-4">
+                      <div key={collection.id} className="bg-gray-50 rounded-xl p-4 card-hover">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
                             <div className="bg-white p-2 rounded-full">
@@ -334,7 +361,7 @@ const TransportDataPlatform = () => {
                                 <span className="text-xs">Photo</span>
                               </div>
                             )}
-                            <div className="text-blue-600 font-semibold">+{collection.points}</div>
+                            <div className="text-blue-600 font-semibold data-pulse">+{collection.points}</div>
                           </div>
                         </div>
                       </div>
@@ -346,9 +373,9 @@ const TransportDataPlatform = () => {
 
             {/* Analytics Tab */}
             {activeTab === 'analytics' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                  <div className="bg-white rounded-2xl shadow-lg p-6">
+              <div className="space-y-6 slide-in-right">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="bg-white rounded-2xl shadow-lg p-6 card-hover">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-gray-600">Total Collections</p>
@@ -357,7 +384,7 @@ const TransportDataPlatform = () => {
                       <BarChart3 className="h-8 w-8 text-blue-600" />
                     </div>
                   </div>
-                  <div className="bg-white rounded-2xl shadow-lg p-6">
+                  <div className="bg-white rounded-2xl shadow-lg p-6 card-hover">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-gray-600">Active Users</p>
@@ -366,7 +393,7 @@ const TransportDataPlatform = () => {
                       <Users className="h-8 w-8 text-green-600" />
                     </div>
                   </div>
-                  <div className="bg-white rounded-2xl shadow-lg p-6">
+                  <div className="bg-white rounded-2xl shadow-lg p-6 card-hover">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-gray-600">Avg Response Time</p>
@@ -375,7 +402,7 @@ const TransportDataPlatform = () => {
                       <Clock className="h-8 w-8 text-purple-600" />
                     </div>
                   </div>
-                  <div className="bg-white rounded-2xl shadow-lg p-6">
+                  <div className="bg-white rounded-2xl shadow-lg p-6 card-hover">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-gray-600">Data Accuracy</p>
@@ -386,7 +413,6 @@ const TransportDataPlatform = () => {
                   </div>
                 </div>
 
-                {/* Charts */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white rounded-2xl shadow-lg p-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Hourly Transport Usage</h3>
@@ -422,6 +448,7 @@ const TransportDataPlatform = () => {
                           ))}
                         </Pie>
                         <Tooltip />
+                        <Legend />
                       </RechartsPieChart>
                     </ResponsiveContainer>
                   </div>
@@ -439,17 +466,21 @@ const TransportDataPlatform = () => {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+                <div className="bg-white rounded-2xl shadow-lg p-6 flex justify-center items-center">
+                  <button onClick={downloadReport} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all btn-press">
+                    <Download className="inline mr-2" /> Download Analytics Report (PDF)
+                  </button>
+                </div>
               </div>
             )}
 
             {/* Gamification Tab */}
             {activeTab === 'gamification' && (
-              <div className="space-y-6">
+              <div className="space-y-6 slide-in-right">
                 <div className="bg-white rounded-2xl shadow-lg p-6">
                   <h2 className="text-2xl font-bold text-gray-800 mb-6">Rewards & Achievements</h2>
-                  
-                  {/* User Progress */}
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-6">
+
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-6 card-hover">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <h3 className="text-xl font-bold text-gray-800">Your Progress</h3>
@@ -462,39 +493,37 @@ const TransportDataPlatform = () => {
                         <div className="text-sm text-gray-600">Total Points</div>
                       </div>
                     </div>
-                    
+
                     <div className="bg-gray-200 rounded-full h-3 mb-2">
-                      <div 
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 h-3 rounded-full"
+                      <div
+                        className="progress-gradient h-3 rounded-full"
                         style={{ width: `${(userPoints % 500) / 5}%` }}
                       ></div>
                     </div>
                     <p className="text-sm text-gray-600">{500 - (userPoints % 500)} points to next level</p>
                   </div>
 
-                  {/* Achievement Badges */}
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Achievements</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-4 text-center">
-                        <Trophy className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
+                      <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-4 text-center card-hover">
+                        <Trophy className="h-8 w-8 text-yellow-600 mx-auto mb-2 animate-bounce-in" />
                         <h4 className="font-semibold text-gray-800">Data Champion</h4>
                         <p className="text-sm text-gray-600">100+ collections</p>
                       </div>
-                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4 text-center">
-                        <Camera className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4 text-center card-hover">
+                        <Camera className="h-8 w-8 text-blue-600 mx-auto mb-2 animate-bounce-in" />
                         <h4 className="font-semibold text-gray-800">Photo Master</h4>
                         <p className="text-sm text-gray-600">50+ photos uploaded</p>
                       </div>
-                      <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-4 text-center">
-                        <Star className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                      <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-4 text-center card-hover">
+                        <Star className="h-8 w-8 text-green-600 mx-auto mb-2 animate-bounce-in" />
                         <h4 className="font-semibold text-gray-800">Early Bird</h4>
                         <p className="text-sm text-gray-600">Morning collections</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Leaderboard */}
                   <div className="bg-gray-50 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Top Contributors</h3>
                     <div className="space-y-3">
@@ -505,7 +534,7 @@ const TransportDataPlatform = () => {
                         { rank: 4, name: 'Maya Singh', points: 1120, badge: '4️⃣' },
                         { rank: 5, name: 'Alex Kumar', points: 890, badge: '5️⃣' }
                       ].map(user => (
-                        <div key={user.rank} className={`flex items-center justify-between p-3 rounded-lg ${user.name === 'You' ? 'bg-blue-50 border-2 border-blue-200' : 'bg-white'}`}>
+                        <div key={user.rank} className={`flex items-center justify-between p-3 rounded-lg btn-press ${user.name === 'You' ? 'bg-blue-50 border-2 border-blue-200' : 'bg-white hover:bg-gray-100'}`}>
                           <div className="flex items-center space-x-3">
                             <span className="text-lg">{user.badge}</span>
                             <span className="font-medium text-gray-800">{user.name}</span>
@@ -516,11 +545,10 @@ const TransportDataPlatform = () => {
                     </div>
                   </div>
 
-                  {/* Daily Challenges */}
                   <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-6 mt-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Daily Challenges</h3>
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg">
+                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg card-hover">
                         <div className="flex items-center space-x-3">
                           <Target className="h-6 w-6 text-green-600" />
                           <div>
@@ -530,8 +558,8 @@ const TransportDataPlatform = () => {
                         </div>
                         <div className="text-green-600 font-bold">+100 pts</div>
                       </div>
-                      
-                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg">
+
+                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg card-hover">
                         <div className="flex items-center space-x-3">
                           <Camera className="h-6 w-6 text-purple-600" />
                           <div>
@@ -541,8 +569,8 @@ const TransportDataPlatform = () => {
                         </div>
                         <div className="text-purple-600 font-bold">+150 pts</div>
                       </div>
-                      
-                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg">
+
+                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg card-hover">
                         <div className="flex items-center space-x-3">
                           <Zap className="h-6 w-6 text-blue-600" />
                           <div>
@@ -554,36 +582,6 @@ const TransportDataPlatform = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Rewards Store */}
-                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 mt-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Rewards Store</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-white rounded-lg p-4 border-2 border-gray-200">
-                        <Gift className="h-8 w-8 text-pink-600 mb-2" />
-                        <h4 className="font-semibold text-gray-800">Metro Pass</h4>
-                        <p className="text-sm text-gray-600 mb-2">1-day unlimited metro rides</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-lg font-bold text-blue-600">500 pts</span>
-                          <button className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-blue-700">
-                            Redeem
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-white rounded-lg p-4 border-2 border-gray-200">
-                        <Gift className="h-8 w-8 text-green-600 mb-2" />
-                        <h4 className="font-semibold text-gray-800">Bus Voucher</h4>
-                        <p className="text-sm text-gray-600 mb-2">₹100 BEST bus credit</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-lg font-bold text-blue-600">300 pts</span>
-                          <button className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-blue-700">
-                            Redeem
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
@@ -591,8 +589,7 @@ const TransportDataPlatform = () => {
         </div>
       </div>
 
-      {/* Privacy Notice */}
-      <div className="fixed bottom-4 right-4 bg-white rounded-xl shadow-lg p-4 border-l-4 border-green-500 max-w-sm">
+      <div className="fixed bottom-4 right-4 bg-white rounded-xl shadow-lg p-4 border-l-4 border-green-500 max-w-sm glass slide-in-right">
         <div className="flex items-start space-x-3">
           <Shield className="h-5 w-5 text-green-600 mt-0.5" />
           <div>
@@ -604,353 +601,77 @@ const TransportDataPlatform = () => {
         </div>
       </div>
 
-      {/* Live Data Indicator */}
-      <div className="fixed top-20 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center space-x-2">
-        <div className="h-2 w-2 bg-white rounded-full animate-pulse"></div>
+      <div className="fixed top-20 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center space-x-2 animate-pulse">
+        <div className="h-2 w-2 bg-white rounded-full"></div>
         <span>Live Data</span>
       </div>
 
-      {/* Notification Toast */}
-      <div className="fixed top-4 right-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-3 rounded-xl shadow-lg transform translate-x-full animate-pulse">
-        <div className="flex items-center space-x-2">
-          <Star className="h-4 w-4" />
-          <span className="text-sm font-medium">New achievement unlocked!</span>
-        </div>
-      </div>
+      {PdfGenerationModal()}
 
-      {/* Custom Styles for Enhanced Visual Appeal */}
       <style jsx>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-10px); }
         }
+
+        @keyframes shimmer {
+          100% { transform: translateX(100%); }
+        }
+
+        .shimmer::after {
+          animation: shimmer 2s infinite;
+        }
+
+        .btn-press:active { transform: scale(0.98); }
         
-        @keyframes glow {
-          0%, 100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
-          50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8); }
+        @keyframes pulse-width {
+          0% { width: 0%; }
+          50% { width: 100%; }
+          100% { width: 0%; }
+        }
+
+        .animate-pulse-width {
+          animation: pulse-width 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
         
-        .animate-float {
-          animation: float 3s ease-in-out infinite;
+        .animate-fade-in-up {
+          animation: fade-in-up 0.5s ease-out;
         }
-        
-        .animate-glow {
-          animation: glow 2s ease-in-out infinite;
-        }
-        
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-          width: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
-          background: #f1f5f9;
-          border-radius: 4px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-          background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-          border-radius: 4px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(135deg, #2563eb, #7c3aed);
-        }
-        
-        /* Enhanced hover effects */
-        .card-hover {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
+
         .card-hover:hover {
           transform: translateY(-2px);
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
-        
-        /* Gradient text animation */
-        .gradient-text {
-          background: linear-gradient(-45deg, #3b82f6, #8b5cf6, #ec4899, #10b981);
-          background-size: 400% 400%;
-          animation: gradient 15s ease infinite;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-        
-        @keyframes gradient {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        
-        /* Loading shimmer effect */
-        .shimmer {
-          position: relative;
-          overflow: hidden;
-        }
-        
-        .shimmer::after {
-          position: absolute;
-          top: 0;
-          right: 0;
-          bottom: 0;
-          left: 0;
-          transform: translateX(-100%);
-          background: linear-gradient(
-            90deg,
-            rgba(255, 255, 255, 0) 0,
-            rgba(255, 255, 255, 0.2) 20%,
-            rgba(255, 255, 255, 0.5) 60%,
-            rgba(255, 255, 255, 0)
-          );
-          animation: shimmer 2s infinite;
-          content: '';
-        }
-        
-        @keyframes shimmer {
-          100% {
-            transform: translateX(100%);
-          }
-        }
-        
-        /* Button press animation */
-        .btn-press {
-          transition: all 0.1s ease-in-out;
-        }
-        
-        .btn-press:active {
-          transform: scale(0.98);
-        }
-        
-        /* Pulsing data points */
-        .data-pulse {
-          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: .5;
-          }
-        }
-        
-        /* Background patterns */
-        .pattern-dots {
-          background-image: radial-gradient(circle, #e2e8f0 1px, transparent 1px);
-          background-size: 20px 20px;
-        }
-        
-        .pattern-grid {
-          background-image: linear-gradient(#e2e8f0 1px, transparent 1px), linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
-          background-size: 20px 20px;
-        }
-        
-        /* Glass morphism effect */
-        .glass {
-          backdrop-filter: blur(16px) saturate(180%);
-          -webkit-backdrop-filter: blur(16px) saturate(180%);
-          background-color: rgba(255, 255, 255, 0.75);
-          border: 1px solid rgba(209, 213, 219, 0.3);
-        }
-        
-        /* Neon glow effects */
-        .neon-blue {
-          box-shadow: 0 0 5px #3b82f6, 0 0 10px #3b82f6, 0 0 15px #3b82f6, 0 0 20px #3b82f6;
-        }
-        
-        .neon-purple {
-          box-shadow: 0 0 5px #8b5cf6, 0 0 10px #8b5cf6, 0 0 15px #8b5cf6, 0 0 20px #8b5cf6;
-        }
-        
-        /* Advanced animations */
-        .bounce-in {
-          animation: bounceIn 0.6s ease-out;
-        }
-        
-        @keyframes bounceIn {
-          0% {
-            transform: scale(0.3);
-            opacity: 0;
-          }
-          50% {
-            transform: scale(1.05);
-          }
-          70% {
-            transform: scale(0.9);
-          }
-          100% {
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
-        
+
         .slide-in-right {
           animation: slideInRight 0.5s ease-out;
         }
         
         @keyframes slideInRight {
-          0% {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          100% {
-            transform: translateX(0);
-            opacity: 1;
-          }
+          0% { transform: translateX(20px); opacity: 0; }
+          100% { transform: translateX(0); opacity: 1; }
         }
-        
-        /* Interactive elements */
-        .interactive-card {
-          transform-style: preserve-3d;
-          transition: transform 0.6s;
+
+        @keyframes progressShine {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
         }
-        
-        .interactive-card:hover {
-          transform: rotateY(180deg);
-        }
-        
-        .card-front, .card-back {
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          backface-visibility: hidden;
-          border-radius: 12px;
-        }
-        
-        .card-back {
-          transform: rotateY(180deg);
-        }
-        
-        /* Status indicators */
-        .status-online {
-          position: relative;
-        }
-        
-        .status-online::before {
-          content: '';
-          position: absolute;
-          top: -2px;
-          right: -2px;
-          width: 12px;
-          height: 12px;
-          background: #10b981;
-          border: 2px solid white;
-          border-radius: 50%;
-          animation: statusPulse 2s infinite;
-        }
-        
-        @keyframes statusPulse {
-          0% {
-            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-          }
-          70% {
-            box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-          }
-        }
-        
-        /* Progress bars with gradient */
+
         .progress-gradient {
           background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
           background-size: 200% 100%;
           animation: progressShine 3s ease-in-out infinite;
-        }
-        
-        @keyframes progressShine {
-          0%, 100% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-        }
-        
-        /* Tooltip styles */
-        .tooltip {
-          position: relative;
-        }
-        
-        .tooltip::before {
-          content: attr(data-tooltip);
-          position: absolute;
-          bottom: 100%;
-          left: 50%;
-          transform: translateX(-50%);
-          background: rgba(0, 0, 0, 0.8);
-          color: white;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          white-space: nowrap;
-          opacity: 0;
-          pointer-events: none;
-          transition: opacity 0.3s;
-        }
-        
-        .tooltip:hover::before {
-          opacity: 1;
-        }
-        
-        /* Responsive design improvements */
-        @media (max-width: 768px) {
-          .mobile-stack {
-            flex-direction: column;
-          }
-          
-          .mobile-full {
-            width: 100%;
-          }
-          
-          .mobile-text-sm {
-            font-size: 0.875rem;
-          }
-        }
-        
-        /* Dark mode support */
-        .dark-mode {
-          background: linear-gradient(135deg, #1f2937, #111827);
-          color: #f9fafb;
-        }
-        
-        .dark-mode .bg-white {
-          background: rgba(31, 41, 55, 0.8);
-          border: 1px solid rgba(75, 85, 99, 0.3);
-        }
-        
-        .dark-mode .text-gray-800 {
-          color: #f9fafb;
-        }
-        
-        .dark-mode .text-gray-600 {
-          color: #d1d5db;
-        }
-        
-        /* Enhanced accessibility */
-        .focus-ring {
-          focus: outline-none;
-          focus-visible: ring-2;
-          focus-visible: ring-blue-500;
-          focus-visible: ring-offset-2;
-        }
-        
-        /* Print styles */
-        @media print {
-          .no-print {
-            display: none;
-          }
-          
-          body {
-            background: white !important;
-          }
-          
-          .print-friendly {
-            box-shadow: none !important;
-            background: white !important;
-            border: 1px solid #ccc !important;
-          }
         }
       `}</style>
     </div>

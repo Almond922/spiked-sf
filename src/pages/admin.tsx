@@ -146,30 +146,30 @@ const dummyTeamMembers = [
   {
     id: 1,
     name: 'You (Admin)',
-    email: 'admin@spikedai.com',
-    role: 'Administrator',
+    email: 'avi@spiked.ai',
+    role: 'Admin',
     avatarChar: 'A',
   },
   {
     id: 2,
-    name: 'Jane Doe',
-    email: 'jane.d@spikedai.com',
+    name: 'Umar Yaksambi',
+    email: 'umaryaksambi@spiked.ai',
     role: 'Member',
-    avatarChar: 'J',
+    avatarChar: 'U',
   },
   {
     id: 3,
-    name: 'John Smith',
-    email: 'john.s@spikedai.com',
+    name: 'Pranav Jambur',
+    email: 'pranavjambur@spiked.ai',
     role: 'Member',
     avatarChar: 'J',
   },
   {
     id: 4,
-    name: 'Sam Wilson',
-    email: 'sam.w@spikedai.com',
+    name: 'Dhruv Dhanker',
+    email: 'dhruvdhanker@spiked.ai',
     role: 'Viewer',
-    avatarChar: 'S',
+    avatarChar: 'D',
   },
 ];
 
@@ -386,8 +386,6 @@ const MeetingLogCard: React.FC<{ meeting: Meeting }> = ({ meeting }) => {
   );
 };
 
-// --- NEW MODAL COMPONENT ---
-
 const StartMeetingModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const navigate = useNavigate();
     const [step, setStep] = React.useState('initial');
@@ -539,9 +537,10 @@ const UsersPage: React.FC = () => (
               <td className="px-6 py-4">
                 <select
                   defaultValue={member.role}
-                  className="bg-gray-100 dark:bg-gray-600 border border-gray-300 dark:border-gray-500 text-sm rounded-lg p-1.5"
+                  className="bg-gray-100 dark:bg-gray-600 border border-gray-300 dark:border-gray-500 
+                            text-sm rounded-lg px-3 pr-8 py-2 min-w-[120px]"
                 >
-                  <option>Administrator</option>
+                  <option>Admin</option>
                   <option>Member</option>
                   <option>Viewer</option>
                 </select>
@@ -737,14 +736,178 @@ const MeetingLogsPage: React.FC = () => (
       {dummyMeetings.map((meeting) => (
         <MeetingLogCard key={meeting.id} meeting={meeting} />
       ))}
-      {/* Add pagination controls here */}
     </div>
   </Section>
 );
 
+const ProfilePage: React.FC<{ 
+  profile: UserProfile | null, 
+  session: any,
+  userAvatarUrl: string | null,
+  userFullName: string
+}> = ({ profile, session, userAvatarUrl, userFullName }) => {
+  const [firstName, setFirstName] = React.useState('');
+  const [lastName, setLastName] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
+  const [loadingProfile, setLoadingProfile] = React.useState(false);
+  const [loadingPassword, setLoadingPassword] = React.useState(false);
+
+  React.useEffect(() => {
+    if (profile) {
+      setFirstName(profile.first_name || '');
+      setLastName(profile.last_name || '');
+    }
+  }, [profile]);
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoadingProfile(true);
+    try {
+      if (!session?.user) throw new Error('User not logged in');
+      
+      const updates = {
+        id: session.user.id,
+        first_name: firstName,
+        last_name: lastName,
+        updated_at: new Date(),
+      };
+
+      const { error } = await supabase.from('profiles').upsert(updates);
+      if (error) throw error;
+      alert('Profile updated successfully!');
+    } catch (error: any) {
+      alert(`Error updating profile: ${error.message}`);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      alert('Passwords do not match!');
+      return;
+    }
+    if (password.length < 6) {
+      alert('Password must be at least 6 characters long.');
+      return;
+    }
+    setLoadingPassword(true);
+    try {
+        const { error } = await supabase.auth.updateUser({ password: password });
+        if (error) throw error;
+        alert('Password updated successfully!');
+        setPassword('');
+        setConfirmPassword('');
+    } catch (error: any) {
+        alert(`Error updating password: ${error.message}`);
+    } finally {
+        setLoadingPassword(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto">
+        <Section title="Edit Profile">
+            <div className="flex flex-col items-center space-y-4">
+                {userAvatarUrl ? (
+                  <img
+                    src={userAvatarUrl}
+                    alt="User Avatar"
+                    className="w-24 h-24 rounded-full object-cover border-4 border-gray-200 dark:border-gray-600"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-blue-500 flex items-center justify-center text-white text-4xl font-semibold">
+                    {userFullName.charAt(0)}
+                  </div>
+                )}
+            </div>
+            
+            <form onSubmit={handleProfileUpdate} className="space-y-4 mt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name</label>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="John"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name</label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="Doe"
+                  />
+                </div>
+              </div>
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={session?.user?.email || ''}
+                    disabled
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
+                  />
+                </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-semibold"
+                  disabled={loadingProfile}
+                >
+                  {loadingProfile ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+
+            <hr className="my-6 border-gray-200 dark:border-gray-700" />
+            
+            <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-4">Change Password</h4>
+            <form onSubmit={handlePasswordReset} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent focus:ring-2 focus:ring-rose-500 outline-none"
+                  placeholder="••••••••"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent focus:ring-2 focus:ring-rose-500 outline-none"
+                  placeholder="••••••••"
+                />
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  className="bg-rose-600 text-white px-5 py-2 rounded-lg hover:bg-rose-700 disabled:opacity-50 font-semibold"
+                  disabled={loadingPassword}
+                >
+                  {loadingPassword ? 'Resetting...' : 'Reset Password'}
+                </button>
+              </div>
+            </form>
+        </Section>
+    </div>
+  )
+};
+
 const SettingsPage: React.FC = () => (
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <Section title="Profile Settings">{/* Dummy profile form */}</Section>
     <Section title="Workspace">{/* Dummy workspace settings */}</Section>
     <Section title="Security">
       <div className="flex items-center justify-between">
@@ -755,11 +918,7 @@ const SettingsPage: React.FC = () => (
         />
       </div>
     </Section>
-  </div>
-);
-
-const NotificationsPage: React.FC = () => (
-  <Section title="Notification Preferences">
+      <Section title="Notification Preferences">
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p>Email me for new meeting analysis</p>
@@ -771,6 +930,7 @@ const NotificationsPage: React.FC = () => (
       </div>
     </div>
   </Section>
+  </div>
 );
 
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -802,7 +962,9 @@ const AdminDashboard: React.FC = () => {
             .eq('id', session.user.id)
             .single();
 
-          if (error) throw error;
+          if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
+              throw error;
+          }
           if (data) setProfile(data);
         } catch (error) {
           console.error('Error fetching user profile:', error);
@@ -845,7 +1007,6 @@ const AdminDashboard: React.FC = () => {
     { id: 'api_keys', label: 'API Keys', icon: KeyRound },
     { id: 'meeting_simulator', label: 'Simulator', icon: FlaskConical },
     { id: 'tutorial', label: 'Tutorial', icon: BookOpen },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
   ];
 
   const renderPage = () => {
@@ -940,10 +1101,13 @@ const AdminDashboard: React.FC = () => {
         return <MeetingLogsPage />;
       case 'settings':
         return <SettingsPage />;
-      case 'notifications':
-        return <NotificationsPage />;
       case 'profile':
-        return <PlaceholderPage title="Profile Settings" />;
+        return <ProfilePage 
+                    profile={profile} 
+                    session={session} 
+                    userAvatarUrl={userAvatarUrl} 
+                    userFullName={userFullName} 
+                />;
       default:
         const link = sidebarLinks.find((l) => l.id === activePage);
         return <PlaceholderPage title={link?.label || 'Page'} />;
@@ -1010,7 +1174,7 @@ const AdminDashboard: React.FC = () => {
                 onClick={() => setShowActivityLog(!showActivityLog)}
                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               >
-                <ClipboardList
+                <Bell
                   size={20}
                   className="text-gray-500 dark:text-gray-400"
                 />
@@ -1061,7 +1225,7 @@ const AdminDashboard: React.FC = () => {
                     {userFullName}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Administrator
+                    Admin
                   </p>
                 </div>
                 <ChevronDown size={18} className="text-gray-400" />

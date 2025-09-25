@@ -49,7 +49,8 @@ import {
   HelpCircle,
   BookOpenCheck,
   ChevronRight,
-  Eye  
+  Eye,
+  Puzzle
 } from "lucide-react";
 import { useAuth } from "../AuthContext";
 import { useBotId } from '../BotIdContext';
@@ -57,7 +58,7 @@ import { useBotId } from '../BotIdContext';
 const service_url_recall =
   "https://recall-backend-production-409019309412.us-central1.run.app";
 const service_url_base =
-  "https://spikedai-old-backend-409019309412.us-central1.run.app";
+  "https://spikedai-production-application-409019309412.us-central1.run.app";
 const BASE_URL_PROD =
   "https://spikedai-production-application-409019309412.us-central1.run.app";
 
@@ -2089,7 +2090,7 @@ const deleteCustomGoal = async (goalId: string) => {
   
       console.log(`Navigating from index ${currentIndex} to ${newIndex}`);
   
-      // Update local state immediately
+      // Update local state immediately for responsiveness
       setSentimentData((prev) => ({
         ...prev,
         custom_goals_progress: prev.custom_goals_progress.map(progress => 
@@ -2100,35 +2101,10 @@ const deleteCustomGoal = async (goalId: string) => {
         last_updated: new Date().toISOString(),
       }));
   
-      // Sync with backend
-      const response = await fetch(`${service_url_recall}/sentiment/custom-goals/${goalId}/navigate/${direction}`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}` 
-        },
-        body: JSON.stringify({
-          current_index: currentIndex,
-          new_index: newIndex,
-          total_count: totalEvidences
-        })
-      });
+      // SIMPLIFIED: No backend sync needed for navigation since it's just UI state
+      // The evidence data is already available in the frontend
+      console.log(`Frontend navigation completed: ${newIndex}/${totalEvidences}`);
       
-      if (!response.ok) {
-        console.error("Backend navigation failed, reverting local state");
-        // Revert local state if backend call failed
-        setSentimentData((prev) => ({
-          ...prev,
-          custom_goals_progress: prev.custom_goals_progress.map(progress => 
-            progress.goal.id === goalId 
-              ? { ...progress, current_evidence_index: currentIndex }
-              : progress
-          ),
-        }));
-      } else {
-        const data = await response.json();
-        console.log(`Backend confirmed navigation to index: ${data.current_index}`);
-      }
     } catch (error) {
       console.error(`Navigation failed for custom goal ${goalId}:`, error);
       // Revert to original state on error
@@ -2184,97 +2160,112 @@ const deleteCustomGoal = async (goalId: string) => {
   };
 
   const fetchSentimentComponent = async (component: string) => {
-  if (!session) {
-    throw new Error("No session available");
-  }
-  
-  try {
-    console.log(`Fetching sentiment component: ${component}`);
-    let url = `${service_url_recall}/sentiment/${component}`;
-
-    const response = await fetch(url, {
-      headers: { 
-        Authorization: `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    if (!session) {
+      throw new Error("No session available");
+    }
     
-    if (!response.ok) {
-      // Only disconnect on persistent errors, not single failures
-      if (response.status === 403 || response.status === 404) {
-        console.warn(`Sentiment ${component} access issue: ${response.status}`);
-        // Don't immediately disconnect - might be temporary
-        return;
-      }
+    try {
+      console.log(`Fetching sentiment component: ${component}`);
+      let url = `${service_url_recall}/sentiment/${component}`;
+  
+      const response = await fetch(url, {
+        headers: { 
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       
-      const errorText = await response.text();
-      console.error(`Sentiment ${component} request failed:`, response.status, errorText);
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (!response.ok) {
+        // Only disconnect on persistent errors, not single failures
+        if (response.status === 403 || response.status === 404) {
+          console.warn(`Sentiment ${component} access issue: ${response.status}`);
+          return;
+        }
+        
+        const errorText = await response.text();
+        console.error(`Sentiment ${component} request failed:`, response.status, errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+  
+      const data = await response.json();
+      console.log(`Sentiment component ${component} data received`);
+  
+      // Update state based on component type
+      switch (component) {
+        case "alerts":
+          const newAlerts = data.critical_alerts || [];
+          setSentimentData((prev) => {
+            const existingAlertIds = new Set(prev.critical_alerts.map((a) => a.id));
+            const uniqueNewAlerts = newAlerts.filter(
+              (alert: CriticalAlert) => !existingAlertIds.has(alert.id)
+            );
+            if (uniqueNewAlerts.length === 0) return prev;
+            return {
+              ...prev,
+              critical_alerts: [...prev.critical_alerts, ...uniqueNewAlerts],
+              last_updated: new Date().toISOString(),
+            };
+          });
+          break;
+  
+        case "participants":
+          setSentimentData((prev) => ({
+            ...prev,
+            participant_cards: data.participant_cards || [],
+            last_updated: new Date().toISOString(),
+          }));
+          break;
+  
+        case "medpic":
+          if (data.medpic_progress) {
+            setSentimentData((prev) => ({
+              ...prev,
+              medpic_progress: data.medpic_progress,
+              last_updated: new Date().toISOString(),
+            }));
+          }
+          break;
+  
+        case "buying-signals":
+          if (data.buying_signals) {
+            setSentimentData((prev) => ({
+              ...prev,
+              buying_signals: data.buying_signals,
+              last_updated: new Date().toISOString(),
+            }));
+          }
+          break;
+          
+        case "custom-goals":
+          if (data.custom_goals_progress) {
+            // MODIFIED: Merge with existing data to prevent loss during updates
+            setSentimentData((prev) => {
+              const existingGoals = prev.custom_goals_progress || [];
+              const newGoals = data.custom_goals_progress || [];
+              
+              // Merge logic: preserve navigation state, update progress
+              const mergedGoals = newGoals.map((newGoal: CustomGoalProgress) => {                const existing = existingGoals.find(g => g.goal.id === newGoal.goal.id);
+                return {
+                  ...newGoal,
+                  current_evidence_index: existing?.current_evidence_index || 0, // Preserve navigation
+                };
+              });
+              
+              console.log(`Custom goals updated: ${mergedGoals.length} goals`);
+              return {
+                ...prev,
+                custom_goals_progress: mergedGoals,
+                last_updated: new Date().toISOString(),
+              };
+            });
+          }
+          break;
+      }
+    } catch (error) {
+      console.error(`Error fetching sentiment component ${component}:`, error);
+      throw error;
     }
-
-    const data = await response.json();
-    console.log(`Sentiment component ${component} data received`);
-
-    // Update state based on component type
-    switch (component) {
-      case "alerts":
-        const newAlerts = data.critical_alerts || [];
-        setSentimentData((prev) => {
-          const existingAlertIds = new Set(prev.critical_alerts.map((a) => a.id));
-          const uniqueNewAlerts = newAlerts.filter(
-            (alert: CriticalAlert) => !existingAlertIds.has(alert.id)
-          );
-          if (uniqueNewAlerts.length === 0) return prev;
-          return {
-            ...prev,
-            critical_alerts: [...prev.critical_alerts, ...uniqueNewAlerts],
-            last_updated: new Date().toISOString(),
-          };
-        });
-        break;
-
-      case "participants":
-        setSentimentData((prev) => ({
-          ...prev,
-          participant_cards: data.participant_cards || [],
-          last_updated: new Date().toISOString(),
-        }));
-        break;
-
-      case "medpic":
-        if (data.medpic_progress) {
-          setSentimentData((prev) => ({
-            ...prev,
-            medpic_progress: data.medpic_progress,
-            last_updated: new Date().toISOString(),
-          }));
-        }
-        break;
-
-      case "buying-signals":
-        if (data.buying_signals) {
-          setSentimentData((prev) => ({
-            ...prev,
-            buying_signals: data.buying_signals,
-            last_updated: new Date().toISOString(),
-          }));
-        }
-        break;
-      case "custom-goals":
-        if (data.custom_goals_progress) {
-          setSentimentData((prev) => ({
-            ...prev,
-            custom_goals_progress: data.custom_goals_progress,
-            last_updated: new Date().toISOString(),
-          }));
-        }
-        break;
-    }
-  } catch (error) {
-    console.error(`Error fetching sentiment component ${component}:`, error);
-    throw error;
-  }
-};
+  };
 
   const fetchAlertSuggestion = async (
     alertId: string
@@ -2410,9 +2401,9 @@ const deleteCustomGoal = async (goalId: string) => {
           // Don't return - continue with other components
         }
     
-        // FIXED: Fetch all components in a staggered manner but ensure data persistence
+        // MODIFIED: Staggered approach but with custom goals priority
         const now = Date.now();
-        const cycleIndex = Math.floor(now / 1000) % 4; // Reduced to 4 since we removed one case
+        const cycleIndex = Math.floor(now / 1000) % 5; // Increased to 5 cycles
     
         try {
           switch (cycleIndex) {
@@ -2420,39 +2411,19 @@ const deleteCustomGoal = async (goalId: string) => {
               await fetchSentimentComponent("participants");
               break;
             case 1:
-              await fetchSentimentComponent("buying-signals");
+              await fetchSentimentComponent("custom-goals"); // Higher priority
               break;
             case 2:
-              await fetchSentimentComponent("medpic");
+              await fetchSentimentComponent("buying-signals");
               break;
             case 3:
-              await fetchSentimentComponent("custom-goals");
+              await fetchSentimentComponent("medpic");
+              break;
+            case 4:
+              await fetchSentimentComponent("custom-goals"); // Fetch again for responsiveness
               break;
           }
           console.log(`Sentiment cycle ${cycleIndex} completed`);
-          
-          // FIXED: Fetch MEDPIC and custom goals more frequently to prevent disappearing
-          if (cycleIndex === 0 || cycleIndex === 2) {
-            // Also fetch custom goals when fetching participants or medpic
-            setTimeout(async () => {
-              try {
-                await fetchSentimentComponent("custom-goals");
-              } catch (error) {
-                console.error("Error fetching custom goals in background:", error);
-              }
-            }, 1000);
-          }
-          
-          if (cycleIndex === 1 || cycleIndex === 3) {
-            // Also fetch medpic when fetching buying signals or custom goals
-            setTimeout(async () => {
-              try {
-                await fetchSentimentComponent("medpic");
-              } catch (error) {
-                console.error("Error fetching medpic in background:", error);
-              }
-            }, 1000);
-          }
           
         } catch (error) {
           console.error(`Error in sentiment cycle ${cycleIndex}:`, error);
@@ -4542,14 +4513,7 @@ useEffect(() => {
                           }`}>
                             <div className="flex items-start justify-between">
                               <div className="flex items-start space-x-3 flex-1">
-                                {/* Category Icon */}
-                                <div className={`p-2 rounded-lg flex-shrink-0 ${
-                                  category.discussed 
-                                    ? "bg-blue-100 dark:bg-blue-800/50" 
-                                    : "bg-gray-100 dark:bg-gray-800/50"
-                                }`}>
-                                  <span className="text-lg">{getMedpicIcon(categoryName)}</span>
-                                </div>
+                                
                                 
                                 {/* Category Details */}
                                 <div className="flex-1 min-w-0">
@@ -4708,200 +4672,222 @@ useEffect(() => {
 
             {/* Custom Goals Progress - Enhanced Version */}
             {customGoals.length > 0 && (
-                        <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
-                            <div className="flex items-center justify-between mb-4">
-                            <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
-                                <span>Custom Goals</span>
-                            </span>
-                            <div className="flex items-center space-x-2">
-                                <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
-                                {customGoals.length} goals
-                                </span>
-                            </div>
-                            </div>
+              <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+                    <span>🎯 Custom Goals</span>
+                    {/* ADDED: Progress indicator */}
+                    
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
+                      {customGoals.length} active
+                    </span>
+                  </div>
+                </div>
 
-                            <div className="space-y-3">
-                            {customGoals.map((goal, index) => {
-                                const progress = sentimentData.custom_goals_progress.find(p => p.goal.id === goal.id);
-                                const isAchieved = progress?.is_achieved || false;
-                                const achievementPercentage = progress?.achievement_percentage || 0;
-                                const evidences = progress?.evidences || [];
-                                const currentIndex = progress?.current_evidence_index || 0;
+                <div className="space-y-3">
+                  {customGoals.map((goal, index) => {
+                    const progress = sentimentData.custom_goals_progress.find(p => p.goal.id === goal.id);
+                    const isAchieved = progress?.is_achieved || false;
+                    const achievementPercentage = progress?.achievement_percentage || 0;
+                    const evidences = progress?.evidences || [];
+                    const currentIndex = progress?.current_evidence_index || 0;
+                    
+                    return (
+                      <div key={goal.id} className="group">
+                        {/* Goal Header Card - MODIFIED with progress indicator */}
+                        <div className={`p-4 rounded-xl border transition-all duration-200 hover:shadow-md ${
+                          isAchieved 
+                            ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700/50" 
+                            : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50"
+                        }`}>
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start space-x-3 flex-1">
+                              {/* Goal Icon - MODIFIED to show progress state */}
+                              <div className={`flex items-center justify-center p-2 rounded-lg flex-shrink-0 w-8 h-8 ${
+                                isAchieved 
+                                  ? "bg-green-100 dark:bg-green-800/50" 
+                                  : achievementPercentage > 0
+                                  ? "bg-blue-100 dark:bg-blue-800/50"
+                                  : "bg-gray-100 dark:bg-gray-800/50"
+                              }`}>
+                                {isAchieved ? (
+                                  <span className="text-green-600 dark:text-green-400">✓</span>
+                                ) : achievementPercentage > 0 ? (
+                                  <span className="text-xs font-bold text-blue-600 dark:text-blue-400">↗</span>
+                                ) : (
+                                  <span className="font-bold text-gray-600 dark:text-gray-400">{index + 1}</span>
+                                )}
+                              </div>
+                              
+                              {/* Goal Details - MODIFIED with progress info */}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2 leading-snug">
+                                  {goal.goal_description}
+                                </h4>
                                 
-                                return (
-                                <div key={goal.id} className="group">
-                                    {/* Goal Header Card */}
-                                    <div className={`p-4 rounded-xl border transition-all duration-200 hover:shadow-md ${
-                                    isAchieved 
-                                        ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700/50" 
-                                        : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50"
-                                    }`}>
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex items-start space-x-3 flex-1">
-                                        {/* Goal Icon (Now a Number) */}
-                                        <div className={`flex items-center justify-center p-2 rounded-lg flex-shrink-0 w-8 h-8 ${
-                                            isAchieved 
-                                            ? "bg-green-100 dark:bg-green-800/50" 
-                                            : "bg-blue-100 dark:bg-blue-800/50"
-                                        }`}>
-                                            <span className="font-bold text-blue-800 dark:text-blue-200">{index + 1}</span>
-                                        </div>
-                                        
-                                        {/* Goal Details */}
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2 leading-snug">
-                                            {goal.goal_description}
-                                            </h4>
-                                            
-                                            {/* Progress Bar */}
-                                            <div className="mb-2">
-                                            <div className="flex items-center justify-between text-xs mb-1">
-                                                <span className="text-gray-600 dark:text-gray-400">Progress</span>
-                                                <span className="font-medium text-gray-900 dark:text-gray-100">
-                                                {achievementPercentage.toFixed(1)}%
-                                                </span>
-                                            </div>
-                                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                                <div 
-                                                className={`h-2 rounded-full transition-all duration-500 ${
-                                                    isAchieved ? "bg-green-500" : "bg-blue-500"
-                                                }`}
-                                                style={{ width: `${Math.min(achievementPercentage, 100)}%` }}
-                                                ></div>
-                                            </div>
-                                            </div>
-                                            
-                                            {/* Status and Evidence Count */}
-                                            <div className="flex items-center space-x-2">
-                                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                                                isAchieved
-                                                ? "bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300"
-                                                : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                                            }`}>
-                                                {isAchieved ? "✅ Achieved" : "🔄 In Progress"}
-                                            </span>
-                                            
-                                            {evidences.length > 0 && (
-                                                <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
-                                                {evidences.length} evidence{evidences.length !== 1 ? 's' : ''}
-                                                </span>
-                                            )}
-                                            
-                                            {progress?.confidence_score && (
-                                                <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full">
-                                                {(progress.confidence_score * 100).toFixed(0)}% confidence
-                                                </span>
-                                            )}
-                                            </div>
-                                        </div>
-                                        </div>
-                                        
-                                        {/* Delete Button (Emoji Style) */}
-                                        <button
-                                        onClick={() => deleteCustomGoal(goal.id)}
-                                        className="ml-2 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-100 dark:hover:bg-red-900/30 hover:scale-110"
-                                        title="Delete goal"
-                                        >
-                                        <span className="text-lg">🗑️</span>
-                                        </button>
-                                    </div>
-                                    </div>
-
-                                    {/* Evidence Section */}
-                                    {evidences.length > 0 && (
-                                    <div className="mt-3">
-                                        <details className="group/evidence">
-                                        <summary className="cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400 list-none flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors">
-                                            <div className="flex items-center space-x-2">
-                                            <span>📋 View Evidence Details</span>
-                                            <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-full text-xs">
-                                                {evidences.length} found
-                                            </span>
-                                            </div>
-                                            <ChevronDown className="w-4 h-4 transition-transform group-open/evidence:rotate-180" />
-                                        </summary>
-
-                                        <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200 dark:border-blue-800/30">
-                                            
-                                            {/* Navigation Controls */}
-                                            {evidences.length > 1 && (
-                                            <div className="flex items-center justify-between mb-4 p-2 bg-white dark:bg-gray-800 rounded-lg">
-                                                <button
-                                                onClick={() => navigateCustomGoalEvidence(goal.id, "prev")}
-                                                disabled={currentIndex === 0}
-                                                className={`flex items-center space-x-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                                    currentIndex === 0
-                                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                                    : "bg-blue-500 text-white hover:bg-blue-600"
-                                                }`}
-                                                >
-                                                <span>←</span>
-                                                <span>Previous</span>
-                                                </button>
-                                                
-                                                <div className="flex items-center space-x-2">
-                                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                    Evidence {currentIndex + 1} of {evidences.length}
-                                                </span>
-                                                </div>
-                                                
-                                                <button
-                                                onClick={() => navigateCustomGoalEvidence(goal.id, "next")}
-                                                disabled={currentIndex === evidences.length - 1}
-                                                className={`flex items-center space-x-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                                    currentIndex === evidences.length - 1
-                                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                                    : "bg-blue-500 text-white hover:bg-blue-600"
-                                                }`}
-                                                >
-                                                <span>Next</span>
-                                                <span>→</span>
-                                                </button>
-                                            </div>
-                                            )}
-                                            
-                                            {/* Current Evidence Display */}
-                                            {evidences[currentIndex] && (
-                                            <div className="space-y-3">
-                                                <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-green-200 dark:border-green-700/50">
-                                                <div className="flex items-start space-x-2 mb-2">
-                                                    <span className="text-green-600 dark:text-green-400 text-xs font-semibold">💬 Evidence:</span>
-                                                    <span className="text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">
-                                                    {(evidences[currentIndex].match_score * 100).toFixed(1)}% match
-                                                    </span>
-                                                </div>
-                                                <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-3 rounded border">
-                                                    {evidences[currentIndex].text}
-                                                </div>
-                                                </div>
-                                                
-                                                {/* Evidence Metadata (Restored to Emojis) */}
-                                                <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                                <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
-                                                    <span>👤</span>
-                                                    <span>{evidences[currentIndex].primary_speaker}</span>
-                                                </div>
-                                                <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
-                                                    <span>🕒</span>
-                                                    <span>{new Date(evidences[currentIndex].timestamp).toLocaleTimeString()}</span>
-                                                </div>
-                                                <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
-                                                    <span>📍</span>
-                                                    <span>Segment #{evidences[currentIndex].segment_index + 1}</span>
-                                                </div>
-                                                </div>
-                                            </div>
-                                            )}
-                                        </div>
-                                        </details>
-                                    </div>
-                                    )}
+                                {/* MODIFIED: Progress Bar with monotonic indicator */}
+                                <div className="mb-2">
+                                  <div className="flex items-center justify-between text-xs mb-1">
+                                    <span className="text-gray-600 dark:text-gray-400 flex items-center space-x-1">
+                                      <span>Progress</span>
+                                      {achievementPercentage > 0 && (
+                                        <span className="text-green-500">📈</span>
+                                      )}
+                                    </span>
+                                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                                      {achievementPercentage.toFixed(1)}%
+                                    </span>
+                                  </div>
+                                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                    <div 
+                                      className={`h-2 rounded-full transition-all duration-500 ${
+                                        isAchieved ? "bg-green-500" : "bg-gradient-to-r from-blue-500 to-green-500"
+                                      }`}
+                                      style={{ width: `${Math.min(achievementPercentage, 100)}%` }}
+                                    ></div>
+                                  </div>
                                 </div>
-                                );
-                            })}
+                                
+                                {/* MODIFIED: Status and Evidence Count with cumulative indicator */}
+                                <div className="flex items-center space-x-2">
+                                  <span className={`text-xs font-bold px-2 py-1 rounded-full flex items-center space-x-1 ${
+                                    isAchieved
+                                      ? "bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300"
+                                      : achievementPercentage > 0
+                                      ? "bg-blue-100 text-blue-700 dark:bg-blue-800/50 dark:text-blue-300"
+                                      : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                                  }`}>
+                                    {isAchieved ? (
+                                      <>
+                                        <span>✅</span>
+                                        <span>Achieved</span>
+                                      </>
+                                    ) : achievementPercentage > 0 ? (
+                                      <>
+                                        <span>📈</span>
+                                        <span>Progressing</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span>⏳</span>
+                                        <span>Starting</span>
+                                      </>
+                                    )}
+                                  </span>
+                                  
+                                  {evidences.length > 0 && (
+                                    <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full flex items-center space-x-1">
+                                      <span>📋</span>
+                                      <span>{evidences.length} evidence{evidences.length !== 1 ? 's' : ''}</span>
+                                    </span>
+                                  )}
+                                  
+                                  {progress?.confidence_score && (
+                                    <span className="text-xs bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-full">
+                                      {(progress.confidence_score * 100).toFixed(0)}% confidence
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
+                            
+                            {/* Delete Button - keep existing */}
+                            <button
+                              onClick={() => deleteCustomGoal(goal.id)}
+                              className="ml-2 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-100 dark:hover:bg-red-900/30 hover:scale-110"
+                              title="Delete goal"
+                            >
+                              <span className="text-lg">🗑️</span>
+                            </button>
+                          </div>
                         </div>
+
+                        {/* Evidence Section - keep existing navigation logic */}
+                        {evidences.length > 0 && (
+                          <div className="mt-3">
+                            <details className="group/evidence">
+                              <summary className="cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400 list-none flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors">
+                                <div className="flex items-center space-x-2">
+                                  <span>📋 View Evidence Details</span>
+                                  <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-full text-xs">
+                                    {evidences.length} found 
+                                  </span>
+                                </div>
+                                <ChevronDown className="w-4 h-4 transition-transform group-open/evidence:rotate-180" />
+                              </summary>
+
+                              {/* Keep existing evidence display and navigation - no changes needed */}
+                              <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200 dark:border-blue-800/30">
+                                {/* Navigation Controls */}
+                                {evidences.length > 1 && (
+                                  <div className="flex items-center justify-between mb-4 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                                    <button
+                                      onClick={() => navigateCustomGoalEvidence(goal.id, "prev")}
+                                      disabled={currentIndex === 0}
+                                      className={`flex items-center space-x-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                                        currentIndex === 0
+                                          ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                          : "bg-blue-500 text-white hover:bg-blue-600"
+                                      }`}
+                                    >
+                                      <span>←</span>
+                                      <span>Previous</span>
+                                    </button>
+                                    
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        Evidence {currentIndex + 1} of {evidences.length}
+                                      </span>
+                                    </div>
+                                    
+                                    <button
+                                      onClick={() => navigateCustomGoalEvidence(goal.id, "next")}
+                                      disabled={currentIndex === evidences.length - 1}
+                                      className={`flex items-center space-x-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                                        currentIndex === evidences.length - 1
+                                          ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                          : "bg-blue-500 text-white hover:bg-blue-600"
+                                      }`}
+                                    >
+                                      <span>Next</span>
+                                      <span>→</span>
+                                    </button>
+                                  </div>
+                                )}
+                                
+                                {/* Current Evidence Display */}
+                                {evidences[currentIndex] && (
+                                  <div className="space-y-3">
+                                    <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-green-200 dark:border-green-700/50">
+                                      <div className="flex items-start space-x-2 mb-2">
+                                        <span className="text-green-600 dark:text-green-400 text-xs font-semibold">💬 Evidence:</span>
+                                      </div>
+                                      <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-3 rounded border">
+                                        {evidences[currentIndex].text}
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Evidence Metadata (Restored to Emojis) */}
+                                    <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                      <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
+                                        <span>👤</span>
+                                        <span>{evidences[currentIndex].primary_speaker}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </details>
+                          </div>
                         )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* ADDED: Clear Sentiment Button */}
             <div className="mt-6 flex justify-left">
@@ -5506,6 +5492,37 @@ useEffect(() => {
                   ></div>
                 </div>
               </div>
+              
+              <div className="relative group">
+
+              {/*Integrations*/}
+              <button
+                onClick={() => navigate("/integrations")}
+                className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
+                  isDarkMode
+                    ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
+                    : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900"
+                } backdrop-blur-sm`}
+              >
+                <Puzzle className="w-5 h-5" />
+              </button>
+              <div
+                className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 text-sm rounded-md 
+                  opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none
+                  shadow-md whitespace-nowrap z-10 ${
+                    isDarkMode
+                      ? "bg-slate-200 text-slate-800"
+                      : "bg-slate-800 text-slate-100"
+                  }`}
+              >
+                Integrations
+                <div
+                  className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
+                    isDarkMode ? "bg-slate-200" : "bg-slate-800"
+                  }`}
+                ></div>
+              </div>
+            </div>
 
               {/* Note Taker Button */}
               <div className="relative group">
@@ -7359,4 +7376,3 @@ useEffect(() => {
 
 
 export default SpikedAI;
-

@@ -53,6 +53,7 @@ import {
   Wrench,
   FileStack,
   ChevronLeft,
+  Loader2
 } from 'lucide-react';
 import SpikedAILogo from '/SpikedAI.png';
 import RecallLogo from '/recall.png';
@@ -74,74 +75,7 @@ interface Meeting {
   transcriptSnippet: string;
 }
 
-// --- DUMMY DATA ---
-const dummyAnalytics = {
-  totalMeetings: { value: 482, change: 8.2 },
-  activeSessions: { value: 12, change: -5.1 },
-  avgMeetingDuration: { value: '42 min', change: 3.5 },
-  totalParticipants: { value: 1923, change: 15.3 },
-};
-
-const meetingsThisWeekData = [
-  { day: 'Mon', meetings: 5 },
-  { day: 'Tue', meetings: 8 },
-  { day: 'Wed', meetings: 12 },
-  { day: 'Thu', meetings: 7 },
-  { day: 'Fri', meetings: 15 },
-  { day: 'Sat', meetings: 4 },
-  { day: 'Sun', meetings: 6 },
-];
-
-const secondaryAnalytics = {
-  documentsProcessed: { value: 7890, change: 25.1 },
-  avgSentimentScore: { value: '8.2', subValue: '/ 10', change: 0.5 },
-  sentimentTrend: { value: 'Improving', change: 1.2 },
-  meddpiccCompletion: { value: 72, change: 11.8, unit: '%' },
-};
-
-const dummyMeetings: Meeting[] = [
-  {
-    id: 'm1',
-    title: 'Q3 Strategy Review',
-    date: 'Sep 22, 2025',
-    duration: '45 min',
-    participants: [{ name: 'A' }, { name: 'B' }, { name: 'C' }],
-    sentiment: 'Positive',
-    transcriptSnippet:
-      "Overall, the quarterly results are strong. We've seen significant growth in the new market segment...",
-  },
-  {
-    id: 'm2',
-    title: 'Project Phoenix Kick-off',
-    date: 'Sep 21, 2025',
-    duration: '1h 15m',
-    participants: [{ name: 'D' }, { name: 'E' }],
-    sentiment: 'Neutral',
-    transcriptSnippet:
-      "Let's outline the key deliverables for phase one. The timeline is tight, so we need to stay on track...",
-  },
-  {
-    id: 'm3',
-    title: 'Client Onboarding - Acme Corp',
-    date: 'Sep 20, 2025',
-    duration: '30 min',
-    participants: [
-      { name: 'F' },
-      { name: 'G' },
-      { name: 'H' },
-      { name: 'I' },
-    ],
-    sentiment: 'Positive',
-    transcriptSnippet:
-      "We're thrilled to partner with SpikedAI. The platform's capabilities are exactly what we need...",
-  },
-];
-
-const dummyActiveMeetings = [
-  { id: 'am1', title: 'Weekly Sync', participants: 5, timeElapsed: '15:32' },
-  { id: 'am2', title: 'Design Review', participants: 3, timeElapsed: '48:11' },
-];
-
+// --- DUMMY DATA FOR UNCHANGED SECTIONS ---
 const dummyTeamMembers = [
   {
     id: 1,
@@ -205,6 +139,34 @@ const dummyCustomTemplates = [
     { id: 't2', title: 'Quarterly Business Review', description: 'Template for reviewing performance with existing clients.' },
     { id: 't3', title: 'Candidate Interview', description: 'Structured interview questions and competency tracking.' },
 ];
+
+const dummyActiveMeetings = [
+  { id: 'am1', title: 'Weekly Sync', participants: 5, timeElapsed: '15:32' },
+  { id: 'am2', title: 'Design Review', participants: 3, timeElapsed: '48:11' },
+];
+
+// --- HELPER FUNCTIONS ---
+const formatDuration = (seconds: number | null | undefined): string => {
+  if (seconds === null || seconds === undefined) return '0 min';
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes} min`;
+};
+
+const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return 'No date';
+    return new Date(dateString).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+};
+
+const mapSentiment = (score: number | null | undefined): 'Positive' | 'Neutral' | 'Negative' => {
+    if (score === null || score === undefined) return 'Neutral';
+    if (score >= 7) return 'Positive';
+    if (score < 4) return 'Negative';
+    return 'Neutral';
+};
 
 // --- UI COMPONENTS ---
 
@@ -294,26 +256,26 @@ const SecondaryStatCard: React.FC<{
   </div>
 );
 
-const MeetingsThisWeekChart: React.FC = () => {
-  const maxValue = Math.max(...meetingsThisWeekData.map((d) => d.meetings));
+const MeetingsThisWeekChart: React.FC<{ data: { day: string, meetings: number }[] }> = ({ data }) => {
+  const maxValue = Math.max(...data.map((d) => d.meetings), 1); // Ensure maxValue is at least 1 to avoid division by zero
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm h-full">
       <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
         Meetings This Week
       </h3>
       <div className="flex justify-between items-end h-48 space-x-2">
-        {meetingsThisWeekData.map((data) => (
+        {data.map((dayData) => (
           <div
-            key={data.day}
+            key={dayData.day}
             className="flex-1 flex flex-col items-center justify-end h-full group"
           >
             <div
               className="w-full bg-blue-100 dark:bg-blue-900/50 rounded-t-lg group-hover:bg-blue-400 dark:group-hover:bg-blue-600 transition-all duration-300"
-              style={{ height: `${(data.meetings / maxValue) * 100}%` }}
-              title={`${data.meetings} meetings`}
+              style={{ height: `${(dayData.meetings / maxValue) * 100}%` }}
+              title={`${dayData.meetings} meetings`}
             ></div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              {data.day}
+              {dayData.day}
             </p>
           </div>
         ))}
@@ -364,12 +326,12 @@ const MeetingLogCard: React.FC<{ meeting: Meeting }> = ({ meeting }) => {
       </div>
       <div className="flex justify-between items-center">
         <div className="flex items-center -space-x-2">
-          {meeting.participants.map((p, i) => (
+          {meeting.participants.slice(0, 4).map((p, i) => (
             <div
               key={i}
               className="w-8 h-8 rounded-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-xs border-2 border-white dark:border-gray-800"
             >
-              {p.name.charAt(0)}
+              {p.name.charAt(0).toUpperCase()}
             </div>
           ))}
           {meeting.participants.length > 4 && (
@@ -730,15 +692,102 @@ const MeetingsPage: React.FC<{ onStartMeeting: () => void }> = ({ onStartMeeting
     </div>
 );
 
-const MeetingLogsPage: React.FC = () => (
-  <Section title="All Meeting Logs">
-    <div className="space-y-4">
-      {dummyMeetings.map((meeting) => (
-        <MeetingLogCard key={meeting.id} meeting={meeting} />
-      ))}
-    </div>
-  </Section>
-);
+// This function fetches and formats meeting logs from Supabase
+const fetchAndFormatMeetings = async (userId: string, limit?: number): Promise<Meeting[]> => {
+    let query = supabase
+        .from('meeting_logs')
+        .select('*')
+        .eq('user_id', userId)
+        .order('meeting_started_at', { ascending: false });
+
+    if (limit) {
+        query = query.limit(limit);
+    }
+    
+    const { data: logs, error: logsError } = await query;
+    if (logsError) throw logsError;
+    if (!logs) return [];
+
+    const logIds = logs.map(log => log.id);
+    if (logIds.length === 0) return [];
+    
+    // Fetch participants and transcripts in parallel
+    const [participantsRes, transcriptsRes] = await Promise.all([
+        supabase.from('log_participants').select('log_id, speaker_name').in('log_id', logIds),
+        supabase.from('log_transcripts').select('log_id, text_segment').in('log_id', logIds).order('start_offset_seconds', { ascending: true })
+    ]);
+
+    if (participantsRes.error) throw participantsRes.error;
+    if (transcriptsRes.error) throw transcriptsRes.error;
+
+    const participantsByLogId = new Map<string, { name: string }[]>();
+    participantsRes.data?.forEach(p => {
+        const existing = participantsByLogId.get(p.log_id) || [];
+        participantsByLogId.set(p.log_id, [...existing, { name: p.speaker_name }]);
+    });
+    
+    const firstTranscriptByLogId = new Map<string, string>();
+    transcriptsRes.data?.forEach(t => {
+        if (!firstTranscriptByLogId.has(t.log_id)) {
+            firstTranscriptByLogId.set(t.log_id, t.text_segment);
+        }
+    });
+
+    return logs.map(log => ({
+        id: log.id,
+        title: log.title || `Meet ${formatDate(log.meeting_started_at)}`,
+        date: formatDate(log.meeting_started_at),
+        duration: formatDuration(log.duration_seconds),
+        participants: participantsByLogId.get(log.id) || [],
+        sentiment: mapSentiment(log.overall_sentiment_score),
+        transcriptSnippet: log.one_line_summary || firstTranscriptByLogId.get(log.id) || 'No transcript available.'
+    }));
+};
+
+
+const MeetingLogsPage: React.FC = () => {
+  const { session } = useAuth();
+  const [meetings, setMeetings] = React.useState<Meeting[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+      const loadMeetings = async () => {
+          if (!session?.user?.id) return;
+          setLoading(true);
+          try {
+              const formattedMeetings = await fetchAndFormatMeetings(session.user.id);
+              setMeetings(formattedMeetings);
+          } catch (error) {
+              console.error("Error fetching all meeting logs:", error);
+          } finally {
+              setLoading(false);
+          }
+      };
+      loadMeetings();
+  }, [session]);
+
+  if (loading) {
+      return (
+          <div className="flex justify-center items-center h-64">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          </div>
+      );
+  }
+
+  return (
+    <Section title="All Meeting Logs">
+      {meetings.length > 0 ? (
+        <div className="space-y-4">
+          {meetings.map((meeting) => (
+            <MeetingLogCard key={meeting.id} meeting={meeting} />
+          ))}
+        </div>
+      ) : (
+        <p className='text-center text-gray-500'>No meeting logs found.</p>
+      )}
+    </Section>
+  );
+};
 
 const ProfilePage: React.FC<{ 
   profile: UserProfile | null, 
@@ -952,6 +1001,23 @@ const AdminDashboard: React.FC = () => {
   const [activePage, setActivePage] = React.useState('dashboard');
   const [showStartMeetingModal, setShowStartMeetingModal] = React.useState(false);
 
+  // --- State for dynamic data ---
+  const [loading, setLoading] = React.useState(true);
+  const [recentMeetings, setRecentMeetings] = React.useState<Meeting[]>([]);
+  const [analytics, setAnalytics] = React.useState({
+      totalMeetings: 0,
+      totalParticipants: 0,
+      avgMeetingDuration: 0,
+      documentsProcessed: 0,
+      avgSentimentScore: 0,
+      avgMedpiccCompletion: 0,
+  });
+  const [meetingsThisWeek, setMeetingsThisWeek] = React.useState([
+      { day: 'Sun', meetings: 0 }, { day: 'Mon', meetings: 0 }, { day: 'Tue', meetings: 0 },
+      { day: 'Wed', meetings: 0 }, { day: 'Thu', meetings: 0 }, { day: 'Fri', meetings: 0 },
+      { day: 'Sat', meetings: 0 },
+  ]);
+
   React.useEffect(() => {
     const fetchProfile = async () => {
       if (session?.user) {
@@ -962,16 +1028,81 @@ const AdminDashboard: React.FC = () => {
             .eq('id', session.user.id)
             .single();
 
-          if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
-              throw error;
-          }
+          if (error && error.code !== 'PGRST116') throw error;
           if (data) setProfile(data);
         } catch (error) {
           console.error('Error fetching user profile:', error);
         }
       }
     };
+    
+    const fetchDashboardData = async () => {
+        if (!session?.user?.id) return;
+        setLoading(true);
+        try {
+            // Fetch recent meetings (for dashboard view)
+            const formattedMeetings = await fetchAndFormatMeetings(session.user.id, 3);
+            setRecentMeetings(formattedMeetings);
+            
+            // Fetch aggregate analytics
+            const { data: logs, error: logsError } = await supabase
+                .from('meeting_logs')
+                .select('duration_seconds, participant_count, overall_sentiment_score, medpicc_completion_percentage, sentiment_trend, meeting_started_at')
+                .eq('user_id', session.user.id);
+            
+            if (logsError) throw logsError;
+
+            const { count: docCount } = await supabase.from('sources').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id);
+
+            let totalParticipants = 0, totalDuration = 0, totalSentiment = 0, totalMedpicc = 0;
+            if (logs && logs.length > 0) {
+                logs.forEach(log => {
+                    totalParticipants += log.participant_count || 0;
+                    totalDuration += log.duration_seconds || 0;
+                    totalSentiment += log.overall_sentiment_score || 0;
+                    totalMedpicc += log.medpicc_completion_percentage || 0;
+                });
+            }
+
+            setAnalytics({
+                totalMeetings: logs?.length || 0,
+                totalParticipants,
+                avgMeetingDuration: logs?.length ? totalDuration / logs.length : 0,
+                documentsProcessed: docCount || 0,
+                avgSentimentScore: logs?.length ? totalSentiment / logs.length : 0,
+                avgMedpiccCompletion: logs?.length ? totalMedpicc / logs.length : 0,
+            });
+
+            // Calculate meetings this week
+            const weekCounts = new Array(7).fill(0);
+            const today = new Date();
+            const dayOfWeek = today.getDay(); // Sunday is 0
+            const firstDayOfWeek = new Date(today);
+            firstDayOfWeek.setDate(today.getDate() - dayOfWeek);
+            firstDayOfWeek.setHours(0, 0, 0, 0);
+
+            logs?.forEach(log => {
+                if (log.meeting_started_at) {
+                    const meetingDate = new Date(log.meeting_started_at);
+                    if (meetingDate >= firstDayOfWeek) {
+                        weekCounts[meetingDate.getDay()]++;
+                    }
+                }
+            });
+
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const newMeetingsThisWeek = days.map((day, index) => ({ day, meetings: weekCounts[index] }));
+            setMeetingsThisWeek(newMeetingsThisWeek);
+
+        } catch (error) {
+            console.error("Error fetching dashboard data:", error);
+        } finally {
+            setLoading(false);
+        }
+    }
+    
     fetchProfile();
+    fetchDashboardData();
   }, [session]);
 
   const handleLogout = async () => {
@@ -1010,6 +1141,13 @@ const AdminDashboard: React.FC = () => {
   ];
 
   const renderPage = () => {
+    if (loading && activePage === 'dashboard') {
+        return (
+            <div className="flex justify-center items-center h-full">
+                <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
+            </div>
+        );
+    }
     switch (activePage) {
       case 'dashboard':
         return (
@@ -1018,26 +1156,26 @@ const AdminDashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <StatCard
                 title="Total Meetings Recorded"
-                value={dummyAnalytics.totalMeetings.value.toLocaleString()}
-                change={dummyAnalytics.totalMeetings.change}
+                value={analytics.totalMeetings.toLocaleString()}
+                change={0} // Change calculation not implemented
                 icon={<Video size={20} className="text-blue-500" />}
               />
               <StatCard
                 title="Active Sessions"
-                value={dummyAnalytics.activeSessions.value.toString()}
-                change={dummyAnalytics.activeSessions.change}
+                value={"0"} // Not available in schema
+                change={0}
                 icon={<Activity size={20} className="text-green-500" />}
               />
               <StatCard
                 title="Average Meeting Duration"
-                value={dummyAnalytics.avgMeetingDuration.value}
-                change={dummyAnalytics.avgMeetingDuration.change}
+                value={formatDuration(analytics.avgMeetingDuration)}
+                change={0}
                 icon={<Clock size={20} className="text-purple-500" />}
               />
               <StatCard
                 title="Total Participants Engaged"
-                value={dummyAnalytics.totalParticipants.value.toLocaleString()}
-                change={dummyAnalytics.totalParticipants.change}
+                value={analytics.totalParticipants.toLocaleString()}
+                change={0}
                 icon={<Users size={20} className="text-orange-500" />}
               />
             </div>
@@ -1045,32 +1183,32 @@ const AdminDashboard: React.FC = () => {
             {/* --- CHARTS & SECONDARY STATS --- */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
               <div className="lg:col-span-2">
-                <MeetingsThisWeekChart />
+                <MeetingsThisWeekChart data={meetingsThisWeek} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 content-start">
                 <SecondaryStatCard
                   title="Documents Processed"
-                  value={secondaryAnalytics.documentsProcessed.value.toLocaleString()}
-                  change={secondaryAnalytics.documentsProcessed.change}
+                  value={analytics.documentsProcessed.toLocaleString()}
+                  change={0}
                   icon={<FileText size={16} />}
                 />
                 <SecondaryStatCard
                   title="Average Sentiment Score"
-                  value={secondaryAnalytics.avgSentimentScore.value}
-                  subValue={secondaryAnalytics.avgSentimentScore.subValue}
-                  change={secondaryAnalytics.avgSentimentScore.change}
+                  value={analytics.avgSentimentScore.toFixed(1)}
+                  subValue={"/ 10"}
+                  change={0}
                   icon={<Smile size={16} />}
                 />
                 <SecondaryStatCard
                   title="Sentiment Trend"
-                  value={secondaryAnalytics.sentimentTrend.value}
-                  change={secondaryAnalytics.sentimentTrend.change}
+                  value={"Neutral"} // Not implemented
+                  change={0}
                   icon={<TrendingUp size={16} />}
                 />
                 <SecondaryStatCard
                   title="Avg. MEDDPICC Completion"
-                  value={secondaryAnalytics.meddpiccCompletion.value + '%'}
-                  change={secondaryAnalytics.meddpiccCompletion.change}
+                  value={analytics.avgMedpiccCompletion.toFixed(0) + '%'}
+                  change={0}
                   icon={<CheckSquare size={16} />}
                 />
               </div>
@@ -1081,11 +1219,15 @@ const AdminDashboard: React.FC = () => {
               <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
                 Recent Meeting Logs
               </h2>
-              <div className="space-y-4">
-                {dummyMeetings.map((meeting) => (
-                  <MeetingLogCard key={meeting.id} meeting={meeting} />
-                ))}
-              </div>
+              {recentMeetings.length > 0 ? (
+                <div className="space-y-4">
+                  {recentMeetings.map((meeting) => (
+                    <MeetingLogCard key={meeting.id} meeting={meeting} />
+                  ))}
+                </div>
+              ) : (
+                <p className='text-center text-gray-500 py-8'>No recent meetings found.</p>
+              )}
             </div>
           </>
         );

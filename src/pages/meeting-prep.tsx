@@ -13,7 +13,7 @@ const BASE_URL = 'https://spikedai-old-backend-409019309412.us-central1.run.app/
 const CACHE_KEY_DOCUMENTS = 'meetingPrep_existingDocuments';
 const CACHE_EXPIRATION_MS = 60 * 60 * 1000; // 1 hour
 
-const handleBack = () => { window.location.href = '/'; };
+const handleBack = () => { window.location.href = '/admin'; };
 
 // --- INTERFACE DEFINITIONS ---
 interface UploadResponse {

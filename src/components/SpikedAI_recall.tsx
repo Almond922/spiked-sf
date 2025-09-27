@@ -5426,37 +5426,6 @@ useEffect(() => {
                   ></div>
                 </div>
               </div>
-
-              {/* Meeting Prep Button */}
-              <div className="relative group">
-                <button
-                  
-                  onClick={() => navigate("/meeting-prep")}
-                  className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
-                    isDarkMode
-                      ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
-                      : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900"
-                  } backdrop-blur-sm`}
-                >
-                  <Gamepad2 className="w-5 h-5" />
-                </button>
-                <div
-                  className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 text-sm rounded-md 
-                    opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none
-                    shadow-md whitespace-nowrap z-10 ${
-                      isDarkMode
-                        ? "bg-slate-200 text-slate-800"
-                        : "bg-slate-800 text-slate-100"
-                    }`}
-                >
-                  Meeting Simulator
-                  <div
-                    className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
-                      isDarkMode ? "bg-slate-200" : "bg-slate-800"
-                    }`}
-                  ></div>
-                </div>
-              </div>
               
               <div className="relative group">
 

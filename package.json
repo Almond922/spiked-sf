@@ -18,6 +18,7 @@
     "@atlaskit/spinner": "^19.0.3",
     "@atlaskit/textfield": "^8.0.10",
     "@atlaskit/tooltip": "^20.4.3",
+    "@formspree/react": "^3.0.0",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@supabase/supabase-js": "^2.56.1",
     "@types/react-router-dom": "^5.3.3",

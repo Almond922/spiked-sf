@@ -61,6 +61,35 @@ const service_url_base =
   "https://spikedai-production-application-409019309412.us-central1.run.app";
 const BASE_URL_PROD =
   "https://spikedai-production-application-409019309412.us-central1.run.app";
+const MEDPIC_CATEGORIES = {
+  "metrics": "Metrics & ROI",
+  "economic_buyer": "Economic Buyer", 
+  "decision_criteria": "Decision Criteria",
+  "decision_process": "Decision Process",
+  "identify_pain": "Pain Points",
+  "champion": "Champion"
+};
+
+const formatMedpicSummary = (rawText: string): string => {
+  if (!rawText) return rawText;
+  
+  // Remove follow-up questions
+  const followupIndex = rawText.toLowerCase().indexOf('follow-up questions');
+  const cleanText = followupIndex > -1 ? rawText.substring(0, followupIndex).trim() : rawText;
+  
+  // Format the text for better readability
+  return cleanText
+    // Convert double asterisks to bold
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // Convert single asterisks to bold
+    .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+    // Add line breaks before numbered items
+    .replace(/(\d+\.)/g, '\n$1')
+    // Clean up multiple line breaks
+    .replace(/\n{3,}/g, '\n\n')
+    // Trim whitespace
+    .trim();
+};
 
 interface MarkdownProps extends Options {
   className?: string;
@@ -150,6 +179,16 @@ interface ParticipantEngagement {
   speaking_percentage: number;
   total_words: number;
   segment_count: number;
+}
+
+interface MedpicCategorySummary {
+  summary: string;
+  discussed: boolean;
+  analyzed_at?: string;
+}
+
+interface MedpicSummaries {
+  [key: string]: MedpicCategorySummary;
 }
 
 interface MedpicQnA {
@@ -604,7 +643,8 @@ const SpikedAI = () => {
   const [showMedpicModal, setShowMedpicModal] = useState(false);
   const [medpicSummaryData, setMedpicSummaryData] = useState<any>(null);
   const [isLoadingMedpicSummary, setIsLoadingMedpicSummary] = useState(false);
-
+  const [medpicSummaries, setMedpicSummaries] = useState<MedpicSummaries>({});
+  const [loadingMedpicCategories, setLoadingMedpicCategories] = useState<Set<string>>(new Set());
   // NEW STATE: For drag and drop
   const [draggedCategory, setDraggedCategory] = useState<string | null>(null);
 
@@ -921,6 +961,45 @@ useEffect(() => {
     console.error("Error stopping bot:", error);
     setBotStatus("error");
     alert(`Failed to stop bot: ${error instanceof Error ? error.message : String(error)}`);
+  }
+};
+  const loadMedpicCategorySummary = async (category: string) => {
+  if (!session || loadingMedpicCategories.has(category)) return;
+  
+  setLoadingMedpicCategories(prev => new Set([...prev, category]));
+  
+  try {
+    const response = await fetch(`${service_url_recall}/sentiment/medpic/${category}/analyze`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session.access_token}` }
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      setMedpicSummaries(prev => ({
+        ...prev,
+        [category]: {
+          summary: result.summary,
+          discussed: result.discussed,
+          analyzed_at: result.analyzed_at
+        }
+      }));
+    }
+  } catch (error) {
+    console.error(`Error loading ${category} summary:`, error);
+    setMedpicSummaries(prev => ({
+      ...prev,
+      [category]: {
+        summary: "Failed to load analysis. Please try again.",
+        discussed: false
+      }
+    }));
+  } finally {
+    setLoadingMedpicCategories(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(category);
+      return newSet;
+    });
   }
 };
 
@@ -4477,11 +4556,12 @@ useEffect(() => {
               </div>
 
               {/* MEDPIC Progress - Enhanced Card Layout */}
+              {/* Replace the entire existing MEDPIC Progress section with this */}
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
                     <span>📋</span>
-                    <span>Playbook</span>
+                    <span>MEDPIC Analysis</span>
                   </span>
                   <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
                     Sales Framework
@@ -4489,183 +4569,68 @@ useEffect(() => {
                 </div>
 
                 <div className="space-y-3">
-                  {Object.entries(sentimentData.medpic_progress).map(
-                    ([categoryName, categoryData]) => {
-                      // Skip non-category fields
-                      if (
-                        typeof categoryData !== "object" ||
-                        !categoryData.hasOwnProperty("discussed")
-                      ) {
-                        return null;
-                      }
+                  {Object.entries(MEDPIC_CATEGORIES).map(([categoryName, label]) => {
+                    const isLoading = loadingMedpicCategories.has(categoryName);
+                    const summary = medpicSummaries[categoryName];
+                    
+                    // Ensure label is a string for rendering
+                    const safeLabel: React.ReactNode = typeof label === "string" ? label : String(label);
 
-                      const category = categoryData as MedpicCategory;
-                      const currentQnA =
-                        category.qna_list[category.current_qna_index];
-
-                      return (
-                        <div key={categoryName} className="group">
-                          {/* Category Header Card */}
-                          <div className={`p-4 rounded-xl border transition-all duration-200 hover:shadow-md ${
-                            category.discussed 
+                    return (
+                      <details key={categoryName} className="group">
+                        <summary 
+                          className={`p-3 cursor-pointer font-medium rounded-lg border transition-all ${
+                            summary?.discussed 
                               ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700/50" 
-                              : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50"
-                          }`}>
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-start space-x-3 flex-1">
-                                
-                                
-                                {/* Category Details */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                      {getMedpicLabel(categoryName)}
-                                    </h4>
-                                    <div className="flex items-center space-x-2">
-                                      <span
-                                        className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                                          category.discussed
-                                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-                                            : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                                        }`}
-                                      >
-                                        {category.discussed
-                                          ? `${category.percentage_of_meeting.toFixed(1)}%`
-                                          : "0%"}
-                                      </span>
-                                      <span
-                                        className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                                          category.discussed
-                                            ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
-                                            : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
-                                        }`}
-                                      >
-                                        {category.discussed ? "Discussed" : "Pending"}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {category.discussed && (
-                                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                                      Discussion time: {(category.total_discussion_seconds / 60).toFixed(1)} minutes
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Enhanced Q&A Navigation and Display */}
-                            {category.discussed && category.qna_list.length > 0 && (
-                              <div className="mt-4">
-                                <details className="group/qna">
-                                  <summary className="cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400 list-none flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors">
-                                    <div className="flex items-center space-x-2">
-                                      <span>📋 View Q&A Details</span>
-                                      <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-full text-xs">
-                                        {category.qna_list.length} conversations
-                                      </span>
-                                    </div>
-                                    <ChevronDown className="w-4 h-4 transition-transform group-open/qna:rotate-180" />
-                                  </summary>
-
-                                  <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200 dark:border-blue-800/30">
-                                    
-                                    {/* Navigation Controls */}
-                                    {category.qna_list.length > 1 && (
-                                      <div className="flex items-center justify-between mb-4 p-2 bg-white dark:bg-gray-800 rounded-lg">
-                                        <button
-                                          onClick={() =>
-                                            navigateMedpicQnA(
-                                              categoryName as MedpicCategoryKey,
-                                              "prev"
-                                            )
-                                          }
-                                          disabled={
-                                            category.current_qna_index === 0
-                                          }
-                                          className={`flex items-center space-x-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                            category.current_qna_index === 0
-                                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                              : "bg-blue-500 text-white hover:bg-blue-600"
-                                          }`}
-                                        >
-                                          <span>←</span>
-                                          <span>Previous</span>
-                                        </button>
-                                        
-                                        <div className="flex items-center space-x-2">
-                                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                                            Evidence {category.current_qna_index + 1} of {category.qna_list.length}
-                                          </span>
-                                        </div>
-                                        
-                                        <button
-                                          onClick={() =>
-                                            navigateMedpicQnA(
-                                              categoryName as MedpicCategoryKey,
-                                              "next"
-                                            )
-                                          }
-                                          disabled={
-                                            category.current_qna_index ===
-                                            category.qna_list.length - 1
-                                          }
-                                          className={`flex items-center space-x-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                            category.current_qna_index ===
-                                            category.qna_list.length - 1
-                                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                              : "bg-blue-500 text-white hover:bg-blue-600"
-                                          }`}
-                                        >
-                                          <span>Next</span>
-                                          <span>→</span>
-                                        </button>
-                                      </div>
-                                    )}
-
-                                    {/* Current Q&A Display */}
-                                    {currentQnA && (
-                                      <div className="space-y-3">
-                                        <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-green-200 dark:border-green-700/50">
-                                          <div className="flex items-start space-x-2 mb-2">
-                                            <span className="text-green-600 dark:text-green-400 text-xs font-semibold">💬 Question:</span>
-                                          </div>
-                                          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-3 rounded border">
-                                            {currentQnA.question}
-                                          </div>
-                                        </div>
-                                        
-                                        <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700/50">
-                                          <div className="flex items-start space-x-2 mb-2">
-                                            <span className="text-blue-600 dark:text-blue-400 text-xs font-semibold">💡 Answer:</span>
-                                          </div>
-                                          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-3 rounded border">
-                                            {currentQnA.answer}
-                                          </div>
-                                        </div>
-                                        
-                                        {/* Evidence Metadata */}
-                                        <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                          <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
-                                            <span>⏱</span>
-                                            <span>Duration: {currentQnA.duration_seconds.toFixed(1)}s</span>
-                                          </div>
-                                          <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
-                                            <span>🕐</span>
-                                            <span>{new Date(currentQnA.timestamp).toLocaleTimeString()}</span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </details>
-                              </div>
+                              : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                          } list-none flex items-center justify-between`}
+                          onClick={(e) => {
+                            if (!summary && !isLoading) {
+                              e.preventDefault();
+                              loadMedpicCategorySummary(categoryName);
+                            }
+                          }}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <span>{safeLabel}</span>
+                            {summary?.discussed && (
+                              <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 px-2 py-0.5 rounded-full">
+                                Discussed
+                              </span>
                             )}
                           </div>
+                          <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
+                        </summary>
+                        
+                        <div className="p-3 mt-2 border-t border-gray-200 dark:border-gray-700">
+                          {isLoading ? (
+                            <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+                              <Loader className="w-4 h-4 animate-spin" />
+                              <span className="text-sm">Analyzing transcript...</span>
+                            </div>
+                          ) : summary ? (
+                            <div className="space-y-2">
+                              <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                                <div 
+                                  className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line"
+                                  dangerouslySetInnerHTML={{ __html: formatMedpicSummary(summary.summary) }}
+                                />
+                              </div>
+                              {summary.analyzed_at && (
+                                <p className="text-xs text-gray-400">
+                                  Analyzed at {new Date(summary.analyzed_at).toLocaleTimeString()}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              Click to analyze this category
+                            </p>
+                          )}
                         </div>
-                      );
-                    }
-                  )}
+                      </details>
+                    );
+                  })}
                 </div>
               </div>
             </div>

@@ -132,6 +132,8 @@ interface GoalSettings {
     includeTimestamps: boolean;
     includeSpeakers: boolean;
     includeInstances: boolean;
+    pollInterval: number;
+    promptExtension: string; // NEW: Additional prompt clause
 }
 
 const DB_NAME = 'SpikedAI_Cache';
@@ -324,22 +326,23 @@ export default function Notetaker() {
     const [resizingIndex, setResizingIndex] = useState<number | null>(null);
 
     const [meetingUrl, setMeetingUrl] = useState(loadFromSessionStorage('spikedai_meeting_url', ''));
-    const [transcript, setTranscript] = useState(loadFromSessionStorage('spikedai_transcript', []));
+    const [transcript, setTranscript] = useState<TranscriptSegment[]>(loadFromSessionStorage('spikedai_transcript', []));
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState('');
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
     const [chatInput, setChatInput] = useState('');
     const [isProcessingTemplate, setIsProcessingTemplate] = useState(false);
     const [isAITyping, setIsAITyping] = useState(false);
-    const [additionalQuestions, setAdditionalQuestions] = useState<string[]>([]);
+    // Removed follow-up questions state as requested
+    const [additionalQuestions, setAdditionalQuestions] = useState<string[]>([]); 
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
     const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
 
-    // CUSTOM GOALS STATE (REPLACED DUMMY DATA)
+    // CUSTOM GOALS STATE
     const [customGoals, setCustomGoals] = useState<CustomGoal[]>([]);
     const [customGoalsProgress, setCustomGoalsProgress] = useState<CustomGoalProgress[]>([]);
     const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
-    const [goalAnalysis, setGoalAnalysis] = useState<Record<string, string>>({});
+    const [goalAnalysis, setGoalAnalysis] = useState<Record<string, string>>({}); // Stores the detailed AI analysis
 
     // NEW STATE FOR COLLAPSIBLE SECTIONS AND POLLING
     const [isCollapsibleOpen, setIsCollapsibleOpen] = useState({
@@ -349,26 +352,47 @@ export default function Notetaker() {
     });
     const [isPollingGoals, setIsPollingGoals] = useState(false);
     const [showGoalSettingsModal, setShowGoalSettingsModal] = useState(false);
-    const [goalSettings, setGoalSettings] = useState<GoalSettings>({
-        format: 'summary',
-        wordLimit: 100,
+    const [goalSettings, setGoalSettings] = useState<GoalSettings>(loadFromSessionStorage('spikedai_goal_settings', {
+        format: 'summary', 
+        wordLimit: 150, 
         includeTimestamps: true,
         includeSpeakers: true,
         includeInstances: false,
-    });
+        pollInterval: 30000,
+        promptExtension: '', // NEW: Default to empty
+    }));
 
     const transcriptEndRef = useRef<HTMLDivElement>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const sseRefs = useRef<{ transcript: AbortController | null; }>({ transcript: null });
 
-    // API calls for Custom Goals
+    // Helper to group transcript for API calls
+    const groupTranscriptBySpeaker = (transcript: TranscriptSegment[]) => {
+        if (!transcript || transcript.length === 0) return [];
+        const groups: { speaker: string | null, text: string, id: number, start: number }[] = [];
+        let currentGroup: { speaker: string | null, text: string, id: number, start: number } | null = null;
+        transcript.forEach((segment, index) => {
+            // Use segment.start for logging consistency
+            const startTimeInSeconds = segment.start; 
+            if (currentGroup && currentGroup.speaker === segment.speaker) {
+                currentGroup.text += ' ' + segment.text;
+            } else {
+                if (currentGroup) groups.push(currentGroup);
+                currentGroup = { speaker: segment.speaker, text: segment.text, id: segment.id || index, start: startTimeInSeconds };
+            }
+        });
+        if (currentGroup) groups.push(currentGroup);
+        return groups;
+    };
+
+    // API calls for Custom Goals (Metadata fetching)
     const fetchCustomGoals = async () => {
-    if (!session) {
-        console.log('No session, skipping goals fetch');
-        return;
-    }
-    try {
-        console.log('Fetching goals...');
+        if (!session) {
+            console.log('No session, skipping goals fetch');
+            return;
+        }
+        try {
+            console.log('Fetching goals...');
             const response = await fetch(`${service_url_recall}/meetingGoals`, {
                 headers: { Authorization: `Bearer ${session.access_token}` },
             });
@@ -381,11 +405,12 @@ export default function Notetaker() {
         }
     };
 
+    // Lightweight fetch for real-time progress bar/evidence tracking
     const fetchCustomGoalsProgress = async () => {
-        if (!session || isPollingGoals || !customGoals.length) return;
+        if (!session || !customGoals.length) return;
 
-        setIsPollingGoals(true);
         try {
+            // NOTE: Removed isPollingGoals check here to allow progress fetching even if analysis is running
             const response = await fetch(`${service_url_recall}/sentiment/custom-goals`, {
                 method: 'POST',
                 headers: {
@@ -409,8 +434,6 @@ export default function Notetaker() {
             }
         } catch (error) {
             console.error("Error fetching custom goals progress:", error);
-        } finally {
-            setIsPollingGoals(false);
         }
     };
 
@@ -440,31 +463,87 @@ export default function Notetaker() {
         });
     };
     
-    // NEW FUNCTION TO FETCH GOAL UPDATES
+    // Core function to fetch and parse the consolidated AI analysis
     const fetchCustomGoalUpdates = async () => {
-        if (!session || isAITyping || !customGoals.length) return;
+        // Only run if a goal is defined, we have transcript data, and AI is not busy with chat/template
+        if (!session || isAITyping || isProcessingTemplate || !customGoals.length || transcript.length === 0) return;
+        
         setIsPollingGoals(true);
-        console.log("Fetching goal updates...");
+        // Display a temporary loading state for the analysis panel
+        const loadingAnalysis = customGoals.reduce((acc, goal) => ({ ...acc, [goal.id]: 'Generating analysis...' }), {});
+        setGoalAnalysis(loadingAnalysis);
 
-        const goalsText = customGoals.map(goal => `Goal: ${goal.goal_description}\nEvaluation Criteria: ${goal.evaluation_criteria || 'N/A'}`).join('\n---\n');
-        const transcriptText = groupTranscriptBySpeaker(transcript).map(group => `${group.speaker || 'Unknown'}: ${group.text}`).join('\n\n');
+        console.log("Fetching consolidated goal updates...");
 
-        const prompt = `Based on the following transcript, provide a progress update for each of the specified goals.
+        const goalsText = customGoals.map(goal => `Goal: ${goal.goal_description}${goal.evaluation_criteria ? ` (Criteria: ${goal.evaluation_criteria})` : ''}`).join('\n- ');
+        // Prepare transcript text with timestamps in seconds
+        const transcriptText = groupTranscriptBySpeaker(transcript).map(group => `[${group.start}s] ${group.speaker || 'Unknown'}: ${group.text}`).join('\n');
+        
+        let promptParts: string[] = [];
 
-Goals:
-${goalsText}
+        // 1. Core Instruction (Requesting the output structure to be parseable)
+        promptParts.push(`Based on the full transcript provided below, analyze each of the custom goals and provide a consolidated update.
+        
+Your output MUST adhere to the following strict format for *each* goal, starting with the exact "Goal:" line:
 
-Transcript:
-${transcriptText}
+Goal: [The Goal's description]
+Status: [Achieved/In Progress/Not Started]
+Summary/Analysis: [Your detailed summary and analysis...]
 
-Provide the response as a markdown list. For each goal, state its name, whether it has been achieved, and provide a summary of the evidence from the transcript. If the goal hasn't been achieved, provide a progress update.
-${goalSettings.includeSpeakers ? 'Include the names of the speakers for each piece of evidence.' : ''}
-${goalSettings.includeTimestamps ? 'Include timestamps for the evidence found.' : ''}
-${goalSettings.includeInstances ? 'Include the exact quote of the instance where the goal was mentioned.' : ''}
-The summary should be concise, around ${goalSettings.wordLimit} words per goal.
-`;
+Goals to analyze:
+- ${goalsText}
+`);
 
-        const newGoalUpdateMessage: ChatMessage = { id: Date.now(), text: `Checking for updates on your custom goals.`, isUser: true, timestamp: new Date() };
+        // 2. Formatting Instructions
+        let formatInstruction: string = `Your response MUST be a **single, raw text response** containing only the analysis for all goals, separated by the "Goal:" marker. For each goal:
+1. State the **Goal:** exactly as listed above.
+2. State its current **Status:** (Achieved/In Progress/Not Started).
+3. Provide a **Summary/Analysis:** of the progress based on the transcript, keeping the response for this summary concise, around ${goalSettings.wordLimit} words.`;
+
+        if (goalSettings.format === 'detailed') {
+            formatInstruction = `Your response MUST be a **single, raw text response** containing only the analysis for all goals. For each goal, include:
+1. **Goal:** [The Goal's description]
+2. **Status:** [Achieved/In Progress/Not Started]
+3. **Summary/Analysis:** A thorough analysis (strictly within ${goalSettings.wordLimit} words).
+4. **Evidence List:** A markdown list of the most relevant quotes/instances from the transcript.`;
+        } else if (goalSettings.format === 'speakers_only') {
+            formatInstruction = `Your response MUST be a **single, raw text response** containing only the analysis for all goals. For each goal, include:
+1. **Goal:** [The Goal's description]
+2. **Status:** [Achieved/In Progress/Not Started]
+3. **Summary/Analysis:** List only the names of the speakers who contributed evidence towards this goal.`;
+        }
+
+        // 3. Inclusion Options
+        let inclusionInstruction: string = '';
+        if (goalSettings.includeSpeakers) {
+            inclusionInstruction += 'Ensure you explicitly mention the speaker(s) associated with key evidence in your summary/analysis.';
+        }
+        if (goalSettings.includeTimestamps) {
+            inclusionInstruction += 'Include the relevant timestamps (e.g., [45s]) next to critical pieces of evidence or dialogue.';
+        }
+        if (goalSettings.includeInstances) {
+            inclusionInstruction += 'Where applicable, include the exact quote of the instance where the goal was mentioned or addressed (if the output format allows for an evidence list, put them there).';
+        }
+        if (goalSettings.promptExtension.trim()) {
+            inclusionInstruction += `\nADDITIONAL CLAUSE: ${goalSettings.promptExtension.trim()}`;
+        }
+
+        promptParts.push(formatInstruction);
+        if (inclusionInstruction) {
+            promptParts.push(`\nAdditional Requirements: ${inclusionInstruction}`);
+        }
+        
+        const finalPrompt = promptParts.join('\n\n') + `\n\n---
+FULL TRANSCRIPT:
+${transcriptText}`;
+
+        // Add a message to the chat indicating that analysis is running
+        const newGoalUpdateMessage: ChatMessage = { 
+            id: Date.now(), 
+            text: `**🤖 AI Goal Update Request**\n*Running analysis for ${customGoals.length} goals. Results will appear under each goal on the left.*`, 
+            isUser: true, 
+            timestamp: new Date() 
+        };
         setChatMessages((prev) => [...prev, newGoalUpdateMessage]);
         setIsAITyping(true);
 
@@ -475,33 +554,75 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`,
                 },
-                body: JSON.stringify({ prompt, transcript: transcriptText }),
+                body: JSON.stringify({ prompt: finalPrompt, transcript: transcriptText }),
             });
             if (!response.ok) throw new Error('Failed to process goals update');
             const data = await response.json();
-            const botResponse: ChatMessage = {
-                id: Date.now() + 1,
-                text: `**Custom Goals Update**\n\n${data.response}`,
+            
+            // --- NEW LOGIC: PARSE THE CONSOLIDATED RESPONSE ---
+            const rawResponse = data.response as string;
+            const parsedAnalysis: Record<string, string> = {};
+
+            // 1. Split by the main goal separator, ensuring we handle the first entry correctly
+            const goalSections = rawResponse.split(/Goal: /g).filter(s => s.trim().length > 0);
+
+            for (const section of goalSections) {
+                // The first line should contain the goal description
+                const lines = section.trim().split('\n');
+                if (lines.length > 0) {
+                    // Extract the goal description from the first line
+                    const goalDescriptionLine = lines[0].trim();
+                    
+                    // Find the matching goal ID using a case-insensitive, partial match on description
+                    // We must be robust here as the AI might rephrase the goal slightly
+                    const matchingGoal = customGoals.find(g => 
+                        // Strip potential AI-added status/summary headers to get a clean match
+                        goalDescriptionLine.replace(/Status:.*$/i, '').replace(/Summary\/Analysis:.*$/i, '').toLowerCase().includes(g.goal_description.toLowerCase().trim())
+                    );
+                    
+                    if (matchingGoal) {
+                        // Reconstruct the analysis block in markdown format for display
+                        // Prepend the "Goal:" that was stripped by the split
+                        const markdownContent = `Goal: ${section.trim()}`;
+                        parsedAnalysis[matchingGoal.id] = markdownContent;
+                    } else {
+                        console.warn('Could not match AI analysis block to a custom goal:', goalDescriptionLine);
+                    }
+                }
+            }
+            
+            setGoalAnalysis(parsedAnalysis);
+            // Optionally add a success message to the chat
+            const successResponse: ChatMessage = {
+                id: Date.now() + 2,
+                text: `**✅ Goal Analysis Updated**\nThe detailed analysis for all goals is now available under the 'Custom Goals' panel.`,
                 isUser: false,
                 timestamp: new Date(),
             };
-            setChatMessages((prev) => [...prev, botResponse]);
+            setChatMessages((prev) => [...prev, successResponse]);
 
         } catch (error) {
             console.error("Error fetching custom goal updates:", error);
             const errorResponse: ChatMessage = {
                 id: Date.now() + 1,
-                text: "Sorry, I'm having trouble getting an update on your goals. Please try again later.",
+                text: "Sorry, I'm having trouble getting a consolidated update on your goals. Please check your network or try again later.",
                 isUser: false,
                 timestamp: new Date(),
             };
             setChatMessages((prev) => [...prev, errorResponse]);
+            // Clear loading state on error
+            setGoalAnalysis({});
         } finally {
             setIsAITyping(false);
             setIsPollingGoals(false);
         }
     };
     
+    // Initial load and settings save
+    useEffect(() => {
+        saveToSessionStorage('spikedai_goal_settings', goalSettings);
+    }, [goalSettings]);
+
     const fetchTemplatesAndGoals = () => {
         const loadCustomTemplates = async () => {
             try {
@@ -522,7 +643,6 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
 
         if (session) {
             fetchCustomGoals();
-            fetchCustomGoalsProgress();
             loadCustomTemplates();
         }
     };
@@ -531,23 +651,33 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
         fetchTemplatesAndGoals();
     }, [session]);
 
-    // NEW useEffect for automatic polling
+    // Automatic polling for progress and detailed updates
     useEffect(() => {
         let intervalId: NodeJS.Timeout | null = null;
         if (isConnected && session && customGoals.length > 0) {
-            fetchCustomGoalsProgress(); // Initial fetch
+            // Run initial lightweight progress update immediately
+            fetchCustomGoalsProgress(); 
+            
+            // Start the periodic polling loop for both types of updates
             intervalId = setInterval(() => {
-                fetchCustomGoalsProgress();
-            }, 30000); // 30 seconds
-        }
+                fetchCustomGoalsProgress(); // Lightweight progress
+                fetchCustomGoalUpdates();  // Heavy AI analysis
+            }, goalSettings.pollInterval); // Use the user-configured interval
 
+            // Cleanup function
+            return () => {
+                if (intervalId) {
+                    clearInterval(intervalId);
+                }
+            };
+        }
+        
         return () => {
             if (intervalId) {
                 clearInterval(intervalId);
             }
         };
-    }, [isConnected, session, customGoals, transcript, goalSettings]);
-
+    }, [isConnected, session, customGoals, transcript, goalSettings.pollInterval, isAITyping, isProcessingTemplate]); // Added isProcessingTemplate to avoid overlap with template generation
 
     useEffect(() => {
         const checkMobile = () => {
@@ -717,6 +847,7 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
         const newUserMessage: ChatMessage = { id: Date.now(), text: userQuestion, isUser: true, timestamp: new Date() };
         setChatMessages((prev) => [...prev, newUserMessage]);
         setChatInput('');
+        // No follow-up questions
         setAdditionalQuestions([]);
         setIsAITyping(true);
         const transcriptText = groupTranscriptBySpeaker(transcript).map(group => `${group.speaker || 'Unknown'}: ${group.text}`).join('\n\n');
@@ -726,7 +857,8 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
             const data = await response.json();
             const botResponse: ChatMessage = { id: Date.now() + 1, text: data.response, isUser: false, timestamp: new Date() };
             setChatMessages((prev) => [...prev, botResponse]);
-            setAdditionalQuestions(data.additional_questions || []);
+            // No follow-up questions
+            // setAdditionalQuestions(data.additional_questions || []); 
         } catch (error) {
             console.error('Error handling chat message:', error);
             const errorResponse: ChatMessage = { id: Date.now() + 1, text: "Sorry, I'm having trouble connecting. Please try again.", isUser: false, timestamp: new Date() };
@@ -750,7 +882,8 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
             const data = await response.json();
             const botResponse: ChatMessage = { id: Date.now() + 1, text: data.response, isUser: false, timestamp: new Date() };
             setChatMessages((prev) => [...prev, botResponse]);
-            setAdditionalQuestions(data.additional_questions || []);
+            // No follow-up questions
+            // setAdditionalQuestions(data.additional_questions || []);
         } catch (error) {
             console.error('Error processing template:', error);
             const errorResponse: ChatMessage = { id: Date.now() + 1, text: `Sorry, an error occurred while processing ${template.name}.`, isUser: false, timestamp: new Date() };
@@ -796,60 +929,6 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
             window.removeEventListener('mouseup', handleMouseUp);
         };
     }, [resizingIndex, columnWidths]);
-
-    const groupTranscriptBySpeaker = (transcript: TranscriptSegment[]) => {
-        if (!transcript || transcript.length === 0) return [];
-        const groups: { speaker: string | null, text: string, id: number }[] = [];
-        let currentGroup: { speaker: string | null, text: string, id: number } | null = null;
-        transcript.forEach((segment, index) => {
-            if (currentGroup && currentGroup.speaker === segment.speaker) {
-                currentGroup.text += ' ' + segment.text;
-            } else {
-                if (currentGroup) groups.push(currentGroup);
-                currentGroup = { speaker: segment.speaker, text: segment.text, id: segment.id || index };
-            }
-        });
-        if (currentGroup) groups.push(currentGroup);
-        return groups;
-    };
-
-    const handleCustomGoalClick = async (goal: CustomGoal) => {
-        if (!session) return;
-        
-        // Clear previous analysis for this goal and show loading state
-        setGoalAnalysis(prev => ({ ...prev, [goal.id]: 'Generating analysis...' }));
-        
-        const goalPrompt = `Analyze the custom goal: "${goal.goal_description}" based on the current meeting transcript. Provide detailed insights including progress assessment, evidence found, recommendations, and next steps. Do not generate follow-up questions.`;
-        
-        const transcriptText = groupTranscriptBySpeaker(transcript).map(group =>
-            `${group.speaker || 'Unknown'}: ${group.text}`
-        ).join('\n\n');
-        
-        try {
-            const response = await fetch(`${SALES_ASSISTANT_BASE_URL}/api/process-template`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token}`
-                },
-                body: JSON.stringify({
-                    prompt: goalPrompt,
-                    transcript: transcriptText
-                })
-            });
-            
-            if (!response.ok) throw new Error('Failed to get AI response for goal analysis');
-            
-            const data = await response.json();
-            
-            // Update the state with the new analysis
-            setGoalAnalysis(prev => ({ ...prev, [goal.id]: data.response }));
-        } catch (error) {
-            console.error('Error handling custom goal analysis:', error);
-            setGoalAnalysis(prev => ({ ...prev, [goal.id]: `Sorry, I'm having trouble analyzing the goal "${goal.goal_description}". Please try again.` }));
-        }
-    };
-    
 
     const resetTemplateForm = () => {
         setTemplateForm({
@@ -957,7 +1036,7 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
             const textSecondary = '#757575';
             const borderLight = '#E0E0E0';
 
-            const logoBase64 = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wgARCADIAMgDASIAAhEBAxEB/8QAGgABAAMBAQEAAAAAAAAAAAAAAAUHCAQGA//EABoBAQADAQEBAAAAAAAAAAAAAAAEBQcGAgP/2gAIAQEAAwAAAPPjn/RoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADSGb9dTeFgeL3UfO4HIwpN4AAAAAAAAAAa6yLrqfn3fHyEfYZxkYUHogAAAAAAAAABrrIuup+fdv/8QAKhAAAAQIEBAUEAwAAAAAAAAAAAgEDBEBzsQAQERIUUXGS0SIyNHAxM5H/2gAIAQEABj8C+oWDKERSIEVV3Ly64+GncXnD5jCIhCCqi7l5dZeGpjbKJplaXhqY2yiaZWl4amNsommVpeGpjbKJplaXhqY2yiaZWl4amNsommVpeGpjbKJplaXhqY2yiaZWl22+FbXYKD7lx8RvuXDjfCtpvFR13LLsuq6/qYIS6KnLpj9z/wDU8YdcR1/UAUvyniXhaQ2yiaZWl2GyF7cAIK6CnLrj2v8AYnnDzYi9qQKKelPP1F//xAAcEAABBQEBAQAAAAAAAAAAAAABEBFAUfAhMXD/2gAIAQEAAg/h+Q+rCMJIIGeaKOJBR2lRNq0fSom1aPpUTatH0qJtWj6VE2rR9KibVo+lRNq0fSom1aOAggAnowZHChEIBwcNHFLCRg5AoXE9hIFhwHjseqbVo/m0mJwAQI7YOjTkN8if/9oADAMBAAIAAwAAABAEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEF4EEEEEEEEEEED0EEEEEEEEEEED0EEEEEEEEEEED0EEEEEEEEEEEfEEEEEEEEEEEEP0EEEEEEEEEEFOAEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEH/8QAIhEBAAEDAwQDAAAAAAAAAAAAAREAMFExcYFQobHwIUGR/9oACAEEDAQE/EOmO7Cykl8GsJRAww/Te56HFOyebnocU7J5uehxTsnm4E1NMoahGqYopkCPNvcTcpEfcBULApjO1yXiGpDGtDSmM8OOnf//EAB4RAAEEAgMBAAAAAAAAAAAAAAEAETAxIbFBUJGh/9oACAECAQE/EOsbw9J2x8EmqrJNVWSaqskMkVogEP8ADIPBdAljIaJ5olDY867/xAAgEAEBAAEEAQUAAAAAAAAAAAAABESEAEEFwMUBQYcHw/2gAIAQEAA/EOoXxc46BccldhB6O09QOYwh2/GPRj0Y9GPRj0Y9GPRjwBmCkFTj41+S+tOqYAQyTHF9OYN+MKAvhXZxbaguWBnhT3AoeStd1UiPCmxAwNwNRFeFeov/2Q==';
+            const logoBase64 = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wgARCADIAMgDASIAAhEBAxEB/8QAGgABAAMBAQEAAAAAAAAAAAAAAAUHCAQGA//EABoBAQADAQEBAAAAAAAAAAAAAAAEBQcGAgP/2gAIAQEAAwAAAPPjn/RoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADSGb9dTeFgeL3UfO4HIwpN4AAAAAAAAAAa6yLrqfn3fHyEfYZxkYUHogAAAAAAAAABrrIuup+fdv/8QAKhAAAAQIEBAUEAwAAAAAAAAAAAgEDBEBzsQAQERIUUXGS0SIyNHAxM5H/2gAIAQEABj8C+oWDKERSIEVV3Ly64+GncXnD5jCIhCCqi7l5dZeGpjbKJplaXhqY2yiaZWl4amNsommVpeGpjbKJplaXhqY2yiaZWl4amNsommVpeGpjbKJplaXhqY2yiaZWl22+FbXYKD7lx8RvuXDjfCtpvFR13LLsuq6/qYIS6KnLpj9z/wAU8YdcR1/UAUvyniXhaQ2yiaZWl2GyF7cAIK6CnLrj2v8AYnnDzYi9qQKKelPP1F//xAAcEAABBQEBAQAAAAAAAAAAAAABEBFAUfAhMXD/2gAIAQEAAg/h+Q+rCMJIIGeaKOJBR2lRNq0fSom1aPpUTatH0qJtWj6VE2tH0qJtWj6VE2rR9KibVoOAggAnowZHChEIBwcNHFLCRg5AoXE9hIFhwHjseqbVo/m0mJwAQI7YOjTkN8if/9oADAMBAAIAAwAAABAEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEF4EEEEEEEEEEED0EEEEEEEEEEED0EEEEEEEEEEED0EEEEEEEEEEEfEEEEEEEEEEEEP0EEEEEEEEEEFOAEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEH/8QAIhEBAAEDAwQDAAAAAAAAAAAAAREAMFExcYFQobHwIUGR/9oACAEEDAQE/EOmO7Cykl8GsJRAww/Te56HFOyebnocU7J5uehxTsnm4E1NMoahGqYopkCPNvcTcpEfcBULApjO1yXiGpDGtDSmM8OOnf//EAB4RAAEEAgMBAAAAAAAAAAAAAAEAETAxIbFBUJGh/9oACAECAQE/EOsbw9J2x8EmqrJNVWSaqskMkVogEP8ADIPBdAljIaJ5olDY867/xAAgEAEBAAEEAQUAAAAAAAAAAAAABESEAEEFwMUBQYcHw/9oACAEBA/EOoXxc46BccldhB6O09QOYwh2/GPRj0Y9GPRj0Y9GPRjwBmCkFTj41+S+tOqYAQyTHF9OYN+MKAvhXZxbaguWBnhT3AoeStd1UiPCmxAwNwNRFeFeov/2Q==';
             doc.addImage(logoBase64, 'JPEG', 15, 21, 10, 10);
 
             const addHeader = (): void => {
@@ -977,8 +1056,10 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
             const addFooter = (): void => {
                 doc.setFontSize(8);
                 doc.setTextColor(textSecondary);
-                const pageNumber = (doc as any).internal.getNumberOfPages();
-                doc.text(`Page ${(doc as any).internal.getCurrentPageInfo().pageNumber} of ${pageNumber}`, 195, 290, { align: 'right' });
+                // Cast to 'any' to access internal methods for page numbering
+                const currentPage = (doc as any).internal.getCurrentPageInfo().pageNumber;
+                const totalPages = (doc as any).internal.getNumberOfPages();
+                doc.text(`Page ${currentPage} of ${totalPages}`, 195, 290, { align: 'right' });
                 doc.text('Confidential & Proprietary. All rights reserved to SpikedAI', 15, 290);
             };
 
@@ -1038,9 +1119,16 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                 doc.setFontSize(10);
                 doc.setTextColor(textPrimary);
                 doc.setFont('helvetica', 'normal');
-                const messageLines = doc.splitTextToSize(msg.text, contentWidth);
+                // Simple markdown processing to plain text for PDF (could be enhanced, but using splitTextToSize for layout)
+                const plainText = msg.text.replace(/(\*\*|__)(.*?)\1/g, '$2').replace(/\*/g, '').replace(/### /g, '').replace(/## /g, '').replace(/- /g, '\u2022 ').replace(/\[\d+s\] /g, '');
+                const messageLines = doc.splitTextToSize(plainText, contentWidth);
+                
+                // Estimate height needed for text + padding
+                const textHeight = messageLines.length * 5 + 15;
+                checkPageBreak(textHeight);
+
                 doc.text(messageLines, margin, yPosition);
-                yPosition += messageLines.length * 5 + 15;
+                yPosition += messageLines.length * 5 + 10; // Adjust spacing
 
                 if (msg.timestamp) {
                     doc.setFontSize(8);
@@ -1050,8 +1138,9 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                         hour: '2-digit',
                         minute: '2-digit'
                     });
-                    doc.text(time, pageWidth - margin, yPosition - 10, { align: 'right' });
+                    doc.text(time, pageWidth - margin, yPosition - 5, { align: 'right' });
                 }
+                yPosition += 5; // Final padding after message block
             });
 
             addFooter();
@@ -1071,7 +1160,7 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
 
     return (
         <div className={`flex flex-col lg:flex-row h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-            <div className={`flex flex-col border-r ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'} min-w-0`} style={{ width: `${columnWidths[0]}%`, minWidth: '280px' }}>
+            <div className={`flex flex-col border-r ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'bg-gray-200 bg-white'} min-w-0`} style={{ width: `${columnWidths[0]}%`, minWidth: '280px' }}>
                 <div className={`flex items-center space-x-4 p-5 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex-shrink-0`}>
                     <a href="/" className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
                         <ArrowLeft className="w-5 h-5" />
@@ -1099,7 +1188,7 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                         </div>
                     </div>
                     
-                    {/* CUSTOM GOALS SECTION - NEW COLLAPSIBLE UI */}
+                    {/* CUSTOM GOALS SECTION - MODIFIED COLLAPSIBLE UI */}
                     <div className="pt-2">
                         <div
                             className="flex items-center justify-between cursor-pointer mb-2"
@@ -1110,9 +1199,9 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                                     Custom Goals ({customGoals.length})
                                 </h4>
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); fetchCustomGoalsProgress(); }}
-                                    disabled={isPollingGoals}
-                                    title="Refresh Goals Status"
+                                    onClick={(e) => { e.stopPropagation(); fetchCustomGoalsProgress(); fetchCustomGoalUpdates(); }} // Refresh triggers both simple progress and full analysis
+                                    disabled={isPollingGoals || isAITyping}
+                                    title="Refresh Goals Status and Run AI Analysis"
                                     className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 disabled:opacity-50 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
                                 >
                                     <RotateCcw className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} ${isPollingGoals ? 'animate-spin' : ''}`} />
@@ -1138,18 +1227,42 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                                         const theme = isAchieved ? 'green' : 'blue';
                                         const currentTheme = themeClasses[theme];
                                         
+                                        // Determine status text for the summary card
+                                        let statusText = 'No analysis yet';
+                                        let analysisTime = '';
+                                        
+                                        if (goalAnalysis[goal.id] && goalAnalysis[goal.id] !== 'Generating analysis...') {
+                                            // 1. If detailed analysis exists, parse the status from it (AI output starts with "Goal:")
+                                            const statusMatch = goalAnalysis[goal.id].match(/Status:\s*(.*?)\n/i);
+                                            statusText = statusMatch ? statusMatch[1].trim() : 'Analysis Complete';
+
+                                            // 2. Use time of the success message (which runs after analysis)
+                                            const lastAnalysisMessage = chatMessages.slice().reverse().find(msg => !msg.isUser && msg.text.includes('Goal Analysis Updated'));
+                                            if (lastAnalysisMessage) {
+                                                analysisTime = `Last Analysis: ${lastAnalysisMessage.timestamp.toLocaleTimeString()}`;
+                                            }
+                                        } else if (goalAnalysis[goal.id] === 'Generating analysis...') {
+                                            statusText = 'Running analysis...';
+                                            analysisTime = 'Updating in progress';
+                                        } else if (!goalAnalysis[goal.id] && evidenceCount > 0) {
+                                            // Fallback to quick-poll evidence only if no AI analysis is available
+                                            statusText = isAchieved ? 'Achieved (Evidence Detected)' : 'In Progress (Evidence Detected)';
+                                            analysisTime = `${evidenceCount} instance${evidenceCount !== 1 ? 's' : ''} found`;
+                                        } else if (!goalAnalysis[goal.id] && evidenceCount === 0) {
+                                            statusText = 'No detected evidence';
+                                        }
+
+                                        
                                         return (
                                             <div key={goal.id} className="relative">
                                                 <div
+                                                    onClick={() => toggleGoalExpansion(goal.id)}
                                                     className={`group p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg
-                                                        ${currentTheme.hoverBorder} ${currentTheme.hoverBg}
-                                                        ${expandedGoals.has(goal.id) ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`
+                                                         ${currentTheme.hoverBorder} ${currentTheme.hoverBg}
+                                                         ${expandedGoals.has(goal.id) ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`
                                                     }
                                                 >
-                                                    <div 
-                                                        className="flex items-center space-x-3"
-                                                        onClick={() => toggleGoalExpansion(goal.id)}
-                                                    >
+                                                    <div className="flex items-center space-x-3">
                                                         <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
                                                             <span className="text-xl leading-none">{emoji}</span>
                                                         </div>
@@ -1157,86 +1270,73 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                                                             <h3 className={`text-sm font-bold mb-1 line-clamp-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                                                                 {goal.goal_description}
                                                             </h3>
-                                                            {progress && (
-                                                                <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                                                    <div className="flex items-center">
-                                                                        <span className="font-medium mr-1">Summary:</span>
-                                                                        <span className="truncate">{progress.summary || 'No summary available.'}</span>
-                                                                    </div>
+                                                            <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="font-medium mr-1">Status:</span>
+                                                                    <span className={`font-semibold ${statusText.includes('Achieved') ? 'text-green-500' : (statusText.includes('Progress') ? 'text-blue-500' : 'text-gray-500')}`}>
+                                                                        {statusText}
+                                                                    </span>
                                                                 </div>
-                                                            )}
-                                                            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                                                {isAchieved ? 'Achieved' : 'In Progress'} - {evidenceCount} evidence{evidenceCount !== 1 ? 's' : ''} found
-                                                            </p>
+                                                                {analysisTime && <p className="truncate mt-0.5">{analysisTime}</p>}
+                                                            </div>
                                                         </div>
                                                         <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} ${expandedGoals.has(goal.id) ? 'rotate-180' : ''}`} />
                                                     </div>
                                                     
-                                                    {/* NEW: AI Analysis Button */}
-                                                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleCustomGoalClick(goal);
-                                                            }}
-                                                            disabled={isAITyping || !session}
-                                                            className={`w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
-                                                                isDarkMode
-                                                                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                                                                    : 'bg-red-600 hover:bg-red-700 text-white'
-                                                                }`}
-                                                        >
-                                                            {goalAnalysis[goal.id] === 'Generating analysis...' ? (
-                                                                <>
-                                                                    <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
-                                                                    <span>Analyzing...</span>
-                                                                </>
+                                                    {/* NEW: Display AI Analysis (if ready) */}
+                                                    {expandedGoals.has(goal.id) && (
+                                                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                                                            {goalAnalysis[goal.id] && goalAnalysis[goal.id] !== 'Generating analysis...' ? (
+                                                                <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border border-gray-200 dark:border-gray-700`}>
+                                                                    <h5 className={`text-sm font-bold mb-2 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>Detailed AI Analysis</h5>
+                                                                    <EnhancedMarkdown isDarkMode={isDarkMode}>{goalAnalysis[goal.id]}</EnhancedMarkdown>
+                                                                </div>
                                                             ) : (
-                                                                <>
-                                                                    <MessageSquare className="w-4 h-4" />
-                                                                    <span>Analyze with AI</span>
-                                                                </>
+                                                                <div className={`p-3 text-center text-sm rounded-xl ${isDarkMode ? 'bg-gray-900/50 text-gray-400' : 'bg-gray-50 text-gray-600'} border border-dashed border-gray-300 dark:border-gray-700`}>
+                                                                    {isPollingGoals ? (
+                                                                        <div className="flex items-center justify-center space-x-2">
+                                                                            <Loader className="w-4 h-4 animate-spin text-red-500" />
+                                                                            <span>Running detailed analysis...</span>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <span>Detailed AI analysis will run soon or click the refresh icon.</span>
+                                                                    )}
+                                                                </div>
                                                             )}
-                                                        </button>
-                                                    </div>
-
-                                                    {/* NEW: Display AI Analysis directly below the goal */}
-                                                    {goalAnalysis[goal.id] && (
-                                                        <div className={`mt-2 p-3 rounded-xl ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border border-gray-200 dark:border-gray-700`}>
-                                                            <EnhancedMarkdown isDarkMode={isDarkMode}>{goalAnalysis[goal.id]}</EnhancedMarkdown>
                                                         </div>
                                                     )}
                                                     
+                                                    {/* Evidence Expansion Section (simplified UI) */}
                                                     {expandedGoals.has(goal.id) && progress && progress.evidences.length > 0 && (
-                                                        <div className={`mt-2 p-3 rounded-xl ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border border-gray-200 dark:border-gray-700`}>
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                                                                    Evidence {progress.current_evidence_index + 1} of {progress.evidences.length}
-                                                                </span>
-                                                                <div className="flex space-x-2">
-                                                                    <button
-                                                                        onClick={() => navigateCustomGoalEvidence(goal.id, 'prev')}
-                                                                        disabled={progress.current_evidence_index === 0}
-                                                                        className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} disabled:opacity-50`}
-                                                                    >
-                                                                        <ChevronRight className="w-4 h-4 rotate-180" />
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => navigateCustomGoalEvidence(goal.id, 'next')}
-                                                                        disabled={progress.current_evidence_index === progress.evidences.length - 1}
-                                                                        className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} disabled:opacity-50`}
-                                                                    >
-                                                                        <ChevronRight className="w-4 h-4" />
-                                                                    </button>
+                                                        <div className={`mt-3 pt-3 border-t ${goalAnalysis[goal.id] ? 'border-none pt-0' : 'border-gray-200 dark:border-gray-600'}`}>
+                                                            <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg space-y-2">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                                                        Evidence Instance {progress.current_evidence_index + 1} of {progress.evidences.length}
+                                                                    </span>
+                                                                    <div className="flex space-x-2">
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); navigateCustomGoalEvidence(goal.id, 'prev'); }}
+                                                                            disabled={progress.current_evidence_index === 0}
+                                                                            className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} disabled:opacity-50`}
+                                                                        >
+                                                                            <ChevronRight className="w-4 h-4 rotate-180" />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); navigateCustomGoalEvidence(goal.id, 'next'); }}
+                                                                            disabled={progress.current_evidence_index === progress.evidences.length - 1}
+                                                                            className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} disabled:opacity-50`}
+                                                                        >
+                                                                            <ChevronRight className="w-4 h-4" />
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                            <div className={`mt-2 p-3 rounded-md border ${isDarkMode ? 'bg-gray-900 text-gray-300 border-gray-700' : 'bg-gray-50 text-gray-800 border-gray-200'}`}>
-                                                                <p className="text-sm italic">
-                                                                    {`"${progress.evidences[progress.current_evidence_index].text}"`}
-                                                                </p>
-                                                                <p className="text-xs mt-2 text-gray-500 text-right">
-                                                                    - {progress.evidences[progress.current_evidence_index].primary_speaker} ({new Date(progress.evidences[progress.current_evidence_index].timestamp).toLocaleTimeString()})
-                                                                </p>
+                                                                {progress.evidences[progress.current_evidence_index] && (
+                                                                    <div className={`p-2 rounded-md border border-red-500/50 ${isDarkMode ? 'bg-gray-900/80 text-gray-300' : 'bg-white text-gray-800'}`}>
+                                                                        <p className="text-sm italic text-red-500 font-medium">"{progress.evidences[progress.current_evidence_index].text}"</p>
+                                                                        <p className="text-xs mt-2 text-gray-500 text-right"> - {progress.evidences[progress.current_evidence_index].primary_speaker} @ {new Date(progress.evidences[progress.current_evidence_index].timestamp).toLocaleTimeString()}</p>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     )}
@@ -1255,7 +1355,7 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                         )}
                     </div>
 
-                    {/* CUSTOM TEMPLATES SECTION - NEW COLLAPSIBLE UI */}
+                    {/* CUSTOM TEMPLATES SECTION */}
                     {customTemplates.length > 0 && (
                         <div className="pt-2">
                             <div
@@ -1275,8 +1375,8 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                                             <div key={template.id} className="relative group">
                                                 <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)}
                                                     className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg
-                                                        ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
-                                                        ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
+                                                         ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
+                                                         ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
                                                     <div className="flex items-start space-x-3">
                                                         <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
                                                             {isProcessingTemplate && selectedTemplate?.id === template.id ?
@@ -1312,7 +1412,7 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                         </div>
                     )}
 
-                    {/* PREBUILT TEMPLATES SECTION - NEW COLLAPSIBLE UI */}
+                    {/* PREBUILT TEMPLATES SECTION */}
                     <div className="pt-2">
                         <div
                             className="flex items-center justify-between cursor-pointer mb-2"
@@ -1331,8 +1431,8 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                                         <div key={template.id} className="relative group">
                                             <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)}
                                                 className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg
-                                                    ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
-                                                    ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
+                                                     ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
+                                                     ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
                                                 <div className="flex items-start space-x-3">
                                                     <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
                                                         {isProcessingTemplate && selectedTemplate?.id === template.id ?
@@ -1434,86 +1534,11 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                         )}
                         <div ref={transcriptEndRef} />
                     </div>
-                    {/* BEGIN: CUSTOM GOALS SECTION - MODIFIED */}
-                    {customGoalsProgress.length > 0 && (
-                        <div className={`p-4 border-t ${isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
-                            <div className="space-y-3">
-                                <div className="flex items-center space-x-2">
-                                    <TrendingUp className={`w-5 h-5 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
-                                    <h4 className={`text-xl font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
-                                        Custom Goals Progress
-                                    </h4>
-                                </div>
-                                {customGoalsProgress.map((progress) => {
-                                    const goal = progress.goal;
-                                    const isAchieved = progress.is_achieved || false;
-                                    const evidences = progress.evidences || [];
-                                    const currentIndex = progress.current_evidence_index || 0;
-                                    const emoji = goal.emoji_icon || (isAchieved ? '✅' : '🎯');
-                                    const currentEvidence = evidences[currentIndex];
-
-                                    return (
-                                        <div key={goal.id} className={`p-4 rounded-xl border-2 transition-all duration-200 ${isAchieved ? 'border-green-500' : 'border-blue-500'} ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                                            <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleGoalExpansion(goal.id)}>
-                                                <div className="flex items-center space-x-3 flex-1">
-                                                    <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${isAchieved ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
-                                                        <span className="text-xl leading-none">{emoji}</span>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <h3 className={`text-sm font-bold mb-1 line-clamp-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{goal.goal_description}</h3>
-                                                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                                            {isAchieved ? 'Achieved' : 'In Progress'} - {evidences.length} evidence{evidences.length !== 1 ? 's' : ''} found
-                                                        </p>
-                                                    </div>
-                                                    <ChevronDown
-                                                        className={`w-4 h-4 transition-transform duration-300 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} ${expandedGoals.has(goal.id) ? 'rotate-180' : ''}`}
-                                                    />
-                                                </div>
-                                            </div>
-                                            
-                                            {expandedGoals.has(goal.id) && evidences.length > 0 && (
-                                                <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg space-y-2">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                                                            Evidence {currentIndex + 1} of {evidences.length}
-                                                        </span>
-                                                        <div className="flex space-x-2">
-                                                            <button
-                                                                onClick={() => navigateCustomGoalEvidence(goal.id, 'prev')}
-                                                                disabled={currentIndex === 0}
-                                                                className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} disabled:opacity-50`}
-                                                            >
-                                                                <ChevronRight className="w-4 h-4 rotate-180" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => navigateCustomGoalEvidence(goal.id, 'next')}
-                                                                disabled={currentIndex === evidences.length - 1}
-                                                                className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} disabled:opacity-50`}
-                                                            >
-                                                                <ChevronRight className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                    {currentEvidence && (
-                                                        <div className={`p-2 rounded-md ${isDarkMode ? 'bg-gray-900 text-gray-300' : 'bg-white text-gray-800'}`}>
-                                                            <p className="text-sm italic">"{currentEvidence.text}"</p>
-                                                            <p className="text-xs mt-2 text-gray-500 text-right"> - {currentEvidence.primary_speaker}</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-                    {/* END: CUSTOM GOALS SECTION */}
                 </div>
             </div>
 
             <div onMouseDown={handleMouseDown(1)} className={`hidden lg:flex w-2 cursor-col-resize items-center justify-center group ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'} hover:bg-gradient-to-r hover:from-red-500 hover:to-red-600 transition-all duration-200`}>
-                    <div className={`w-0.5 h-8 rounded-full ${isDarkMode ? 'bg-gray-600 group-hover:bg-white' : 'bg-gray-300 group-hover:bg-white'} transition-colors`}></div>
+                <div className={`w-0.5 h-8 rounded-full ${isDarkMode ? 'bg-gray-600 group-hover:bg-white' : 'bg-gray-300 group-hover:bg-white'} transition-colors`}></div>
             </div>
 
             <div className={`flex flex-col border-l ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'} min-w-0`} style={{ width: `${columnWidths[2]}%`, minWidth: '320px' }}>
@@ -1576,10 +1601,10 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                     {chatMessages.map((msg) => (
                         <div key={msg.id} className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-[85%] p-4 rounded-xl shadow-sm transition-all duration-200 hover:shadow-md ${
-                                    msg.isUser
-                                        ? 'bg-gradient-to-r from-red-600 to-red-700 text-white'
-                                        : (isDarkMode ? 'bg-gray-700 hover:bg-gray-650' : 'bg-gray-100 hover:bg-gray-200')
-                                }`}>
+                                        msg.isUser
+                                            ? 'bg-gradient-to-r from-red-600 to-red-700 text-white'
+                                            : (isDarkMode ? 'bg-gray-700 hover:bg-gray-650' : 'bg-gray-100 hover:bg-gray-200')
+                                    }`}>
                                 <EnhancedMarkdown isDarkMode={isDarkMode || msg.isUser}>{msg.text}</EnhancedMarkdown>
                                 <div className={`text-xs mt-2 text-right ${msg.isUser ? 'text-red-200' : (isDarkMode ? 'text-gray-400' : 'text-gray-500')}`}>
                                     {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -1772,13 +1797,13 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                 </div>
             )}
             
-            {/* GOAL SETTINGS MODAL - NEW */}
+            {/* GOAL SETTINGS MODAL */}
             {showGoalSettingsModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className={`w-full max-w-2xl rounded-2xl shadow-2xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} max-h-[90vh] overflow-y-auto`}>
                         <div className={`flex items-center justify-between p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                             <h2 className="text-xl font-bold text-red-600 dark:text-red-400">
-                                Goal Update Settings
+                                AI Goal Update Settings
                             </h2>
                             <button
                                 onClick={() => setShowGoalSettingsModal(false)}
@@ -1789,106 +1814,139 @@ The summary should be concise, around ${goalSettings.wordLimit} words per goal.
                         </div>
                         
                         <div className="p-6 space-y-6">
+                             {/* Polling Interval */}
                             <div>
                                 <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                                    Output Format
-                                </label>
-                                <div className="flex space-x-4">
-                                    <label className="flex items-center space-x-2">
-                                        <input
-                                            type="radio"
-                                            name="format"
-                                            value="summary"
-                                            checked={goalSettings.format === 'summary'}
-                                            onChange={(e) => setGoalSettings(prev => ({ ...prev, format: e.target.value as 'summary' }))}
-                                            className="form-radio"
-                                        />
-                                        <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Summary</span>
-                                    </label>
-                                    <label className="flex items-center space-x-2">
-                                        <input
-                                            type="radio"
-                                            name="format"
-                                            value="detailed"
-                                            checked={goalSettings.format === 'detailed'}
-                                            onChange={(e) => setGoalSettings(prev => ({ ...prev, format: e.target.value as 'detailed' }))}
-                                            className="form-radio"
-                                        />
-                                        <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Detailed</span>
-                                    </label>
-                                    <label className="flex items-center space-x-2">
-                                        <input
-                                            type="radio"
-                                            name="format"
-                                            value="speakers_only"
-                                            checked={goalSettings.format === 'speakers_only'}
-                                            onChange={(e) => setGoalSettings(prev => ({ ...prev, format: e.target.value as 'speakers_only' }))}
-                                            className="form-radio"
-                                        />
-                                        <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Speakers Only</span>
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                                    Word Limit per Goal
+                                    Automatic Update Interval (Seconds)
                                 </label>
                                 <input
                                     type="number"
-                                    min="10"
-                                    max="500"
-                                    value={goalSettings.wordLimit}
-                                    onChange={(e) => setGoalSettings(prev => ({ ...prev, wordLimit: parseInt(e.target.value) }))}
+                                    min="30"
+                                    max="300" // 5 minutes (300 seconds)
+                                    value={goalSettings.pollInterval / 1000}
+                                    onChange={(e) => {
+                                        const value = parseInt(e.target.value);
+                                        const newInterval = Math.max(30, Math.min(300, value)) * 1000;
+                                        setGoalSettings(prev => ({ ...prev, pollInterval: newInterval }));
+                                    }}
                                     className={`w-full px-4 py-3 border rounded-xl text-sm transition-all duration-200 focus:ring-2 focus:ring-red-500 focus:border-transparent ${
                                         isDarkMode
                                             ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
                                             : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                                     } focus:outline-none`}
                                 />
+                                <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                    The AI will check goals and post an update to the chat every {goalSettings.pollInterval / 1000} seconds. (Min 30s, Max 300s)
+                                </p>
                             </div>
 
-                            <div className="space-y-2">
+                            {/* Output Format */}
+                            <div>
+                                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                    Output Format
+                                </label>
+                                <div className="flex flex-wrap gap-4">
+                                    {['summary', 'detailed', 'speakers_only'].map((format) => (
+                                        <label key={format} className="flex items-center space-x-2">
+                                            <input
+                                                type="radio"
+                                                name="format"
+                                                value={format}
+                                                checked={goalSettings.format === format}
+                                                onChange={(e) => setGoalSettings(prev => ({ ...prev, format: e.target.value as 'summary' | 'detailed' | 'speakers_only' }))}
+                                                className="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500"
+                                            />
+                                            <span className={`text-sm capitalize ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{format.replace('_', ' ')}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            {/* Word Limit */}
+                            <div>
+                                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                    Word Limit per Goal Summary ({goalSettings.wordLimit} words)
+                                </label>
+                                <input
+                                    type="range"
+                                    min="50"
+                                    max="500"
+                                    step="50"
+                                    value={goalSettings.wordLimit}
+                                    onChange={(e) => setGoalSettings(prev => ({ ...prev, wordLimit: parseInt(e.target.value) }))}
+                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                                />
+                                <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                    Controls the verbosity of the AI's summary for each goal.
+                                </p>
+                            </div>
+
+                            {/* Inclusion Options Checkboxes (Removed markdown asterisks) */}
+                            <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                                <label className={`block text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                    Details to Include
+                                </label>
+                                
                                 <label className="flex items-center space-x-2">
                                     <input
                                         type="checkbox"
                                         checked={goalSettings.includeTimestamps}
                                         onChange={(e) => setGoalSettings(prev => ({ ...prev, includeTimestamps: e.target.checked }))}
-                                        className="form-checkbox rounded text-red-600"
+                                        className="form-checkbox h-4 w-4 rounded text-red-600 border-gray-300 focus:ring-red-500"
                                     />
-                                    <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Include Timestamps</span>
+                                    <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Include Timestamps with evidence.</span>
                                 </label>
+                                
                                 <label className="flex items-center space-x-2">
                                     <input
                                         type="checkbox"
                                         checked={goalSettings.includeSpeakers}
                                         onChange={(e) => setGoalSettings(prev => ({ ...prev, includeSpeakers: e.target.checked }))}
-                                        className="form-checkbox rounded text-red-600"
+                                        className="form-checkbox h-4 w-4 rounded text-red-600 border-gray-300 focus:ring-red-500"
                                     />
-                                    <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Include Speakers</span>
+                                    <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Include Speakers who uttered the evidence.</span>
                                 </label>
+
                                 <label className="flex items-center space-x-2">
                                     <input
                                         type="checkbox"
                                         checked={goalSettings.includeInstances}
                                         onChange={(e) => setGoalSettings(prev => ({ ...prev, includeInstances: e.target.checked }))}
-                                        className="form-checkbox rounded text-red-600"
+                                        className="form-checkbox h-4 w-4 rounded text-red-600 border-gray-300 focus:ring-red-500"
                                     />
-                                    <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Include Exact Quotes (Instances)</span>
+                                    <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Include Exact Quotes (Instances) in the output.</span>
                                 </label>
+                            </div>
+
+                            {/* NEW: Prompt Extension */}
+                            <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                    Additional Prompt Clause (Optional)
+                                </label>
+                                <textarea
+                                    value={goalSettings.promptExtension}
+                                    onChange={(e) => setGoalSettings(prev => ({ ...prev, promptExtension: e.target.value }))}
+                                    placeholder="e.g., 'Focus only on buyer-side commitments.', or 'Rate the confidence of achievement from 1-10.'"
+                                    rows={3}
+                                    className={`w-full px-4 py-3 border rounded-xl text-sm resize-none transition-all duration-200 focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                                        isDarkMode
+                                            ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                                    } focus:outline-none`}
+                                />
+                                <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                    This clause is appended to the main AI instruction for every goal check.
+                                </p>
                             </div>
                         </div>
 
                         <div className={`flex items-center justify-end p-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                             <button
                                 onClick={() => setShowGoalSettingsModal(false)}
-                                className={`px-6 py-2.5 rounded-xl font-medium transition-all duration-200 ${
-                                    isDarkMode
-                                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                }`}
+                                className={`px-6 py-2.5 text-white transition-all duration-200 shadow-lg rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 flex items-center space-x-2`}
                             >
-                                Done
+                                <CheckCircle className="w-4 h-4" />
+                                <span>Save Settings</span>
                             </button>
                         </div>
                     </div>

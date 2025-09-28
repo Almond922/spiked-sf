@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../AuthContext";
 import { useForm, ValidationError } from "@formspree/react";
@@ -1547,7 +1547,7 @@ const MeetingDetailsView: React.FC<{
   }, [meetingId]);
 
   const handleGoToNotetaker = () => {
-    navigate("/notetaker", {
+    navigate("/note-taker", {
       state: { transcript: transcript, title: details?.title },
     });
   };
@@ -1672,6 +1672,7 @@ const MeetingDetailsView: React.FC<{
 const AdminDashboard: React.FC = () => {
   const { session } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
   const [showUserMenu, setShowUserMenu] = React.useState(false);
   const [showActivityLog, setShowActivityLog] = React.useState(false);
@@ -1992,6 +1993,7 @@ const AdminDashboard: React.FC = () => {
               <Link
                 key={link.id}
                 to="/documents"
+                state={{ from: location.pathname }}
                 className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700`}
               >
                 <link.icon size={18} className="mr-3" /> {link.label}

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import RecallLogo from "/recall.png";
 import VexaLogo from "/vexa.png";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import ReactMarkdown, { Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -523,6 +523,7 @@ const SpikedAI = () => {
   const { botId, setBotId } = useBotId(); 
   const { session, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [meetingUrl, setMeetingUrl] = useState(
     loadFromSessionStorage("spikedai_meeting_url", "")
@@ -5661,7 +5662,9 @@ useEffect(() => {
             </div>
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => navigate("/documents")}
+                onClick={() =>
+                  navigate("/documents", { state: { from: location.pathname } })
+                }
                 className={`p-2 rounded-lg transition-all duration-300 hover:scale-105 ${
                   isDarkMode
                     ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50"

@@ -31,8 +31,9 @@ import {
   RefreshCw,
   ExternalLink,
 } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../AuthContext";
-import { saveAs } from "file-saver"; 
+import { saveAs } from "file-saver";
 
 // --- CONFIGURATION ---
 const API_BASE_URL =
@@ -207,10 +208,12 @@ const Sidebar = memo(
     onPageChange,
     isCollapsed,
     onToggleCollapse,
+    onBack,
   }: {
     currentPage: string;
     onPageChange: (page: string) => void;
     isCollapsed: boolean;
+    onBack: () => void;
     onToggleCollapse: () => void;
   }) => {
     const [expandedSections, setExpandedSections] = useState<
@@ -274,7 +277,7 @@ const Sidebar = memo(
           {!isCollapsed && (
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => (window.location.href = "/")}
+                onClick={onBack}
                 className="flex items-center space-x-2 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors p-2 rounded-lg hover:bg-gray-100 -ml-2"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -1963,7 +1966,7 @@ const ConnectorsPage = () => {
         />
       </div>
 
-      {filteredCategories.length >  0 ? (
+      {filteredCategories.length > 0 ? (
         filteredCategories.map((category) => (
           <div key={category.name}>
             <div className="flex items-center space-x-3 mb-6">
@@ -1996,6 +1999,8 @@ const ConnectorsPage = () => {
 
 // --- MAIN APP COMPONENT ---
 const App: React.FC = () => {
+  const navigate = useNavigate(); // ADD THIS
+  const location = useLocation(); // ADD THIS
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState(
     () => localStorage.getItem("currentPage") || "documents"
@@ -2004,6 +2009,15 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem("currentPage", currentPage);
   }, [currentPage]);
+
+  // ADD THIS FUNCTION
+  const handleBack = () => {
+    if (location.state?.from) {
+      navigate(location.state.from);
+    } else {
+      navigate(-1); // Go back to the previous page in history
+    }
+  };
 
   const handleToggleSidebar = useCallback(
     () => setSidebarCollapsed((p) => !p),
@@ -2095,6 +2109,7 @@ const App: React.FC = () => {
         onPageChange={handlePageChange}
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={handleToggleSidebar}
+        onBack={handleBack}
       />
       <Layout title={title} description={description}>
         <Component />

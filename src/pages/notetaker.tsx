@@ -411,8 +411,8 @@ export default function Notetaker() {
 
         try {
             // NOTE: Removed isPollingGoals check here to allow progress fetching even if analysis is running
-            const response = await fetch(`${service_url_recall}/sentiment/custom-goals`, {
-                method: 'POST',
+            const response = await fetch(`${service_url_recall}/meetingGoals`, {
+                method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${session.access_token}`,

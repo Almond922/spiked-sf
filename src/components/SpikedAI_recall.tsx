@@ -4941,15 +4941,7 @@ useEffect(() => {
                                     />
                                   )}
                                 </div>
-                                <div className="flex items-center space-x-1">
-                                  <span>⚠️ {card.concerns_count} concerns</span>
-                                  {card.concerns_count > 0 && (
-                                    <EyeButton
-                                      onClick={() => toggleConcerns(card.speaker)}
-                                      isExpanded={expandedConcerns.has(card.speaker)}
-                                    />
-                                  )}
-                                </div>
+                                
                               </div>
 
                               {/* Expanded Buying Signals */}

@@ -5354,7 +5354,7 @@ useEffect(() => {
                         : "bg-slate-800 text-slate-100"
                     }`}
                 >
-                  Contents
+                  Documents
                   <div
                     className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
                       isDarkMode ? "bg-slate-200" : "bg-slate-800"
@@ -5584,7 +5584,7 @@ useEffect(() => {
                     isDarkMode ? "text-white" : "text-berkeley-blue"
                   }`}
                 >
-                  Contents
+                  Documents
                 </h2>
                 <p
                   className={`text-xs ${
@@ -5695,7 +5695,7 @@ useEffect(() => {
               }`}
               style={{ minWidth: 48, maxWidth: 100, textAlign: "center" }}
             >
-              Content: {documents.length}
+              Document: {documents.length}
             </span>
 
             {documents.length === 0 ? (
@@ -5705,7 +5705,7 @@ useEffect(() => {
                 }`}
               >
                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">No Contents yet</p>
+                <p className="text-lg font-medium mb-2">No documents yet</p>
                 <p className="text-sm">
                   Upload your first document to get started
                 </p>
@@ -6040,7 +6040,7 @@ useEffect(() => {
                     }`}
                     style={{ minWidth: 48, textAlign: "center" }}
                   >
-                    Content: {documents.length}
+                    Document: {documents.length}
                   </span>
                 </div>
               </div>
@@ -6203,7 +6203,7 @@ useEffect(() => {
                               isDarkMode ? "text-white" : "text-slate-800"
                             }`}
                           >
-                            Ask Contents
+                            Ask Documents
                           </p>
                           <p
                             className={`text-xs ${
@@ -6605,7 +6605,7 @@ useEffect(() => {
                           className={`px-6 py-3 rounded-xl font-semibold flex items-center space-x-2 transition-all duration-300 transform hover:scale-105 bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-indigo-500 hover:to-purple-500 shadow-lg`}
                         >
                           <Sparkles className="w-5 h-5" />
-                          <span>Ask Beyond Contents</span>
+                          <span>Ask Beyond Documents</span>
                         </button>
                       </div>
                     )}

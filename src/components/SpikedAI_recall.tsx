@@ -5233,7 +5233,7 @@ useEffect(() => {
                 >
                   Conversational AI Platform{" "}
                   <span className="ml-2 px-2 py-0.5 rounded bg-cerulean/10 text-cerulean text-xs">
-                    v2.0
+                    v1.7
                   </span>
                 </p>
               </div>
@@ -5294,7 +5294,32 @@ useEffect(() => {
             </button>
           </div>
           <div className="flex items-center space-x-2">
+<<<<<<< HEAD
             
+=======
+            <div
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl ${
+                isTranscribing
+                  ? "bg-red-pantone/10 border border-red-pantone/30"
+                  : "bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/30"
+              }`}
+            >
+              {isTranscribing ? (
+                <Mic className="w-4 h-4 text-red-pantone animate-pulse" />
+              ) : (
+                <MicOff className="w-4 h-4 text-slate-400" />
+              )}
+              <span
+                className={`text-sm font-medium ${
+                  isTranscribing
+                    ? "text-red-pantone"
+                    : "text-slate-500 dark:text-slate-400"
+                }`}
+              >
+                {isTranscribing ? "Recording" : "Paused"}
+              </span>
+            </div>
+>>>>>>> parent of cb4d141 (Cleaned the UI)
 
             
 
@@ -6113,7 +6138,21 @@ useEffect(() => {
                   
                 </div>
 
-                
+                <button
+                  onClick={() => setAutoAnswerEnabled(!autoAnswerEnabled)}
+                  className={`px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-300 transform hover:scale-105 ${
+                    autoAnswerEnabled
+                      ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 shadow-lg"
+                      : "bg-gradient-to-r from-slate-400 to-slate-500 text-white hover:from-slate-500 hover:to-slate-600 shadow-lg"
+                  }`}
+                  title={
+                    autoAnswerEnabled ? "Auto-Answer: ON" : "Auto-Answer: OFF"
+                  }
+                >
+                  <span>
+                    {autoAnswerEnabled ? "Auto-Answer ON" : "Auto-Answer OFF"}
+                  </span>
+                </button>
 
                 <button
                   onClick={() => setShowHistory(!showHistory)}

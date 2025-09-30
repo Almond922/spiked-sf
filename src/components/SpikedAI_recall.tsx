@@ -5854,6 +5854,64 @@ useEffect(() => {
                   </div>
                 </div>
 
+<<<<<<< HEAD
+=======
+                <div className="flex flex-col items-center space-y-4">
+                  {/* Top: Mic Toggle as a Sliding Switch */}
+                  <div className="flex items-center space-x-3">
+                    {/* Mic Status Indicator */}
+                    {isHotMicActive ? (
+                      <div className="flex items-center space-x-1 text-red-500">
+                        <Mic className="w-4 h-4" />
+                        <span className="text-sm font-medium">Hot Mic On</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-1 text-gray-500">
+                        <MicOff className="w-4 h-4" />
+                        <span className="text-sm font-medium">Hot Mic Off</span>
+                      </div>
+                    )}
+
+                    {/* Sliding Toggle Switch */}
+                    <button
+                      onClick={toggleListening}
+                      disabled={!isSupported}
+                      className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                        isListening
+                          ? "bg-blue-600"
+                          : "bg-gray-200 dark:bg-gray-700"
+                      }`}
+                    >
+                      <span className="sr-only">Toggle Mic</span>
+                      <span
+                        className={`inline-block w-4 h-4 transform rounded-full bg-white transition-transform ${
+                          isListening ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Bottom: Discrete "Powered by" and Switch Button */}
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                      <b>Mode R</b>
+                    </span>
+                    <img
+                      src={RecallLogo}
+                      alt="Recall Logo"
+                      className="w-4 h-4"
+                    />
+                    <Link
+                      to="/vexa"
+                      className="flex items-center space-x-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-full hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+                    >
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-200">
+                        Switch to V
+                      </span>
+                      <img src={VexaLogo} alt="Vexa Logo" className="w-4 h-4" />
+                    </Link>
+                  </div>
+>>>>>>> parent of be6af0a (Cleaned Ui 2.0)
                 </div>
             </div>
 

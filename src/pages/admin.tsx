@@ -1438,7 +1438,7 @@ const SimulatorPage: React.FC = () => {
           partner.
         </p>
       </div>
-      <div className="bg-gray-50 dark:bg-gray-800/50 p-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="bg-white dark:bg-gray-800 p-8 grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="text-center">
           <Target
             size={24}
@@ -1817,9 +1817,9 @@ const AdminDashboard: React.FC = () => {
     { id: "meeting_simulator", label: "Simulator", icon: FlaskConical },
     { id: "meeting_logs", label: "Meeting Logs", icon: LayoutGrid },
     { id: "documents", label: "Content Hub", icon: FileText },
-    { id: "users", label: "Users", icon: Users },
-    { id: "billing", label: "Billing", icon: CreditCard },
-    { id: "api_keys", label: "API Keys", icon: KeyRound },
+    // { id: "users", label: "Users", icon: Users },
+    // { id: "billing", label: "Billing", icon: CreditCard },
+    // { id: "api_keys", label: "API Keys", icon: KeyRound },
     { id: "support", label: "Support", icon: HelpCircle },
     { id: "tutorial", label: "Tutorial", icon: BookOpen },
   ];

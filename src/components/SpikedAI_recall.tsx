@@ -5895,7 +5895,7 @@ useEffect(() => {
                     ) : (
                       <div className="flex items-center space-x-1 text-gray-500">
                         <MicOff className="w-4 h-4" />
-                        <span className="text-sm font-medium">Hot Mic Off</span>
+                      
                       </div>
                     )}
 
@@ -5933,7 +5933,7 @@ useEffect(() => {
                       className="flex items-center space-x-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-full hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
                     >
                       <span className="text-xs font-medium text-gray-700 dark:text-gray-200">
-                        Switch to V
+                        Mode V
                       </span>
                       <img src={VexaLogo} alt="Vexa Logo" className="w-4 h-4" />
                     </Link>

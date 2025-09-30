@@ -4881,26 +4881,49 @@ useEffect(() => {
                           }`}
                         >
                           <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2 mb-1">
-                                <span className="font-bold text-sm text-gray-800 dark:text-gray-200">
-                                  {card.speaker}
-                                </span>
-                                <span
-                                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                                    card.status_color === "green"
-                                      ? "bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300"
-                                      : card.status_color === "red"
-                                      ? "bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-300"
-                                      : "bg-yellow-100 text-yellow-700 dark:bg-yellow-800/50 dark:text-yellow-300"
-                                  }`}
-                                >
-                                  {card.status.toUpperCase()}
-                                </span>
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  {card.role}
-                                </span>
-                              </div>
+  <div className="flex-1">
+    <div className="flex items-center space-x-2 mb-1">
+      <span className="font-bold text-sm text-gray-800 dark:text-gray-200">
+        {card.speaker}
+      </span>
+      <span
+        className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+          card.status_color === "green"
+            ? "bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300"
+            : card.status_color === "red"
+            ? "bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-300"
+            : "bg-yellow-100 text-yellow-700 dark:bg-yellow-800/50 dark:text-yellow-300"
+        }`}
+      >
+        {card.status.toUpperCase()}
+      </span>
+      <span className="text-xs text-gray-500 dark:text-gray-400">
+        {card.role}
+      </span>
+      {/* NEW MUTE/UNMUTE BUTTON */}
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleMuteParticipant(card.speaker);
+        }}
+        className={`p-1.5 rounded-full transition-colors ml-auto ${
+          mutedSpeakers.includes(card.speaker)
+            ? "bg-red-500 text-white hover:bg-red-600"
+            : isDarkMode
+            ? "hover:bg-slate-600/50 text-slate-400 hover:text-white"
+            : "hover:bg-slate-200 text-slate-500 hover:text-slate-700"
+        }`}
+        title={mutedSpeakers.includes(card.speaker) ? "Unmute Participant" : "Mute Participant"}
+      >
+        {mutedSpeakers.includes(card.speaker) ? (
+          <MicOff className="w-3.5 h-3.5" />
+        ) : (
+          <Mic className="w-3.5 h-3.5 opacity-50" />
+        )}
+      </button>
+      {/* END NEW MUTE/UNMUTE BUTTON */}
+    </div>
 
                               <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400 mb-2">
                                 <span>
@@ -5218,7 +5241,7 @@ useEffect(() => {
                 >
                   Conversational AI Platform{" "}
                   <span className="ml-2 px-2 py-0.5 rounded bg-cerulean/10 text-cerulean text-xs">
-                    v1.7
+                    v2.0
                   </span>
                 </p>
               </div>
@@ -5279,44 +5302,9 @@ useEffect(() => {
             </button>
           </div>
           <div className="flex items-center space-x-2">
-            <div
-              className={`flex items-center space-x-2 px-4 py-2 rounded-xl ${
-                isTranscribing
-                  ? "bg-red-pantone/10 border border-red-pantone/30"
-                  : "bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/30"
-              }`}
-            >
-              {isTranscribing ? (
-                <Mic className="w-4 h-4 text-red-pantone animate-pulse" />
-              ) : (
-                <MicOff className="w-4 h-4 text-slate-400" />
-              )}
-              <span
-                className={`text-sm font-medium ${
-                  isTranscribing
-                    ? "text-red-pantone"
-                    : "text-slate-500 dark:text-slate-400"
-                }`}
-              >
-                {isTranscribing ? "Recording" : "Paused"}
-              </span>
-            </div>
+            
 
-            <button
-              onClick={toggleTranscription}
-              disabled={!isConnected}
-              className={`p-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 ${
-                isTranscribing
-                  ? "bg-gradient-to-r from-red-pantone to-red-500 text-white hover:from-red-500 hover:to-red-pantone shadow-lg"
-                  : "bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 shadow-lg"
-              }`}
-            >
-              {isTranscribing ? (
-                <Pause className="w-5 h-5" />
-              ) : (
-                <Play className="w-5 h-5" />
-              )}
-            </button>
+            
 
             <div className="flex items-center space-x-2 relative">
               <div className="h-8 w-px bg-slate-300 dark:bg-slate-600"></div>
@@ -5374,7 +5362,7 @@ useEffect(() => {
                         : "bg-slate-800 text-slate-100"
                     }`}
                 >
-                  Documents
+                  Contents
                   <div
                     className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
                       isDarkMode ? "bg-slate-200" : "bg-slate-800"
@@ -5604,7 +5592,7 @@ useEffect(() => {
                     isDarkMode ? "text-white" : "text-berkeley-blue"
                   }`}
                 >
-                  Documents
+                  Contents
                 </h2>
                 <p
                   className={`text-xs ${
@@ -5715,7 +5703,7 @@ useEffect(() => {
               }`}
               style={{ minWidth: 48, maxWidth: 100, textAlign: "center" }}
             >
-              Document: {documents.length}
+              Content: {documents.length}
             </span>
 
             {documents.length === 0 ? (
@@ -5725,7 +5713,7 @@ useEffect(() => {
                 }`}
               >
                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">No documents yet</p>
+                <p className="text-lg font-medium mb-2">No Contents yet</p>
                 <p className="text-sm">
                   Upload your first document to get started
                 </p>
@@ -5874,63 +5862,7 @@ useEffect(() => {
                   </div>
                 </div>
 
-                <div className="flex flex-col items-center space-y-4">
-                  {/* Top: Mic Toggle as a Sliding Switch */}
-                  <div className="flex items-center space-x-3">
-                    {/* Mic Status Indicator */}
-                    {isHotMicActive ? (
-                      <div className="flex items-center space-x-1 text-red-500">
-                        <Mic className="w-4 h-4" />
-                        <span className="text-sm font-medium">Hot Mic On</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center space-x-1 text-gray-500">
-                        <MicOff className="w-4 h-4" />
-                        <span className="text-sm font-medium">Hot Mic Off</span>
-                      </div>
-                    )}
-
-                    {/* Sliding Toggle Switch */}
-                    <button
-                      onClick={toggleListening}
-                      disabled={!isSupported}
-                      className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                        isListening
-                          ? "bg-blue-600"
-                          : "bg-gray-200 dark:bg-gray-700"
-                      }`}
-                    >
-                      <span className="sr-only">Toggle Mic</span>
-                      <span
-                        className={`inline-block w-4 h-4 transform rounded-full bg-white transition-transform ${
-                          isListening ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  {/* Bottom: Discrete "Powered by" and Switch Button */}
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-                      <b>Mode R</b>
-                    </span>
-                    <img
-                      src={RecallLogo}
-                      alt="Recall Logo"
-                      className="w-4 h-4"
-                    />
-                    <Link
-                      to="/vexa"
-                      className="flex items-center space-x-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-full hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
-                    >
-                      <span className="text-xs font-medium text-gray-700 dark:text-gray-200">
-                        Switch to V
-                      </span>
-                      <img src={VexaLogo} alt="Vexa Logo" className="w-4 h-4" />
-                    </Link>
-                  </div>
                 </div>
-              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
@@ -6116,7 +6048,7 @@ useEffect(() => {
                     }`}
                     style={{ minWidth: 48, textAlign: "center" }}
                   >
-                    Document: {documents.length}
+                    Content: {documents.length}
                   </span>
                 </div>
               </div>
@@ -6126,65 +6058,12 @@ useEffect(() => {
                 {/* Auto-Mode Toggle and Manual Trigger */}
                 <div className="flex items-center space-x-2">
                   {/* Auto/Manual Mode Toggle */}
-                  <button
-                    onClick={() => setIsAutoMode(!isAutoMode)}
-                    className={`px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-200 ease-in-out hover:shadow-sm ${
-                      isAutoMode
-                        ? "bg-green-500 text-white hover:bg-green-600"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                    }`}
-                  >
-                    {isAutoMode ? "Auto Mode ON" : "Manual Mode ON"}
-                  </button>
-
+                  
                   {/* Manual Question Trigger */}
-                  <button
-                    onClick={handleManualQuestionDetection}
-                    disabled={
-                      isTyping || isAutoMode || suggestedQuestions.length === 0
-                    }
-                    title={
-                      isAutoMode
-                        ? "Disable Auto-Mode to trigger manually"
-                        : "Generate question from recent transcript"
-                    }
-                    className={`relative px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-200 ease-in-out hover:shadow-sm ${
-                      isTyping || isAutoMode || suggestedQuestions.length === 0
-                        ? "bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-not-allowed"
-                        : "bg-blue-500 text-white hover:bg-blue-600"
-                    }`}
-                  >
-                    {suggestedQuestions.length > 0 &&
-                      !isAutoMode &&
-                      !isTyping && (
-                        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full animate-pulse border-2 border-white dark:border-blue-500"></span>
-                      )}
-                    <RefreshCw
-                      className={`w-3.5 h-3.5 ${
-                        isTyping ? "animate-spin" : ""
-                      }`}
-                    />
-                    <span>
-                      {isTyping ? "Answering..." : "Generate Question"}
-                    </span>
-                  </button>
+                  
                 </div>
 
-                <button
-                  onClick={() => setAutoAnswerEnabled(!autoAnswerEnabled)}
-                  className={`px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-300 transform hover:scale-105 ${
-                    autoAnswerEnabled
-                      ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 shadow-lg"
-                      : "bg-gradient-to-r from-slate-400 to-slate-500 text-white hover:from-slate-500 hover:to-slate-600 shadow-lg"
-                  }`}
-                  title={
-                    autoAnswerEnabled ? "Auto-Answer: ON" : "Auto-Answer: OFF"
-                  }
-                >
-                  <span>
-                    {autoAnswerEnabled ? "Auto-Answer ON" : "Auto-Answer OFF"}
-                  </span>
-                </button>
+                
 
                 <button
                   onClick={() => setShowHistory(!showHistory)}
@@ -6332,7 +6211,7 @@ useEffect(() => {
                               isDarkMode ? "text-white" : "text-slate-800"
                             }`}
                           >
-                            Ask Documents
+                            Ask Contents
                           </p>
                           <p
                             className={`text-xs ${
@@ -6734,7 +6613,7 @@ useEffect(() => {
                           className={`px-6 py-3 rounded-xl font-semibold flex items-center space-x-2 transition-all duration-300 transform hover:scale-105 bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-indigo-500 hover:to-purple-500 shadow-lg`}
                         >
                           <Sparkles className="w-5 h-5" />
-                          <span>Ask Beyond Documents</span>
+                          <span>Ask Beyond Contents</span>
                         </button>
                       </div>
                     )}

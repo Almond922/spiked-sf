@@ -5241,7 +5241,7 @@ useEffect(() => {
                 >
                   Conversational AI Platform{" "}
                   <span className="ml-2 px-2 py-0.5 rounded bg-cerulean/10 text-cerulean text-xs">
-                    v1.7
+                    v2.0
                   </span>
                 </p>
               </div>
@@ -5321,7 +5321,7 @@ useEffect(() => {
                     : "text-slate-500 dark:text-slate-400"
                 }`}
               >
-                {isTranscribing ? "Recording" : "Paused"}
+        
               </span>
             </div>
 
@@ -6140,21 +6140,7 @@ useEffect(() => {
                   
                 </div>
 
-                <button
-                  onClick={() => setAutoAnswerEnabled(!autoAnswerEnabled)}
-                  className={`px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-300 transform hover:scale-105 ${
-                    autoAnswerEnabled
-                      ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 shadow-lg"
-                      : "bg-gradient-to-r from-slate-400 to-slate-500 text-white hover:from-slate-500 hover:to-slate-600 shadow-lg"
-                  }`}
-                  title={
-                    autoAnswerEnabled ? "Auto-Answer: ON" : "Auto-Answer: OFF"
-                  }
-                >
-                  <span>
-                    {autoAnswerEnabled ? "Auto-Answer ON" : "Auto-Answer OFF"}
-                  </span>
-                </button>
+                
 
                 <button
                   onClick={() => setShowHistory(!showHistory)}

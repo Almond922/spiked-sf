@@ -4917,9 +4917,9 @@ useEffect(() => {
         title={mutedSpeakers.includes(card.speaker) ? "Unmute Participant" : "Mute Participant"}
       >
         {mutedSpeakers.includes(card.speaker) ? (
-          <Mic className="w-3.5 h-3.5" />
+          <MicOff className="w-3.5 h-3.5" />
         ) : (
-          <MicOff className="w-3.5 h-3.5 opacity-50" />
+          <Mic className="w-3.5 h-3.5 opacity-50" />
         )}
       </button>
       {/* END NEW MUTE/UNMUTE BUTTON */}

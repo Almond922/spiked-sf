@@ -5751,7 +5751,7 @@ useEffect(() => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <button
+                      {/* <button
                         onClick={() => downloadDocument(doc.filename)}
                         className={`p-2 ml-2 rounded-lg transition-all duration-300 hover:scale-105 ${
                           isDarkMode
@@ -5760,7 +5760,7 @@ useEffect(() => {
                         }`}
                         title="Download"
                       >
-                        <Download className="w-4 h-4" />
+                        <Download className="w-4 h-4" />            NEEDS TO BE FIXED. AFTER REFACTORING.
                       </button>
                       <button
                         onClick={() => deleteDocument(doc.filename)}
@@ -5772,7 +5772,7 @@ useEffect(() => {
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
-                      </button>
+                      </button> */}
                     </div>
                   </div>
                 </div>

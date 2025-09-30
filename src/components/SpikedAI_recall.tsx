@@ -4881,26 +4881,49 @@ useEffect(() => {
                           }`}
                         >
                           <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2 mb-1">
-                                <span className="font-bold text-sm text-gray-800 dark:text-gray-200">
-                                  {card.speaker}
-                                </span>
-                                <span
-                                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                                    card.status_color === "green"
-                                      ? "bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300"
-                                      : card.status_color === "red"
-                                      ? "bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-300"
-                                      : "bg-yellow-100 text-yellow-700 dark:bg-yellow-800/50 dark:text-yellow-300"
-                                  }`}
-                                >
-                                  {card.status.toUpperCase()}
-                                </span>
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  {card.role}
-                                </span>
-                              </div>
+  <div className="flex-1">
+    <div className="flex items-center space-x-2 mb-1">
+      <span className="font-bold text-sm text-gray-800 dark:text-gray-200">
+        {card.speaker}
+      </span>
+      <span
+        className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+          card.status_color === "green"
+            ? "bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300"
+            : card.status_color === "red"
+            ? "bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-300"
+            : "bg-yellow-100 text-yellow-700 dark:bg-yellow-800/50 dark:text-yellow-300"
+        }`}
+      >
+        {card.status.toUpperCase()}
+      </span>
+      <span className="text-xs text-gray-500 dark:text-gray-400">
+        {card.role}
+      </span>
+      {/* NEW MUTE/UNMUTE BUTTON */}
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleMuteParticipant(card.speaker);
+        }}
+        className={`p-1.5 rounded-full transition-colors ml-auto ${
+          mutedSpeakers.includes(card.speaker)
+            ? "bg-red-500 text-white hover:bg-red-600"
+            : isDarkMode
+            ? "hover:bg-slate-600/50 text-slate-400 hover:text-white"
+            : "hover:bg-slate-200 text-slate-500 hover:text-slate-700"
+        }`}
+        title={mutedSpeakers.includes(card.speaker) ? "Unmute Participant" : "Mute Participant"}
+      >
+        {mutedSpeakers.includes(card.speaker) ? (
+          <Volume2 className="w-3.5 h-3.5" />
+        ) : (
+          <Volume2 className="w-3.5 h-3.5 opacity-50" />
+        )}
+      </button>
+      {/* END NEW MUTE/UNMUTE BUTTON */}
+    </div>
 
                               <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400 mb-2">
                                 <span>

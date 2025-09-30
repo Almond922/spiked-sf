@@ -2065,7 +2065,7 @@ const App: React.FC = () => {
     browse: {
       title: "Browse Chunks",
       description: "Review extracted text chunks from all sources",
-      Component: () => <ComingSoonPage title="Browse Chunks" />,
+      Component: BrowsePage,
     },
     vectorconfig: {
       title: "Vector Configuration",

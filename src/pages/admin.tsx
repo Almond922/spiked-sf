@@ -1344,6 +1344,32 @@ const SupportForm: React.FC<{
   );
 };
 
+const ZohoBugReportWidget: React.FC = () => {
+  React.useEffect(() => {
+    // Create the script element
+    const script = document.createElement("script");
+    script.src =
+      "https://desk.zoho.in/portal/api/feedbackwidget/123339000001287003?orgId=60023688581&displayType=embeded";
+    script.id = "zoho-feedback-widget-script"; // Give it an ID for easy removal
+    script.async = true;
+
+    // Append the script to the body
+    document.body.appendChild(script);
+
+    // Cleanup function to remove the script when the component unmounts
+    return () => {
+      const existingScript = document.getElementById(
+        "zoho-feedback-widget-script"
+      );
+      if (existingScript) {
+        document.body.removeChild(existingScript);
+      }
+    };
+  }, []); // Empty dependency array ensures this runs only once on mount and cleanup on unmount
+
+  return <div id="zsfeedbackwidgetdiv"></div>;
+};
+
 const SupportPage: React.FC<{ userName: string; userEmail: string }> = ({
   userName,
   userEmail,
@@ -1377,12 +1403,7 @@ const SupportPage: React.FC<{ userName: string; userEmail: string }> = ({
             Encountered an issue? Please provide as much detail as possible so
             we can resolve it quickly.
           </p>
-          <SupportForm
-            formId="xgvnolon"
-            showFileUpload={true}
-            userName={userName}
-            userEmail={userEmail}
-          />
+          <ZohoBugReportWidget />
         </Section>
       )}
       {activeTab === "question" && (
@@ -1973,20 +1994,20 @@ const AdminDashboard: React.FC = () => {
         />
       )}
       <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 flex flex-col">
-<div className="flex items-center justify-center h-20 border-b border-gray-100 dark:border-gray-700 px-4">
-  <div className="flex items-center space-x-1">
-    <button
-      onClick={() => navigate("/")}
-      className="flex items-center space-x-3 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 px-5 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm hover:shadow-md"
-    >
-      <ArrowLeft className="w-4 h-4" />
-      
-      <div className="flex items-center space-x-2">
-        <span>Console</span>
-      </div>
-    </button>
-  </div>
-</div>
+        <div className="flex items-center justify-center h-20 border-b border-gray-100 dark:border-gray-700 px-4">
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={() => navigate("/")}
+              className="flex items-center space-x-3 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 px-5 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm hover:shadow-md"
+            >
+              <ArrowLeft className="w-4 h-4" />
+
+              <div className="flex items-center space-x-2">
+                <span>Console</span>
+              </div>
+            </button>
+          </div>
+        </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {sidebarLinks.map((link) =>
             link.id === "documents" ? (

@@ -576,8 +576,7 @@ ${transcriptText}`;
                     // Find the matching goal ID using a case-insensitive, partial match on description
                     // We must be robust here as the AI might rephrase the goal slightly
                     const matchingGoal = customGoals.find(g => 
-                        // Strip potential AI-added status/summary headers to get a clean match
-                        goalDescriptionLine.replace(/Status:.*$/i, '').replace(/Summary\/Analysis:.*$/i, '').toLowerCase().includes(g.goal_description.toLowerCase().trim())
+                        goalDescriptionLine.toLowerCase().includes(g.goal_description.toLowerCase().trim())
                     );
                     
                     if (matchingGoal) {
@@ -1227,28 +1226,20 @@ ${transcriptText}`;
                                         const theme = isAchieved ? 'green' : 'blue';
                                         const currentTheme = themeClasses[theme];
                                         
-                                        // Determine status text for the summary card
+                                        // Determine status text
                                         let statusText = 'No analysis yet';
                                         let analysisTime = '';
-                                        
                                         if (goalAnalysis[goal.id] && goalAnalysis[goal.id] !== 'Generating analysis...') {
-                                            // 1. If detailed analysis exists, parse the status from it (AI output starts with "Goal:")
-                                            const statusMatch = goalAnalysis[goal.id].match(/Status:\s*(.*?)\n/i);
-                                            statusText = statusMatch ? statusMatch[1].trim() : 'Analysis Complete';
-
-                                            // 2. Use time of the success message (which runs after analysis)
+                                            // Simple method to extract last updated time from chat for display
                                             const lastAnalysisMessage = chatMessages.slice().reverse().find(msg => !msg.isUser && msg.text.includes('Goal Analysis Updated'));
                                             if (lastAnalysisMessage) {
-                                                analysisTime = `Last Analysis: ${lastAnalysisMessage.timestamp.toLocaleTimeString()}`;
+                                                analysisTime = `Last Updated: ${lastAnalysisMessage.timestamp.toLocaleTimeString()}`;
                                             }
                                         } else if (goalAnalysis[goal.id] === 'Generating analysis...') {
                                             statusText = 'Running analysis...';
-                                            analysisTime = 'Updating in progress';
-                                        } else if (!goalAnalysis[goal.id] && evidenceCount > 0) {
-                                            // Fallback to quick-poll evidence only if no AI analysis is available
-                                            statusText = isAchieved ? 'Achieved (Evidence Detected)' : 'In Progress (Evidence Detected)';
-                                            analysisTime = `${evidenceCount} instance${evidenceCount !== 1 ? 's' : ''} found`;
-                                        } else if (!goalAnalysis[goal.id] && evidenceCount === 0) {
+                                        } else if (!goalAnalysis[goal.id] && (isAchieved || evidenceCount > 0)) {
+                                            statusText = isAchieved ? 'Achieved' : 'In Progress (Evidence Detected)';
+                                        } else if (!goalAnalysis[goal.id]) {
                                             statusText = 'No detected evidence';
                                         }
 
@@ -1273,7 +1264,7 @@ ${transcriptText}`;
                                                             <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                                                 <div className="flex items-center justify-between">
                                                                     <span className="font-medium mr-1">Status:</span>
-                                                                    <span className={`font-semibold ${statusText.includes('Achieved') ? 'text-green-500' : (statusText.includes('Progress') ? 'text-blue-500' : 'text-gray-500')}`}>
+                                                                    <span className={`font-semibold ${isAchieved ? 'text-green-500' : (evidenceCount > 0 ? 'text-blue-500' : 'text-gray-500')}`}>
                                                                         {statusText}
                                                                     </span>
                                                                 </div>
@@ -1332,8 +1323,8 @@ ${transcriptText}`;
                                                                     </div>
                                                                 </div>
                                                                 {progress.evidences[progress.current_evidence_index] && (
-                                                                    <div className={`p-2 rounded-md border border-red-500/50 ${isDarkMode ? 'bg-gray-900/80 text-gray-300' : 'bg-white text-gray-800'}`}>
-                                                                        <p className="text-sm italic text-red-500 font-medium">"{progress.evidences[progress.current_evidence_index].text}"</p>
+                                                                    <div className={`p-2 rounded-md border ${isDarkMode ? 'bg-gray-900/80 text-gray-300 border-gray-700' : 'bg-white text-gray-800 border-gray-200'}`}>
+                                                                        <p className="text-sm italic">"{progress.evidences[progress.current_evidence_index].text}"</p>
                                                                         <p className="text-xs mt-2 text-gray-500 text-right"> - {progress.evidences[progress.current_evidence_index].primary_speaker} @ {new Date(progress.evidences[progress.current_evidence_index].timestamp).toLocaleTimeString()}</p>
                                                                     </div>
                                                                 )}

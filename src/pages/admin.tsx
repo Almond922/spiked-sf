@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../AuthContext";
+import ReactMarkdown from "react-markdown";
 import { useForm, ValidationError } from "@formspree/react";
 import {
   ArrowLeft,
@@ -1511,15 +1512,20 @@ const MeetingDetailsView: React.FC<{
   onClose: () => void;
 }> = ({ meetingId, onClose }) => {
   const navigate = useNavigate();
+  const { session } = useAuth(); // Get session for API authentication
   const [details, setDetails] = React.useState<MeetingDetails | null>(null);
   const [transcript, setTranscript] = React.useState<TranscriptSegment[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [summaryStatus, setSummaryStatus] = React.useState<
+    "idle" | "loading" | "loaded" | "error"
+  >("idle");
 
   React.useEffect(() => {
     const fetchDetails = async () => {
-      if (!meetingId) return;
+      if (!meetingId || !session) return;
       setLoading(true);
       try {
+        // 1. Fetch the primary meeting log data
         const { data: logData, error: logError } = await supabase
           .from("meeting_logs")
           .select("*")
@@ -1527,45 +1533,90 @@ const MeetingDetailsView: React.FC<{
           .single();
         if (logError) throw logError;
 
-        const { data: transcriptData, error: transcriptError } = await supabase
-          .from("log_transcripts")
-          .select("*")
-          .eq("log_id", meetingId)
-          .order("start_offset_seconds");
-        if (transcriptError) throw transcriptError;
+        // 2. Conditionally generate AI Summary if it's missing
+        if (!logData.ai_generated_summary) {
+          setSummaryStatus("loading");
+          try {
+            const response = await fetch(
+              `https://recall-backend-production-409019309412.us-central1.run.app/meetings/${meetingId}/generate-summary`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
 
-        const { data: participantsData, error: participantsError } =
-          await supabase
+            if (!response.ok) {
+              // Handle non-successful responses like 404 or 500
+              const errorBody = await response.text();
+              console.error(`API Error: ${response.statusText}`, errorBody);
+              throw new Error(
+                `Failed to generate summary. Server responded with status ${response.status}.`
+              );
+            }
+
+            const summaryResponse = await response.json();
+            logData.ai_generated_summary = summaryResponse.summary; // Update data with new summary
+            setSummaryStatus("loaded");
+          } catch (genError) {
+            console.error("Failed to generate AI summary:", genError);
+            logData.ai_generated_summary =
+              "Error: The AI summary could not be generated at this time. Please try again later.";
+            setSummaryStatus("error");
+          }
+        } else {
+          setSummaryStatus("loaded");
+        }
+
+        // 3. Fetch transcript and participant data concurrently
+        const [transcriptRes, participantsRes] = await Promise.all([
+          supabase
+            .from("log_transcripts")
+            .select("*")
+            .eq("log_id", meetingId)
+            .order("start_offset_seconds"),
+          supabase
             .from("log_participants")
             .select("speaker_name")
-            .eq("log_id", meetingId);
-        if (participantsError) throw participantsError;
+            .eq("log_id", meetingId),
+        ]);
 
+        if (transcriptRes.error) throw transcriptRes.error;
+        if (participantsRes.error) throw participantsRes.error;
+
+        // 4. Set the final state for the component
         setDetails({
           id: logData.id,
           title:
             logData.title || `Meet ${formatDate(logData.meeting_started_at)}`,
           date: formatDate(logData.meeting_started_at),
           duration: formatDuration(logData.duration_seconds),
-          participants: participantsData.map((p) => ({ name: p.speaker_name })),
+          participants: participantsRes.data.map((p) => ({
+            name: p.speaker_name,
+          })),
           sentiment: mapSentiment(logData.overall_sentiment_score),
           transcriptSnippet:
-            logData.one_line_summary || transcriptData[0]?.text_segment || "",
-          ai_summary: logData.ai_generated_summary,
+            logData.one_line_summary ||
+            transcriptRes.data[0]?.text_segment ||
+            "",
+          ai_summary: logData.ai_generated_summary, // This will now have the fetched or newly generated summary
           talk_to_listen_ratio: logData.talk_to_listen_ratio,
           buying_signals_score: logData.buying_signals_total_score,
           critical_alerts_count: logData.critical_alerts_count,
           medpicc_completion: logData.medpicc_completion_percentage,
         });
-        setTranscript(transcriptData);
+        setTranscript(transcriptRes.data);
       } catch (error) {
         console.error("Error fetching meeting details:", error);
+        setSummaryStatus("error"); // Set error status on overall failure
       } finally {
         setLoading(false);
       }
     };
     fetchDetails();
-  }, [meetingId]);
+  }, [meetingId, session]); // Add session to dependency array
 
   const handleGoToNotetaker = () => {
     navigate("/note-taker", {
@@ -1627,11 +1678,20 @@ const MeetingDetailsView: React.FC<{
             </div>
           </div>
           <div className="flex flex-col gap-6 overflow-y-auto">
+            {/* --- UI Updated for Summary Status --- */}
             <Section title="AI Summary" className="p-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {details.ai_summary ||
-                  "No AI summary available for this meeting."}
-              </p>
+              {summaryStatus === "loading" ? (
+                <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generating AI summary...</span>
+                </div>
+              ) : (
+                <div className="prose prose-sm text-gray-600 dark:text-gray-400 max-w-none">
+                  <ReactMarkdown>
+                    {details.ai_summary || "No AI summary available for this meeting."}
+                  </ReactMarkdown>
+                </div>
+              )}
             </Section>
             <Section title="Key Analytics" className="p-4">
               <div className="space-y-3 text-sm">

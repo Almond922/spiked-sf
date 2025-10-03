@@ -70,7 +70,9 @@ const MEDPIC_CATEGORIES = {
   "champion": "Champion"
 };
 
-const formatMedpicSummary = (rawText: string): string => {
+
+
+const formatSummary  = (rawText: string): string => {
   if (!rawText) return rawText;
   
   // Remove follow-up questions
@@ -105,6 +107,16 @@ interface TranscriptSegment {
   speaker: string | null;
   absolute_start_time: string;
   absolute_end_time: string;
+}
+
+interface CustomGoalSummary {
+  summary: string;
+  is_achieved: boolean;
+  analyzed_at?: string;
+}
+
+interface CustomGoalSummaries {
+  [key: string]: CustomGoalSummary;
 }
 
 interface Transcript {
@@ -257,7 +269,7 @@ interface ConversationHealth {
 interface CustomGoal {
   id: string;
   goal_description: string;
-  evaluation_strictness?: string;
+  evaluation_criteria?: string;  // ADD THIS (or rename evaluation_strictness)
   emoji_icon?: string;
 }
 
@@ -615,6 +627,8 @@ const SpikedAI = () => {
   const [autoAnswerHistory, setAutoAnswerHistory] = useState<
     Array<{ question: string; timestamp: Date }>
   >([]);
+  const [customGoalSummaries, setCustomGoalSummaries] = useState<CustomGoalSummaries>({});
+  const [loadingCustomGoals, setLoadingCustomGoals] = useState<Set<string>>(new Set());
   const [isHotMicActive, setIsHotMicActive] = useState(false);
   const [hotMicRecorder, setHotMicRecorder] = useState<MediaRecorder | null>(
     null
@@ -1540,6 +1554,48 @@ useEffect(() => {
       }
     } catch (error) {
       console.error(`Error fetching ${type} details:`, error);
+    }
+  };
+
+  const loadCustomGoalSummary = async (goalId: string) => {
+    if (!session || loadingCustomGoals.has(goalId)) return;
+    
+    // FIX 1: Spread Set properly
+    setLoadingCustomGoals(prev => new Set(Array.from(prev).concat(goalId)));
+    
+    try {
+      const response = await fetch(`${service_url_recall}/sentiment/custom-goals/${goalId}/analyze`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setCustomGoalSummaries(prev => ({
+          ...prev,
+          // FIX 2: Use computed property correctly
+          [goalId]: {
+            summary: result.summary,
+            is_achieved: result.is_achieved,
+            analyzed_at: result.analyzed_at
+          }
+        }));
+      }
+    } catch (error) {
+      console.error(`Error loading custom goal ${goalId} summary:`, error);
+      setCustomGoalSummaries(prev => ({
+        ...prev,
+        [goalId]: {
+          summary: "Failed to load analysis. Please try again.",
+          is_achieved: false
+        }
+      }));
+    } finally {
+      setLoadingCustomGoals(prev => {
+        const newSet = new Set(Array.from(prev));
+        newSet.delete(goalId);
+        return newSet;
+      });
     }
   };
 
@@ -4614,7 +4670,7 @@ useEffect(() => {
                               <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
                                 <div 
                                   className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line"
-                                  dangerouslySetInnerHTML={{ __html: formatMedpicSummary(summary.summary) }}
+                                  dangerouslySetInnerHTML={{ __html: formatSummary(summary.summary) }}
                                 />
                               </div>
                               {summary.analyzed_at && (
@@ -4637,13 +4693,12 @@ useEffect(() => {
             </div>
 
             {/* Custom Goals Progress - Enhanced Version */}
+            {/* Custom Goals Progress - Summary Based */}
             {customGoals.length > 0 && (
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
                     <span>🎯 Custom Goals</span>
-                    {/* ADDED: Progress indicator */}
-                    
                   </span>
                   <div className="flex items-center space-x-2">
                     <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
@@ -4653,207 +4708,107 @@ useEffect(() => {
                 </div>
 
                 <div className="space-y-3">
-                  {customGoals.map((goal, index) => {
-                    const progress = sentimentData.custom_goals_progress.find(p => p.goal.id === goal.id);
-                    const isAchieved = progress?.is_achieved || false;
-                    const achievementPercentage = progress?.achievement_percentage || 0;
-                    const evidences = progress?.evidences || [];
-                    const currentIndex = progress?.current_evidence_index || 0;
+                  {customGoals.map((goal) => {
+                    const isLoading = loadingCustomGoals.has(goal.id);
+                    const summary = customGoalSummaries[goal.id];
                     
                     return (
-                      <div key={goal.id} className="group">
-                        {/* Goal Header Card - MODIFIED with progress indicator */}
-                        <div className={`p-4 rounded-xl border transition-all duration-200 hover:shadow-md ${
-                          isAchieved 
-                            ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700/50" 
-                            : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50"
-                        }`}>
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-start space-x-3 flex-1">
-                              {/* Goal Icon - MODIFIED to show progress state */}
-                              <div className={`flex items-center justify-center p-2 rounded-lg flex-shrink-0 w-8 h-8 ${
-                                isAchieved 
-                                  ? "bg-green-100 dark:bg-green-800/50" 
-                                  : achievementPercentage > 0
-                                  ? "bg-blue-100 dark:bg-blue-800/50"
-                                  : "bg-gray-100 dark:bg-gray-800/50"
-                              }`}>
-                                {isAchieved ? (
-                                  <span className="text-green-600 dark:text-green-400">✓</span>
-                                ) : achievementPercentage > 0 ? (
-                                  <span className="text-xs font-bold text-blue-600 dark:text-blue-400">↗</span>
-                                ) : (
-                                  <span className="font-bold text-gray-600 dark:text-gray-400">{index + 1}</span>
-                                )}
-                              </div>
-                              
-                              {/* Goal Details - MODIFIED with progress info */}
-                              <div className="flex-1 min-w-0">
-                                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2 leading-snug">
-                                  {goal.goal_description}
-                                </h4>
-                                
-                                {/* MODIFIED: Progress Bar with monotonic indicator */}
-                                <div className="mb-2">
-                                  <div className="flex items-center justify-between text-xs mb-1">
-                                    <span className="text-gray-600 dark:text-gray-400 flex items-center space-x-1">
-                                      <span>Progress</span>
-                                      {achievementPercentage > 0 && (
-                                        <span className="text-green-500">📈</span>
-                                      )}
-                                    </span>
-                                    <span className="font-medium text-gray-900 dark:text-gray-100">
-                                      {achievementPercentage.toFixed(1)}%
-                                    </span>
-                                  </div>
-                                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                    <div 
-                                      className={`h-2 rounded-full transition-all duration-500 ${
-                                        isAchieved ? "bg-green-500" : "bg-gradient-to-r from-blue-500 to-green-500"
-                                      }`}
-                                      style={{ width: `${Math.min(achievementPercentage, 100)}%` }}
-                                    ></div>
-                                  </div>
-                                </div>
-                                
-                                {/* MODIFIED: Status and Evidence Count with cumulative indicator */}
-                                <div className="flex items-center space-x-2">
-                                  <span className={`text-xs font-bold px-2 py-1 rounded-full flex items-center space-x-1 ${
-                                    isAchieved
-                                      ? "bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300"
-                                      : achievementPercentage > 0
-                                      ? "bg-blue-100 text-blue-700 dark:bg-blue-800/50 dark:text-blue-300"
-                                      : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                                  }`}>
-                                    {isAchieved ? (
-                                      <>
-                                        <span>✅</span>
-                                        <span>Achieved</span>
-                                      </>
-                                    ) : achievementPercentage > 0 ? (
-                                      <>
-                                        <span>📈</span>
-                                        <span>Progressing</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <span>⏳</span>
-                                        <span>Starting</span>
-                                      </>
-                                    )}
-                                  </span>
-                                  
-                                  {evidences.length > 0 && (
-                                    <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full flex items-center space-x-1">
-                                      <span>📋</span>
-                                      <span>{evidences.length} evidence{evidences.length !== 1 ? 's' : ''}</span>
-                                    </span>
-                                  )}
-                                  
-                                  {progress?.confidence_score && (
-                                    <span className="text-xs bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-full">
-                                      {(progress.confidence_score * 100).toFixed(0)}% confidence
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+                      <details key={goal.id} className="group">
+                        <summary 
+                          className={`p-4 cursor-pointer font-medium rounded-lg border transition-all ${
+                            summary?.is_achieved 
+                              ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700/50" 
+                              : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                          } list-none flex items-center justify-between`}
+                          onClick={(e) => {
+                            if (!summary && !isLoading) {
+                              e.preventDefault();
+                              loadCustomGoalSummary(goal.id);
+                            }
+                          }}
+                        >
+                          <div className="flex items-start space-x-3 flex-1">
+                            <div className={`flex items-center justify-center p-2 rounded-lg flex-shrink-0 w-8 h-8 ${
+                              summary?.is_achieved 
+                                ? "bg-green-100 dark:bg-green-800/50" 
+                                : "bg-gray-100 dark:bg-gray-800/50"
+                            }`}>
+                              {summary?.is_achieved ? (
+                                <span className="text-green-600 dark:text-green-400">✓</span>
+                              ) : (
+                                <span className="font-bold text-gray-600 dark:text-gray-400">?</span>
+                              )}
                             </div>
                             
-                            {/* Delete Button - keep existing */}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1 leading-snug">
+                                {goal.goal_description}
+                              </h4>
+                              <div className="flex items-center space-x-2">
+                                <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                                  summary?.is_achieved
+                                    ? "bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300"
+                                    : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                                }`}>
+                                  {summary?.is_achieved ? "✅ Achieved" : "⏳ Pending"}
+                                </span>
+                                {goal.evaluation_criteria && (
+                                  <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                                    {goal.evaluation_criteria}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2 ml-2">
+                            <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
                             <button
-                              onClick={() => deleteCustomGoal(goal.id)}
-                              className="ml-2 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-100 dark:hover:bg-red-900/30 hover:scale-110"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteCustomGoal(goal.id);
+                              }}
+                              className="p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-100 dark:hover:bg-red-900/30 hover:scale-110"
                               title="Delete goal"
                             >
                               <span className="text-lg">🗑️</span>
                             </button>
                           </div>
-                        </div>
-
-                        {/* Evidence Section - keep existing navigation logic */}
-                        {evidences.length > 0 && (
-                          <div className="mt-3">
-                            <details className="group/evidence">
-                              <summary className="cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400 list-none flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors">
-                                <div className="flex items-center space-x-2">
-                                  <span>📋 View Evidence Details</span>
-                                  <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-full text-xs">
-                                    {evidences.length} found 
-                                  </span>
-                                </div>
-                                <ChevronDown className="w-4 h-4 transition-transform group-open/evidence:rotate-180" />
-                              </summary>
-
-                              {/* Keep existing evidence display and navigation - no changes needed */}
-                              <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200 dark:border-blue-800/30">
-                                {/* Navigation Controls */}
-                                {evidences.length > 1 && (
-                                  <div className="flex items-center justify-between mb-4 p-2 bg-white dark:bg-gray-800 rounded-lg">
-                                    <button
-                                      onClick={() => navigateCustomGoalEvidence(goal.id, "prev")}
-                                      disabled={currentIndex === 0}
-                                      className={`flex items-center space-x-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                        currentIndex === 0
-                                          ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                          : "bg-blue-500 text-white hover:bg-blue-600"
-                                      }`}
-                                    >
-                                      <span>←</span>
-                                      <span>Previous</span>
-                                    </button>
-                                    
-                                    <div className="flex items-center space-x-2">
-                                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                                        Evidence {currentIndex + 1} of {evidences.length}
-                                      </span>
-                                    </div>
-                                    
-                                    <button
-                                      onClick={() => navigateCustomGoalEvidence(goal.id, "next")}
-                                      disabled={currentIndex === evidences.length - 1}
-                                      className={`flex items-center space-x-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                        currentIndex === evidences.length - 1
-                                          ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                          : "bg-blue-500 text-white hover:bg-blue-600"
-                                      }`}
-                                    >
-                                      <span>Next</span>
-                                      <span>→</span>
-                                    </button>
-                                  </div>
-                                )}
-                                
-                                {/* Current Evidence Display */}
-                                {evidences[currentIndex] && (
-                                  <div className="space-y-3">
-                                    <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-green-200 dark:border-green-700/50">
-                                      <div className="flex items-start space-x-2 mb-2">
-                                        <span className="text-green-600 dark:text-green-400 text-xs font-semibold">💬 Evidence:</span>
-                                      </div>
-                                      <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed bg-gray-50 dark:bg-gray-900/50 p-3 rounded border">
-                                        {evidences[currentIndex].text}
-                                      </div>
-                                    </div>
-                                    
-                                    {/* Evidence Metadata (Restored to Emojis) */}
-                                    <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                      <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 px-2 py-1 rounded">
-                                        <span>👤</span>
-                                        <span>{evidences[currentIndex].primary_speaker}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
+                        </summary>
+                        
+                        <div className="p-3 mt-2 border-t border-gray-200 dark:border-gray-700">
+                          {isLoading ? (
+                            <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+                              <Loader className="w-4 h-4 animate-spin" />
+                              <span className="text-sm">Analyzing transcript...</span>
+                            </div>
+                          ) : summary ? (
+                            <div className="space-y-2">
+                              <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                                <div 
+                                  className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line"
+                                  dangerouslySetInnerHTML={{ __html: formatSummary(summary.summary) }}
+                                />
                               </div>
-                            </details>
-                          </div>
-                        )}
-                      </div>
+                              {summary.analyzed_at && (
+                                <p className="text-xs text-gray-400">
+                                  Analyzed at {new Date(summary.analyzed_at).toLocaleTimeString()}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              Click to analyze this goal
+                            </p>
+                          )}
+                        </div>
+                      </details>
                     );
                   })}
                 </div>
               </div>
             )}
+            
 
             {/* ADDED: Clear Sentiment Button */}
             <div className="mt-6 flex justify-left">
@@ -4926,49 +4881,26 @@ useEffect(() => {
                           }`}
                         >
                           <div className="flex items-start justify-between">
-  <div className="flex-1">
-    <div className="flex items-center space-x-2 mb-1">
-      <span className="font-bold text-sm text-gray-800 dark:text-gray-200">
-        {card.speaker}
-      </span>
-      <span
-        className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-          card.status_color === "green"
-            ? "bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300"
-            : card.status_color === "red"
-            ? "bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-300"
-            : "bg-yellow-100 text-yellow-700 dark:bg-yellow-800/50 dark:text-yellow-300"
-        }`}
-      >
-        {card.status.toUpperCase()}
-      </span>
-      <span className="text-xs text-gray-500 dark:text-gray-400">
-        {card.role}
-      </span>
-      {/* NEW MUTE/UNMUTE BUTTON */}
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          toggleMuteParticipant(card.speaker);
-        }}
-        className={`p-1.5 rounded-full transition-colors ml-auto ${
-          mutedSpeakers.includes(card.speaker)
-            ? "bg-red-500 text-white hover:bg-red-600"
-            : isDarkMode
-            ? "hover:bg-slate-600/50 text-slate-400 hover:text-white"
-            : "hover:bg-slate-200 text-slate-500 hover:text-slate-700"
-        }`}
-        title={mutedSpeakers.includes(card.speaker) ? "Unmute Participant" : "Mute Participant"}
-      >
-        {mutedSpeakers.includes(card.speaker) ? (
-          <MicOff className="w-3.5 h-3.5" />
-        ) : (
-          <Mic className="w-3.5 h-3.5 opacity-50" />
-        )}
-      </button>
-      {/* END NEW MUTE/UNMUTE BUTTON */}
-    </div>
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2 mb-1">
+                                <span className="font-bold text-sm text-gray-800 dark:text-gray-200">
+                                  {card.speaker}
+                                </span>
+                                <span
+                                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                    card.status_color === "green"
+                                      ? "bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300"
+                                      : card.status_color === "red"
+                                      ? "bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-300"
+                                      : "bg-yellow-100 text-yellow-700 dark:bg-yellow-800/50 dark:text-yellow-300"
+                                  }`}
+                                >
+                                  {card.status.toUpperCase()}
+                                </span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {card.role}
+                                </span>
+                              </div>
 
                               <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400 mb-2">
                                 <span>
@@ -4986,7 +4918,15 @@ useEffect(() => {
                                     />
                                   )}
                                 </div>
-                                
+                                <div className="flex items-center space-x-1">
+                                  <span>⚠️ {card.concerns_count} concerns</span>
+                                  {card.concerns_count > 0 && (
+                                    <EyeButton
+                                      onClick={() => toggleConcerns(card.speaker)}
+                                      isExpanded={expandedConcerns.has(card.speaker)}
+                                    />
+                                  )}
+                                </div>
                               </div>
 
                               {/* Expanded Buying Signals */}
@@ -5339,9 +5279,6 @@ useEffect(() => {
             </button>
           </div>
           <div className="flex items-center space-x-2">
-<<<<<<< HEAD
-            
-=======
             <div
               className={`flex items-center space-x-2 px-4 py-2 rounded-xl ${
                 isTranscribing
@@ -5364,9 +5301,22 @@ useEffect(() => {
                 {isTranscribing ? "Recording" : "Paused"}
               </span>
             </div>
->>>>>>> parent of cb4d141 (Cleaned the UI)
 
-            
+            <button
+              onClick={toggleTranscription}
+              disabled={!isConnected}
+              className={`p-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 ${
+                isTranscribing
+                  ? "bg-gradient-to-r from-red-pantone to-red-500 text-white hover:from-red-500 hover:to-red-pantone shadow-lg"
+                  : "bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 shadow-lg"
+              }`}
+            >
+              {isTranscribing ? (
+                <Pause className="w-5 h-5" />
+              ) : (
+                <Play className="w-5 h-5" />
+              )}
+            </button>
 
             <div className="flex items-center space-x-2 relative">
               <div className="h-8 w-px bg-slate-300 dark:bg-slate-600"></div>
@@ -5821,7 +5771,7 @@ useEffect(() => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-1">
-                      {/* <button
+                      <button
                         onClick={() => downloadDocument(doc.filename)}
                         className={`p-2 ml-2 rounded-lg transition-all duration-300 hover:scale-105 ${
                           isDarkMode
@@ -5830,7 +5780,7 @@ useEffect(() => {
                         }`}
                         title="Download"
                       >
-                        <Download className="w-4 h-4" />            NEEDS TO BE FIXED. AFTER REFACTORING.
+                        <Download className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => deleteDocument(doc.filename)}
@@ -5842,7 +5792,7 @@ useEffect(() => {
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
-                      </button> */}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -5924,8 +5874,6 @@ useEffect(() => {
                   </div>
                 </div>
 
-<<<<<<< HEAD
-=======
                 <div className="flex flex-col items-center space-y-4">
                   {/* Top: Mic Toggle as a Sliding Switch */}
                   <div className="flex items-center space-x-3">
@@ -5981,8 +5929,8 @@ useEffect(() => {
                       <img src={VexaLogo} alt="Vexa Logo" className="w-4 h-4" />
                     </Link>
                   </div>
->>>>>>> parent of be6af0a (Cleaned Ui 2.0)
                 </div>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
@@ -6178,9 +6126,48 @@ useEffect(() => {
                 {/* Auto-Mode Toggle and Manual Trigger */}
                 <div className="flex items-center space-x-2">
                   {/* Auto/Manual Mode Toggle */}
-                  
+                  <button
+                    onClick={() => setIsAutoMode(!isAutoMode)}
+                    className={`px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-200 ease-in-out hover:shadow-sm ${
+                      isAutoMode
+                        ? "bg-green-500 text-white hover:bg-green-600"
+                        : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                    }`}
+                  >
+                    {isAutoMode ? "Auto Mode ON" : "Manual Mode ON"}
+                  </button>
+
                   {/* Manual Question Trigger */}
-                  
+                  <button
+                    onClick={handleManualQuestionDetection}
+                    disabled={
+                      isTyping || isAutoMode || suggestedQuestions.length === 0
+                    }
+                    title={
+                      isAutoMode
+                        ? "Disable Auto-Mode to trigger manually"
+                        : "Generate question from recent transcript"
+                    }
+                    className={`relative px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-200 ease-in-out hover:shadow-sm ${
+                      isTyping || isAutoMode || suggestedQuestions.length === 0
+                        ? "bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-not-allowed"
+                        : "bg-blue-500 text-white hover:bg-blue-600"
+                    }`}
+                  >
+                    {suggestedQuestions.length > 0 &&
+                      !isAutoMode &&
+                      !isTyping && (
+                        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full animate-pulse border-2 border-white dark:border-blue-500"></span>
+                      )}
+                    <RefreshCw
+                      className={`w-3.5 h-3.5 ${
+                        isTyping ? "animate-spin" : ""
+                      }`}
+                    />
+                    <span>
+                      {isTyping ? "Answering..." : "Generate Question"}
+                    </span>
+                  </button>
                 </div>
 
                 <button

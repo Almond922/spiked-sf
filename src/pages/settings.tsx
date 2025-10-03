@@ -17,44 +17,13 @@ import {
   Target,
   PlusCircle,
   Edit,
-  Settings, // Added Settings icon
 } from "lucide-react";
 import { useAuth } from "../AuthContext";
 
 const API_BASE_URL =
-  "https://spikedai-production-application-822359826336.us-central1.run.app";
+  "https://spikedai-production-application-409019309412.us-central1.run.app";
 
-// --- UTILITY FUNCTIONS & INTERFACES CLONED FROM Notetaker ---
-
-interface GoalSettings {
-  format: "summary" | "detailed" | "speakers_only";
-  wordLimit: number;
-  includeTimestamps: boolean;
-  includeSpeakers: boolean;
-  includeInstances: boolean;
-  pollInterval: number;
-  promptExtension: string;
-}
-
-const loadFromSessionStorage = (key: string, defaultValue: any) => {
-  try {
-    const item = window.sessionStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
-  } catch (error) {
-    return defaultValue;
-  }
-};
-
-const saveToSessionStorage = (key: string, value: any) => {
-  try {
-    window.sessionStorage.setItem(key, JSON.stringify(value));
-  } catch (error) {
-    console.error("Error saving to sessionStorage:", error);
-  }
-};
-
-// --- MAIN SETTINGS INTERFACES ---
-
+// Main settings model, goals are now handled separately
 interface SettingsModel {
   botName: string;
   selectedPersona: string;
@@ -84,8 +53,6 @@ interface MeetingGoal {
   evaluation_criteria: string;
 }
 
-// --- MODAL COMPONENTS ---
-
 const Toast: React.FC<{
   message: string;
   type: "success" | "error";
@@ -110,6 +77,7 @@ const Toast: React.FC<{
   );
 };
 
+// Modal Component for Adding/Editing Goals
 const GoalModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -145,227 +113,43 @@ const GoalModal: React.FC<{
       });
     }
   };
-
+  
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm">
       <div className={`rounded-2xl border shadow-2xl w-full max-w-lg p-8 m-4 animate-fade-in-down ${isDarkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}>
         <h2 className="text-2xl font-bold mb-6">{goal ? "Edit Goal" : "Add New Goal"}</h2>
         <div className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium mb-1.5">Emoji</label>
-            <input type="text" value={emoji} onChange={(e) => setEmoji(e.target.value)} maxLength={2}
-              className={`w-20 text-center px-3 py-2 border rounded-lg focus:border-blue-500 focus:outline-none focus:ring-2 text-xl ${isDarkMode ? "bg-gray-700 border-gray-600 focus:ring-blue-800" : "bg-gray-50 border-gray-300 focus:ring-blue-200"}`} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1.5">Goal Description</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
-              placeholder="e.g., Secure a follow-up meeting with the CTO"
-              className={`w-full px-3 py-2 border rounded-lg focus:border-blue-500 focus:outline-none focus:ring-2 resize-none ${isDarkMode ? "bg-gray-700 border-gray-600 focus:ring-blue-800" : "bg-gray-50 border-gray-300 focus:ring-blue-200"}`} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1.5">Evaluation Criteria</label>
-            <textarea value={criteria} onChange={(e) => setCriteria(e.target.value)} rows={3}
-              placeholder="e.g., A calendar invitation is sent and accepted."
-              className={`w-full px-3 py-2 border rounded-lg focus:border-blue-500 focus:outline-none focus:ring-2 resize-none ${isDarkMode ? "bg-gray-700 border-gray-600 focus:ring-blue-800" : "bg-gray-50 border-gray-300 focus:ring-blue-200"}`} />
-          </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Emoji</label>
+              <input type="text" value={emoji} onChange={(e) => setEmoji(e.target.value)} maxLength={2}
+                className={`w-20 text-center px-3 py-2 border rounded-lg focus:border-blue-500 focus:outline-none focus:ring-2 text-xl ${ isDarkMode ? "bg-gray-700 border-gray-600 focus:ring-blue-800" : "bg-gray-50 border-gray-300 focus:ring-blue-200"}`} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Goal Description</label>
+              <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
+                placeholder="e.g., Secure a follow-up meeting with the CTO"
+                className={`w-full px-3 py-2 border rounded-lg focus:border-blue-500 focus:outline-none focus:ring-2 resize-none ${ isDarkMode ? "bg-gray-700 border-gray-600 focus:ring-blue-800" : "bg-gray-50 border-gray-300 focus:ring-blue-200"}`} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Evaluation Criteria</label>
+              <textarea value={criteria} onChange={(e) => setCriteria(e.target.value)} rows={3}
+                placeholder="e.g., A calendar invitation is sent and accepted."
+                className={`w-full px-3 py-2 border rounded-lg focus:border-blue-500 focus:outline-none focus:ring-2 resize-none ${ isDarkMode ? "bg-gray-700 border-gray-600 focus:ring-blue-800" : "bg-gray-50 border-gray-300 focus:ring-blue-200"}`} />
+            </div>
         </div>
         <div className="flex justify-end gap-4 mt-8">
-          <button onClick={onClose} className={`px-5 py-2.5 rounded-lg font-medium transition-colors ${isDarkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-200 hover:bg-gray-300"}`}>
-            Cancel
-          </button>
-          <button onClick={handleSave} disabled={!description.trim() || !criteria.trim()}
-            className="px-6 py-2.5 rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
-            Save Goal
-          </button>
+            <button onClick={onClose} className={`px-5 py-2.5 rounded-lg font-medium transition-colors ${ isDarkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-200 hover:bg-gray-300"}`}>
+                Cancel
+            </button>
+            <button onClick={handleSave} disabled={!description.trim() || !criteria.trim()}
+              className="px-6 py-2.5 rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+                Save Goal
+            </button>
         </div>
       </div>
     </div>
   );
 };
-
-// NEW: Goal Settings Modal Component
-const GoalSettingsModal: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (settings: GoalSettings) => void;
-  initialSettings: GoalSettings;
-  isDarkMode: boolean;
-}> = ({ isOpen, onClose, onSave, initialSettings, isDarkMode }) => {
-  const [settings, setSettings] = useState(initialSettings);
-  const [tempPollInterval, setTempPollInterval] = useState(initialSettings.pollInterval / 1000);
-
-  useEffect(() => {
-    setSettings(initialSettings);
-    setTempPollInterval(initialSettings.pollInterval / 1000);
-  }, [initialSettings, isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleSave = () => {
-    onSave({ ...settings, pollInterval: tempPollInterval * 1000 });
-    onClose();
-  };
-
-  const updateSetting = (key: keyof GoalSettings, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-  };
-
-  const formatOptions = [
-    { value: 'summary', label: 'Summary', desc: 'Concise summary (default).' },
-    { value: 'detailed', label: 'Detailed', desc: 'Thorough analysis with evidence list.' },
-    { value: 'speakers_only', label: 'Speakers Only', desc: 'List only the names of contributing speakers.' },
-  ];
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm">
-      <div className={`w-full max-w-2xl rounded-2xl shadow-2xl border max-h-[90vh] overflow-y-auto ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
-        <div className={`flex items-center justify-between p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-          <h2 className="text-xl font-bold text-red-600 dark:text-red-400">
-            AI Goal Update Settings
-          </h2>
-          <button
-            onClick={onClose}
-            className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-600'}`}
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-6">
-          {/* Polling Interval */}
-          <div>
-            <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Automatic Update Interval (Seconds)
-            </label>
-            <input
-              type="number"
-              min="30"
-              max="300"
-              value={tempPollInterval}
-              onChange={(e) => {
-                const value = parseInt(e.target.value);
-                setTempPollInterval(Math.max(30, Math.min(300, value)));
-              }}
-              className={`w-full px-4 py-3 border rounded-xl text-sm transition-all duration-200 focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              } focus:outline-none`}
-            />
-            <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              The AI will check goals and post an update every {tempPollInterval} seconds. (Min 30s, Max 300s)
-            </p>
-          </div>
-
-          {/* Output Format */}
-          <div>
-            <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Output Format
-            </label>
-            <div className="flex flex-wrap gap-4">
-              {formatOptions.map((option) => (
-                <label key={option.value} className="flex items-center space-x-2 p-3 rounded-lg cursor-pointer transition-colors"
-                  onClick={() => updateSetting('format', option.value)}>
-                  <input
-                    type="radio"
-                    name="format"
-                    value={option.value}
-                    checked={settings.format === option.value}
-                    onChange={() => updateSetting('format', option.value)}
-                    className="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500"
-                  />
-                  <div>
-                    <span className={`text-sm font-medium capitalize ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{option.label}</span>
-                    <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{option.desc}</p>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Word Limit */}
-          <div>
-            <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Word Limit per Goal Summary ({settings.wordLimit} words)
-            </label>
-            <input
-              type="range"
-              min="50"
-              max="500"
-              step="50"
-              value={settings.wordLimit}
-              onChange={(e) => updateSetting('wordLimit', parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-            />
-          </div>
-
-          {/* Inclusion Options Checkboxes */}
-          <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
-            <label className={`block text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Details to Include in Analysis
-            </label>
-            
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={settings.includeTimestamps}
-                onChange={(e) => updateSetting('includeTimestamps', e.target.checked)}
-                className="form-checkbox h-4 w-4 rounded text-red-600 border-gray-300 focus:ring-red-500"
-              />
-              <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Include Timestamps with evidence.</span>
-            </label>
-            
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={settings.includeSpeakers}
-                onChange={(e) => updateSetting('includeSpeakers', e.target.checked)}
-                className="form-checkbox h-4 w-4 rounded text-red-600 border-gray-300 focus:ring-red-500"
-              />
-              <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Include Speakers who uttered the evidence.</span>
-            </label>
-
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={settings.includeInstances}
-                onChange={(e) => updateSetting('includeInstances', e.target.checked)}
-                className="form-checkbox h-4 w-4 rounded text-red-600 border-gray-300 focus:ring-red-500"
-              />
-              <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Include Exact Quotes (Instances) in the output.</span>
-            </label>
-          </div>
-
-          {/* Prompt Extension */}
-          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-            <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Additional Prompt Clause (Optional)
-            </label>
-            <textarea
-              value={settings.promptExtension}
-              onChange={(e) => updateSetting('promptExtension', e.target.value)}
-              placeholder="e.g., 'Focus only on buyer-side commitments.', or 'Rate the confidence of achievement from 1-10.'"
-              rows={3}
-              className={`w-full px-4 py-3 border rounded-xl text-sm resize-none transition-all duration-200 focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              } focus:outline-none`}
-            />
-          </div>
-        </div>
-
-        <div className={`flex items-center justify-end p-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-          <button
-            onClick={handleSave}
-            className={`px-6 py-2.5 text-white transition-all duration-200 shadow-lg rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 flex items-center space-x-2`}
-          >
-            <CheckCircle className="w-4 h-4" />
-            <span>Save Goal Settings</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- MAIN COMPONENT ---
 
 const SpikedAISettings: React.FC = () => {
   const { session } = useAuth();
@@ -377,27 +161,13 @@ const SpikedAISettings: React.FC = () => {
   const [meetingDomains, setMeetingDomains] = useState<string[]>([]);
   const [meetingGoals, setMeetingGoals] = useState<MeetingGoal[]>([]);
 
-  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false); // Renamed to avoid clash
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<MeetingGoal | null>(null);
 
   const [initialSettings, setInitialSettings] = useState<SettingsModel | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "loading" | "saved">("idle");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-
-  // --- GOAL SETTINGS STATE ---
-  const [showGoalSettingsModal, setShowGoalSettingsModal] = useState(false);
-  const [goalSettings, setGoalSettings] = useState<GoalSettings>(loadFromSessionStorage('spikedai_goal_settings', {
-    format: 'summary',
-    wordLimit: 150,
-    includeTimestamps: true,
-    includeSpeakers: true,
-    includeInstances: false,
-    pollInterval: 30000,
-    promptExtension: '',
-  }));
-  const [initialGoalSettings, setInitialGoalSettings] = useState(goalSettings);
-  // --- END GOAL SETTINGS STATE ---
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
@@ -431,6 +201,7 @@ const SpikedAISettings: React.FC = () => {
           throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
       },
+      // New dedicated functions for Meeting Goals
       fetchMeetingGoals: async (): Promise<MeetingGoal[]> => {
         const response = await fetch(`${API_BASE_URL}/meetingGoals`, {
           headers: getHeaders(),
@@ -441,43 +212,39 @@ const SpikedAISettings: React.FC = () => {
       },
       addMeetingGoal: async (goal: Omit<MeetingGoal, 'id'>): Promise<MeetingGoal> => {
         const response = await fetch(`${API_BASE_URL}/meetingGoals`, {
-          method: 'POST',
-          headers: getHeaders(),
-          body: JSON.stringify(goal),
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(goal),
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
       },
       updateMeetingGoal: async (goal: MeetingGoal): Promise<MeetingGoal> => {
         const response = await fetch(`${API_BASE_URL}/meetingGoals/${goal.id}`, {
-          method: 'PUT',
-          headers: getHeaders(),
-          body: JSON.stringify(goal),
+            method: 'PUT',
+            headers: getHeaders(),
+            body: JSON.stringify(goal),
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
       },
       deleteMeetingGoal: async (goalId: string): Promise<void> => {
         const response = await fetch(`${API_BASE_URL}/meetingGoals/${goalId}`, {
-          method: 'DELETE',
-          headers: getHeaders(),
+            method: 'DELETE',
+            headers: getHeaders(),
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       }
     };
   }, [session]);
 
-  
-
-  // Effect to load initial goal settings only once on mount
   useEffect(() => {
-    setInitialGoalSettings(loadFromSessionStorage('spikedai_goal_settings', goalSettings));
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    setIsDarkMode(mediaQuery.matches);
+    const handleChange = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
-  
-  // Effect to save goal settings to session storage and check dirty state
-  useEffect(() => {
-    saveToSessionStorage('spikedai_goal_settings', goalSettings);
-  }, [goalSettings]);
 
   useEffect(() => {
     const fetchInitialSettings = async () => {
@@ -497,14 +264,14 @@ const SpikedAISettings: React.FC = () => {
     };
 
     const fetchInitialGoals = async () => {
-      if (!session) return;
-      try {
-        const goals = await api.fetchMeetingGoals();
-        setMeetingGoals(goals || []);
-      } catch (error) {
-        console.error("Failed to fetch meeting goals:", error);
-        showToast("Could not load meeting goals", "error");
-      }
+        if (!session) return;
+        try {
+            const goals = await api.fetchMeetingGoals();
+            setMeetingGoals(goals || []);
+        } catch (error) {
+            console.error("Failed to fetch meeting goals:", error);
+            showToast("Could not load meeting goals", "error");
+        }
     }
 
     fetchInitialSettings();
@@ -512,17 +279,17 @@ const SpikedAISettings: React.FC = () => {
   }, [session, api]);
 
   useEffect(() => {
-    const isMainSettingsDirty = JSON.stringify({
+    if (!initialSettings) return;
+    const currentSettings: SettingsModel = {
       botName,
       selectedPersona,
       selectedAnswerStyles,
       customPrompt,
       meetingDomains,
-    }) !== JSON.stringify(initialSettings);
-
-    const isGoalSettingsDirty = JSON.stringify(goalSettings) !== JSON.stringify(initialGoalSettings);
-
-    setIsDirty(isMainSettingsDirty || isGoalSettingsDirty);
+    };
+    const hasChanged =
+      JSON.stringify(currentSettings) !== JSON.stringify(initialSettings);
+    setIsDirty(hasChanged);
   }, [
     botName,
     selectedPersona,
@@ -530,8 +297,6 @@ const SpikedAISettings: React.FC = () => {
     customPrompt,
     meetingDomains,
     initialSettings,
-    goalSettings,
-    initialGoalSettings,
   ]);
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
@@ -544,19 +309,19 @@ const SpikedAISettings: React.FC = () => {
   ];
 
   const answerStyles: AnswerStyle[] = useMemo(() => [
-    { id: "concise", name: "Concise Answer", description: "Give a short, high-level answer suitable for quick consumption or alerts", prompt: "Provide a quick summary or one-sentence insight. Avoid depth. Designed for immediate clarity without elaboration." },
-    { id: "in_depth", name: "In-Depth Response", description: "Comprehensive, structured answer with examples, comparisons, and rich detail", prompt: "Offer a full breakdown of the topic. Include contextual background, examples, benefits, challenges, and comparisons. Prioritize clarity, completeness, and readability." },
-    { id: "points_format", name: "Answer in Points", description: "Structure responses as bullet points", prompt: "Structure all responses as clear, concise bullet points. Use numbered lists or bullet points to organize information. Make each point actionable and easy to scan. Avoid long paragraphs and break down complex information into digestible points." },
-    { id: "with_analogy", name: "Use Analogy", description: "Use real-world analogies or metaphors to explain technical concepts", prompt: "Explain the topic using a familiar metaphor or analogy. Ensure the analogy simplifies the concept without distorting the meaning. Clarify both the analogy and its real-world mapping." },
-    { id: "technical_terms", name: "Define Technical Terms", description: "Include brief, clear definitions of key technical concepts used in the answer", prompt: "Where relevant, define technical terms in plain language. Format as 'Term: Definition'. Keep explanations short and understandable." },
-    { id: "sales_points", name: "Sales Points", description: "Present benefits as persuasive selling points", prompt: "Highlight key advantages of the product/service in a way that resonates with buyer pain points. Focus on ROI, usability, efficiency, and ease of integration." },
-    { id: "key_statistics", name: "Key Statistics", description: "Include impactful, quantitative data points", prompt: "Insert 3-7 high-impact stats or KPIs that reinforce the argument. Format cleanly. Prioritize relevance and credibility." },
-    { id: "case_study", name: "Case Study Summary", description: "Use a real or hypothetical success story to illustrate impact", prompt: "Summarize a real-world scenario using SPSR: Situation, Problem, Solution, Result. Keep each section concise but informative." },
-    { id: "competitive_comparison", name: "Competitive Comparison", description: "Provide a side-by-side comparison of your solution and others", prompt: "Use a table or bullets to compare your solution with alternatives across multiple criteria (features, integration, pricing, support, etc.). Highlight clear advantages." },
-    { id: "customer_queries", name: "Anticipated Customer Questions", description: "Predict what the customer might ask next", prompt: "List common follow-up questions a customer or stakeholder might ask. Use these to guide future responses or FAQs." },
-    { id: "information_gap", name: "Information Gap", description: "Call out missing or unclear information the user should consider", prompt: "Identify what is *not* yet known or shared and what further information could enhance the analysis or decision-making." },
-    { id: "pricing_summary", name: "Pricing Overview", description: "Offer an overview of pricing models, tiers, or TCO", prompt: "Summarize the pricing structure, customization options, and overall value proposition. Highlight flexibility or TCO advantages where relevant." },
-  ], []);
+      { id: "concise", name: "Concise Answer", description: "Give a short, high-level answer suitable for quick consumption or alerts", prompt: "Provide a quick summary or one-sentence insight. Avoid depth. Designed for immediate clarity without elaboration."},
+      { id: "in_depth", name: "In-Depth Response", description: "Comprehensive, structured answer with examples, comparisons, and rich detail", prompt: "Offer a full breakdown of the topic. Include contextual background, examples, benefits, challenges, and comparisons. Prioritize clarity, completeness, and readability."},
+      { id: "points_format", name: "Answer in Points", description: "Structure responses as bullet points", prompt: "Structure all responses as clear, concise bullet points. Use numbered lists or bullet points to organize information. Make each point actionable and easy to scan. Avoid long paragraphs and break down complex information into digestible points."},
+      { id: "with_analogy", name: "Use Analogy", description: "Use real-world analogies or metaphors to explain technical concepts", prompt: "Explain the topic using a familiar metaphor or analogy. Ensure the analogy simplifies the concept without distorting the meaning. Clarify both the analogy and its real-world mapping."},
+      { id: "technical_terms", name: "Define Technical Terms", description: "Include brief, clear definitions of key technical concepts used in the answer", prompt: "Where relevant, define technical terms in plain language. Format as 'Term: Definition'. Keep explanations short and understandable."},
+      { id: "sales_points", name: "Sales Points", description: "Present benefits as persuasive selling points", prompt: "Highlight key advantages of the product/service in a way that resonates with buyer pain points. Focus on ROI, usability, efficiency, and ease of integration."},
+      { id: "key_statistics", name: "Key Statistics", description: "Include impactful, quantitative data points", prompt: "Insert 3-7 high-impact stats or KPIs that reinforce the argument. Format cleanly. Prioritize relevance and credibility."},
+      { id: "case_study", name: "Case Study Summary", description: "Use a real or hypothetical success story to illustrate impact", prompt: "Summarize a real-world scenario using SPSR: Situation, Problem, Solution, Result. Keep each section concise but informative."},
+      { id: "competitive_comparison", name: "Competitive Comparison", description: "Provide a side-by-side comparison of your solution and others", prompt: "Use a table or bullets to compare your solution with alternatives across multiple criteria (features, integration, pricing, support, etc.). Highlight clear advantages."},
+      { id: "customer_queries", name: "Anticipated Customer Questions", description: "Predict what the customer might ask next", prompt: "List common follow-up questions a customer or stakeholder might ask. Use these to guide future responses or FAQs."},
+      { id: "information_gap", name: "Information Gap", description: "Call out missing or unclear information the user should consider", prompt: "Identify what is *not* yet known or shared and what further information could enhance the analysis or decision-making."},
+      { id: "pricing_summary", name: "Pricing Overview", description: "Offer an overview of pricing models, tiers, or TCO", prompt: "Summarize the pricing structure, customization options, and overall value proposition. Highlight flexibility or TCO advantages where relevant."},
+    ], []);
 
   const updateCustomPrompt = (personaId: string, styleIds: string[]) => {
     const personaPrompt = customerPersonas.find((p) => p.id === personaId)?.prompt || "";
@@ -578,7 +343,6 @@ const SpikedAISettings: React.FC = () => {
   const handleSave = async () => {
     if (!isDirty) return;
     setSaveState("loading");
-
     const settingsToSave: SettingsModel = {
       botName,
       selectedPersona,
@@ -586,16 +350,9 @@ const SpikedAISettings: React.FC = () => {
       customPrompt,
       meetingDomains,
     };
-
     try {
-      // 1. Save Main Settings
       await api.saveSettings(settingsToSave);
       setInitialSettings(settingsToSave);
-
-      // 2. Update initial goal settings state to reflect the currently saved version
-      // This is crucial for correctly tracking the dirty state for goals in subsequent checks
-      setInitialGoalSettings(goalSettings);
-      
       setSaveState("saved");
       showToast("Settings saved successfully!");
       setTimeout(() => setSaveState("idle"), 2000);
@@ -613,8 +370,6 @@ const SpikedAISettings: React.FC = () => {
       setSelectedAnswerStyles(initialSettings.selectedAnswerStyles || []);
       setCustomPrompt(initialSettings.customPrompt || "");
       setMeetingDomains(initialSettings.meetingDomains || []);
-      // Also reset Goal Settings
-      setGoalSettings(initialGoalSettings);
       showToast("Changes have been reset");
     }
   };
@@ -623,7 +378,6 @@ const SpikedAISettings: React.FC = () => {
     window.location.href = "/";
   };
 
-  // Goal CRUD Handlers
   const handleSaveGoal = async (goalToSave: MeetingGoal) => {
     const isEditing = !!editingGoal;
     try {
@@ -641,11 +395,11 @@ const SpikedAISettings: React.FC = () => {
       console.error("Failed to save goal:", error);
       showToast(`Error: Could not ${isEditing ? 'update' : 'add'} goal`, "error");
     } finally {
-      setIsGoalModalOpen(false);
+      setIsModalOpen(false);
       setEditingGoal(null);
     }
   };
-
+  
   const removeMeetingGoal = async (goalId: string) => {
     try {
       await api.deleteMeetingGoal(goalId);
@@ -656,24 +410,17 @@ const SpikedAISettings: React.FC = () => {
       showToast("Error: Could not remove goal", "error");
     }
   };
-
+  
   const handleOpenAddModal = () => {
     setEditingGoal(null);
-    setIsGoalModalOpen(true);
+    setIsModalOpen(true);
   };
 
   const handleOpenEditModal = (goal: MeetingGoal) => {
     setEditingGoal(goal);
-    setIsGoalModalOpen(true);
+    setIsModalOpen(true);
   };
 
-  // Goal Settings Handler
-  const handleGoalSettingsSave = (newSettings: GoalSettings) => {
-    setGoalSettings(newSettings);
-    setShowGoalSettingsModal(false);
-    showToast("Goal analysis settings updated (Click 'Save Changes' to persist)");
-  };
-  
   const renderSaveButtonContent = () => {
     switch (saveState) {
       case "loading": return (<><Loader2 className="w-4 h-4 animate-spin" /><span>Saving...</span></>);
@@ -744,20 +491,11 @@ const SpikedAISettings: React.FC = () => {
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"}`}>
       {toast && (<Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />)}
       
-      <GoalModal
-        isOpen={isGoalModalOpen}
-        onClose={() => setIsGoalModalOpen(false)}
+      <GoalModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         onSave={handleSaveGoal}
         goal={editingGoal}
-        isDarkMode={isDarkMode}
-      />
-      
-      {/* NEW: Goal Settings Modal */}
-      <GoalSettingsModal
-        isOpen={showGoalSettingsModal}
-        onClose={() => setShowGoalSettingsModal(false)}
-        onSave={handleGoalSettingsSave}
-        initialSettings={goalSettings}
         isDarkMode={isDarkMode}
       />
 
@@ -768,7 +506,7 @@ const SpikedAISettings: React.FC = () => {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Personalisation</h1>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Settings</h1>
               <p className={`text-sm mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>Configure your AI sales copilot</p>
             </div>
           </div>
@@ -841,17 +579,10 @@ const SpikedAISettings: React.FC = () => {
                     <p className={`text-sm mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>Define key objectives for your meetings to track success.</p>
                   </div>
                 </div>
-                <div className="flex space-x-2">
-                    {/* NEW: Goal Settings Button */}
-                    <button onClick={() => setShowGoalSettingsModal(true)} title="Goal Analysis Settings"
-                        className={`p-2 rounded-lg font-medium transition-colors ${isDarkMode ? "bg-gray-700 text-gray-400 hover:bg-gray-600" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`}>
-                        <Settings className="w-5 h-5" />
-                    </button>
-                    <button onClick={handleOpenAddModal} className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${isDarkMode ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-blue-500 text-white hover:bg-blue-600"}`}>
-                        <PlusCircle className="w-4 h-4" />
-                        Add New Goal
-                    </button>
-                </div>
+                <button onClick={handleOpenAddModal} className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${isDarkMode ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-blue-500 text-white hover:bg-blue-600"}`}>
+                    <PlusCircle className="w-4 h-4" />
+                    Add New Goal
+                </button>
               </div>
               <div className="space-y-3">
                 {meetingGoals.length > 0 ? (

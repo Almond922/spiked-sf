@@ -9,7 +9,6 @@ import {
   Settings,
   Users,
   FileText,
-  MessageSquare,
   LogOut,
   BarChart2,
   Database,
@@ -89,6 +88,7 @@ interface TranscriptSegment {
   speaker_name: string;
   text_segment: string;
   start_offset_seconds: number;
+  absolute_timestamp: string | null;
 }
 
 // --- DUMMY DATA FOR UNCHANGED SECTIONS ---
@@ -195,6 +195,17 @@ const formatTranscriptTimestamp = (seconds: number): string => {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+};
+
+const formatAbsoluteTimestamp = (
+  timestamp: string | null | undefined
+): string => {
+  if (!timestamp) return "--:--";
+  // Format to HH:MM (24-hour format)
+  return new Date(timestamp).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
 const formatDate = (dateString: string | null | undefined): string => {
@@ -840,37 +851,42 @@ const fetchAndFormatMeetings = async (
     .from("meeting_logs")
     .select("*")
     .eq("user_id", userId)
+    .gt("duration_seconds", 120)
     .order("meeting_started_at", { ascending: false });
+
   if (limit) query = query.limit(limit);
+
   const { data: logs, error: logsError } = await query;
   if (logsError) throw logsError;
-  if (!logs) return [];
+  if (!logs || logs.length === 0) return [];
+
   const logIds = logs.map((log) => log.id);
-  if (logIds.length === 0) return [];
-  const [participantsRes, transcriptsRes] = await Promise.all([
+
+  const [participantsRes, snippetsRes] = await Promise.all([
     supabase
       .from("log_participants")
       .select("log_id, speaker_name")
       .in("log_id", logIds),
-    supabase
-      .from("log_transcripts")
-      .select("log_id, text_segment")
-      .in("log_id", logIds)
-      .order("start_offset_seconds", { ascending: true }),
+    supabase.rpc("get_first_snippets", { log_ids_in: logIds }),
   ]);
+
   if (participantsRes.error) throw participantsRes.error;
-  if (transcriptsRes.error) throw transcriptsRes.error;
+  if (snippetsRes.error) {
+    console.error("Error fetching snippets with RPC:", snippetsRes.error);
+    throw snippetsRes.error;
+  }
+
   const participantsByLogId = new Map<string, { name: string }[]>();
   participantsRes.data?.forEach((p) => {
     const existing = participantsByLogId.get(p.log_id) || [];
     participantsByLogId.set(p.log_id, [...existing, { name: p.speaker_name }]);
   });
+
   const firstTranscriptByLogId = new Map<string, string>();
-  transcriptsRes.data?.forEach((t) => {
-    if (!firstTranscriptByLogId.has(t.log_id)) {
-      firstTranscriptByLogId.set(t.log_id, t.text_segment);
-    }
+  snippetsRes.data?.forEach((snippet: any) => {
+    firstTranscriptByLogId.set(snippet.log_id, snippet.text_segment);
   });
+
   return logs.map((log) => ({
     id: log.id,
     title: log.title || `Meet ${formatDate(log.meeting_started_at)}`,
@@ -926,7 +942,9 @@ const MeetingLogsPage: React.FC<{ onViewDetails: (id: string) => void }> = ({
           ))}
         </div>
       ) : (
-        <p className="text-center text-gray-500">No meeting logs found.</p>
+        <p className="text-center text-gray-500">
+          No meeting logs longer than 2 minutes found.
+        </p>
       )}
     </Section>
   );
@@ -1574,7 +1592,9 @@ const MeetingDetailsView: React.FC<{
         const [transcriptRes, participantsRes] = await Promise.all([
           supabase
             .from("log_transcripts")
-            .select("*")
+            .select(
+              "id, speaker_name, text_segment, start_offset_seconds, absolute_timestamp"
+            )
             .eq("log_id", meetingId)
             .order("start_offset_seconds"),
           supabase
@@ -1663,7 +1683,7 @@ const MeetingDetailsView: React.FC<{
                   className="flex items-start gap-3 text-sm"
                 >
                   <span className="font-mono text-xs text-gray-500 pt-0.5">
-                    {formatTranscriptTimestamp(segment.start_offset_seconds)}
+                    {formatAbsoluteTimestamp(segment.absolute_timestamp)}
                   </span>
                   <div className="flex-1">
                     <p className="font-semibold text-gray-800 dark:text-gray-200">
@@ -1688,7 +1708,8 @@ const MeetingDetailsView: React.FC<{
               ) : (
                 <div className="prose prose-sm text-gray-600 dark:text-gray-400 max-w-none">
                   <ReactMarkdown>
-                    {details.ai_summary || "No AI summary available for this meeting."}
+                    {details.ai_summary ||
+                      "No AI summary available for this meeting."}
                   </ReactMarkdown>
                 </div>
               )}
@@ -1755,6 +1776,7 @@ const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = React.useState(true);
   const [showUserMenu, setShowUserMenu] = React.useState(false);
   const [showActivityLog, setShowActivityLog] = React.useState(false);
   const [activePage, setActivePage] = React.useState("dashboard");
@@ -1784,8 +1806,10 @@ const AdminDashboard: React.FC = () => {
     { day: "Sat", meetings: 0 },
   ]);
 
+  // Effect for fetching user profile
   React.useEffect(() => {
     const fetchProfile = async () => {
+      setIsProfileLoading(true);
       if (session?.user) {
         try {
           const { data, error } = await supabase
@@ -1797,9 +1821,18 @@ const AdminDashboard: React.FC = () => {
           if (data) setProfile(data);
         } catch (error) {
           console.error("Error fetching user profile:", error);
+        } finally {
+          setIsProfileLoading(false);
         }
+      } else {
+        setIsProfileLoading(false);
       }
     };
+    fetchProfile();
+  }, [session]);
+
+  // Effect for fetching dashboard data
+  React.useEffect(() => {
     const fetchDashboardData = async () => {
       if (!session?.user?.id) return;
       setLoading(true);
@@ -1866,8 +1899,10 @@ const AdminDashboard: React.FC = () => {
         setLoading(false);
       }
     };
-    fetchProfile();
-    if (activePage === "dashboard") fetchDashboardData();
+
+    if (activePage === "dashboard") {
+      fetchDashboardData();
+    }
   }, [session, activePage]);
 
   const handleLogout = async () => {
@@ -2027,6 +2062,7 @@ const AdminDashboard: React.FC = () => {
           <SupportPage
             userName={userFullName}
             userEmail={session?.user?.email || ""}
+            isProfileLoading={isProfileLoading}
           />
         );
       case "meeting_simulator":

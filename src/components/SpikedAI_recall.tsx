@@ -1363,6 +1363,24 @@ useEffect(() => {
       return newCategories;
     });
   };
+// Add this new function inside the SpikedAI functional component:
+const handleAskTranscript = async (segmentText: string) => {
+  if (isTyping || !session) return;
+
+  // The question is the segment's text itself
+  const question = segmentText.trim();
+  if (!question) return;
+
+  // Reset the chat history view to focus on the new question/answer
+  setCurrentAnswer("");
+  setCurrentSources([]);
+  setCurrentFollowUps([]);
+  setCurrentSalesFollowUps([]);
+  setShowHistory(false); // Optionally hide history to focus on the new answer
+
+  await askQuestion(question, false); // false = not auto-generated
+};
+
 
   const extractMeetingIdAndPlatform = (
     meetingUrl: string
@@ -6281,83 +6299,96 @@ useEffect(() => {
                 </div>
               ) : (
                 memoizedTranscriptData.map((entry, index) => (
-                    <div
-                      key={entry.id}
-                      className={`${
-                        isDarkMode ? "bg-slate-700/40" : "bg-honeydew/40"
-                      } backdrop-blur-sm rounded-lg px-3 py-2 border ${
-                        isDarkMode
-                          ? "border-slate-600/20"
-                          : "border-non-photo-blue/20"
-                      } shadow-sm hover:shadow-md transition duration-200 ease-in-out text-sm ${getSentimentColor(
-                        entry.speaker
-                      )}`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <div
-                            className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
-                              entry.speaker === "Spiked"
-                                ? "bg-gradient-to-r from-cerulean to-berkeley-blue text-white"
-                                : entry.speaker
-                                    ?.toLowerCase()
-                                    .includes("customer")
-                                ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white"
-                                : index % 2 === 0
-                                ? "bg-gradient-to-r from-cerulean to-non-photo-blue text-white"
-                                : "bg-gradient-to-r from-non-photo-blue to-cerulean text-white"
-                            }`}
-                          >
-                            {entry.speaker === "Spiked"
-                              ? "🧠"
-                              : entry.speaker
-                                  ?.toLowerCase()
-                                  .includes("customer")
-                              ? "👤"
-                              : entry.speaker
-                              ? entry.speaker.charAt(0)
-                              : "?"}
-                          </div>
-                          <span
-                            className={`font-medium ${
-                              entry.speaker === "Spiked"
-                                ? "text-cerulean dark:text-cerulean"
-                                : entry.speaker
-                                    ?.toLowerCase()
-                                    .includes("customer")
-                                ? "text-emerald-500 dark:text-emerald-400"
-                                : isDarkMode
-                                ? "text-non-photo-blue"
-                                : "text-berkeley-blue"
-                            }`}
-                          >
-                            {entry.speaker || "Unknown"}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span
-                            className={`text-[10px] ${
-                              isDarkMode ? "text-slate-400" : "text-slate-500"
-                            }`}
-                          >
-                            {new Date(
-                              entry.absolute_start_time
-                            ).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                      </div>
-                      <p
-                        className={`${
-                          isDarkMode ? "text-slate-300" : "text-berkeley-blue"
-                        } leading-snug text-[13px]`}
-                      >
-                        {entry.text}
-                      </p>
-                    </div>
-                  ))
+  <div
+    key={entry.id}
+    className={`group relative p-3 rounded-lg border ${
+      isDarkMode ? "bg-slate-700/40 border-slate-600/20" : "bg-honeydew/40 border-non-photo-blue/20"
+    } shadow-sm hover:shadow-md transition duration-200 ease-in-out text-sm ${getSentimentColor(
+      entry.speaker
+    )}`}
+  >
+    <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center space-x-2">
+        <div
+          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
+            entry.speaker === "Spiked"
+              ? "bg-gradient-to-r from-cerulean to-berkeley-blue text-white"
+              : entry.speaker
+                  ?.toLowerCase()
+                  .includes("customer")
+              ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white"
+              : index % 2 === 0
+              ? "bg-gradient-to-r from-cerulean to-non-photo-blue text-white"
+              : "bg-gradient-to-r from-non-photo-blue to-cerulean text-white"
+          }`}
+        >
+          {entry.speaker === "Spiked"
+            ? "🧠"
+            : entry.speaker
+                ?.toLowerCase()
+                .includes("customer")
+            ? "👤"
+            : entry.speaker
+            ? entry.speaker.charAt(0)
+            : "?"}
+        </div>
+        <span
+          className={`font-medium ${
+            entry.speaker === "Spiked"
+              ? "text-cerulean dark:text-cerulean"
+              : entry.speaker
+                  ?.toLowerCase()
+                  .includes("customer")
+              ? "text-emerald-500 dark:text-emerald-400"
+              : isDarkMode
+              ? "text-non-photo-blue"
+              : "text-berkeley-blue"
+          }`}
+        >
+          {entry.speaker || "Unknown"}
+        </span>
+      </div>
+      <div className="flex items-center space-x-2">
+        <span
+          className={`text-[10px] ${
+            isDarkMode ? "text-slate-400" : "text-slate-500"
+          }`}
+        >
+          {new Date(
+            entry.absolute_start_time
+          ).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      </div>
+    </div>
+    
+    {/* TEXT AND NEW BUTTON CONTAINER */}
+    <div className="flex items-start justify-between gap-2">
+      <p
+        className={`flex-1 leading-snug text-[13px] ${
+          isDarkMode ? "text-slate-300" : "text-berkeley-blue"
+        }`}
+      >
+        {entry.text}
+      </p>
+      {/* The new button */}
+      <button
+        onClick={() => handleAskTranscript(entry.text)}
+        disabled={isTyping}
+        className={`p-1.5 rounded-full flex-shrink-0 transition-all duration-300 transform hover:scale-110 ${
+          isTyping ? "opacity-50 cursor-not-allowed" : "opacity-0 group-hover:opacity-100"
+        } ${
+          isDarkMode ? "bg-cerulean/20 text-cerulean hover:bg-cerulean/30" : "bg-cerulean/10 text-cerulean hover:bg-cerulean/20"
+        }`}
+        title="Ask Copilot about this segment"
+      >
+        <Sparkles className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  </div>
+))
               )}
               {interimTranscript && (
                 <div

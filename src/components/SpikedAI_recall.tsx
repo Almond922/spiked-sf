@@ -185,6 +185,29 @@ interface BuyingSignal {
   confidence: number;
 }
 
+// REPLACE the existing buying_signals structure with this enhanced version:
+interface BuyingSignalsData {
+  total_score: number;
+  signals_by_type: Record<string, number>;
+  trend: "increasing" | "decreasing" | "stable" | "neutral";
+  recent_signals: BuyingSignal[];
+  signal_count: number;
+  llm_summary?: string;  // ADD THIS
+  analysis_method?: "llm_enhanced" | "pattern_based";  // ADD THIS
+}
+
+// Then update SentimentData interface to use it:
+interface SentimentData {
+  critical_alerts: CriticalAlert[];
+  buying_signals: BuyingSignalsData;  // CHANGE from inline object
+  participant_cards: ParticipantCard[];
+  conversation_health: ConversationHealth;
+  engagement_scores: ParticipantEngagement[];
+  medpic_progress: MedpicProgress;
+  last_updated: string;
+  custom_goals_progress: CustomGoalProgress[];
+}
+
 interface ParticipantEngagement {
   speaker: string;
   speaking_time_seconds: number;
@@ -295,25 +318,6 @@ interface MeetingGoalUpdate {
   evaluation_strictness?: string;
   emoji_icon?: string;
 }
-// ...existing code...
-
-interface SentimentData {
-  critical_alerts: CriticalAlert[];
-  buying_signals: {
-    total_score: number;
-    signals_by_type: Record<string, number>;
-    trend: "increasing" | "decreasing" | "stable" | "neutral";
-    recent_signals: BuyingSignal[];
-    signal_count: number;
-  };
-
-  participant_cards: ParticipantCard[];
-  conversation_health: ConversationHealth;
-  engagement_scores: ParticipantEngagement[];
-  medpic_progress: MedpicProgress;
-  last_updated: string;
-  custom_goals_progress: CustomGoalProgress[]; // <-- Add this field
-}
 
 // IndexedDB utilities
 const DB_NAME = "SpikedAI_Cache";
@@ -329,6 +333,8 @@ const initialSentimentData: SentimentData = {
     trend: "neutral",
     recent_signals: [],
     signal_count: 0,
+    llm_summary: undefined,  
+    analysis_method: undefined,
   },
   participant_cards: [],
   conversation_health: {
@@ -660,10 +666,21 @@ const SpikedAI = () => {
   const [isLoadingMedpicSummary, setIsLoadingMedpicSummary] = useState(false);
   const [medpicSummaries, setMedpicSummaries] = useState<MedpicSummaries>({});
   const [loadingMedpicCategories, setLoadingMedpicCategories] = useState<Set<string>>(new Set());
-  // NEW STATE: For drag and drop
   const [draggedCategory, setDraggedCategory] = useState<string | null>(null);
-
-  
+  const [medpicGenerationTimes, setMedpicGenerationTimes] = useState<Record<string, number>>({});
+  const [customGoalGenerationTimes, setCustomGoalGenerationTimes] = useState<Record<string, number>>({});
+  const [goalAnalysis, setGoalAnalysis] = useState<Record<string, string>>({});
+  const [isAnalyzingGoals, setIsAnalyzingGoals] = useState(false);
+  const [showGoalSettingsModal, setShowGoalSettingsModal] = useState(false);
+  const [goalSettings, setGoalSettings] = useState({
+    format: 'summary' as 'summary' | 'detailed' | 'speakers_only',
+    wordLimit: 150,
+    includeTimestamps: true,
+    includeSpeakers: true,
+    includeInstances: false,
+    pollInterval: 30000,
+    promptExtension: '',
+  });
   const sseRefs = useRef<{
     transcript: AbortController | null;
     question: AbortController | null;
@@ -678,6 +695,8 @@ const SpikedAI = () => {
   const [meetingQuestions, setMeetingQuestions] = useState<string[]>(
     loadFromSessionStorage("spikedai_meeting_questions", [])
   );
+  const [medpicErrors, setMedpicErrors] = useState<Record<string, string>>({});
+
 
   // ** START: MODIFIED RECALL.AI FUNCTIONALITIES **
   const [transcriptEventSource, setTranscriptEventSource] =
@@ -687,10 +706,10 @@ const SpikedAI = () => {
   const [speakerTimes, setSpeakerTimes] = useState<Record<string, number>>({});
   const [totalMeetingDuration, setTotalMeetingDuration] = useState(0);
 
-  // Replace your existing startBot function with this corrected version
-
-  // Add this to prevent duplicate processing
   const [processedMessageIds, setProcessedMessageIds] = useState(new Set());
+  const [buyingSignalsSummary, setBuyingSignalsSummary] = useState<string>("");
+  const [isAnalyzingSignals, setIsAnalyzingSignals] = useState(false);
+  const [signalsGenerationTime, setSignalsGenerationTime] = useState<number>(0);
 
   useEffect(() => {
     if (!loading && !session) {
@@ -981,7 +1000,20 @@ useEffect(() => {
   const loadMedpicCategorySummary = async (category: string) => {
   if (!session || loadingMedpicCategories.has(category)) return;
   
+  // Check cooldown (1 minute = 60000ms)
+  const lastGenerated = medpicGenerationTimes[category];
+  if (lastGenerated && (Date.now() - lastGenerated) < 60000) {
+    const remainingTime = Math.ceil((60000 - (Date.now() - lastGenerated)) / 60000);
+    alert(`Please wait ${remainingTime} more minute(s) before regenerating this summary.`);
+    return;
+  }
+  
   setLoadingMedpicCategories(prev => new Set([...prev, category]));
+  setMedpicErrors(prev => {
+    const newErrors = {...prev};
+    delete newErrors[category];
+    return newErrors;
+  });
   
   try {
     const response = await fetch(`${service_url_recall}/sentiment/medpic/${category}/analyze`, {
@@ -989,25 +1021,26 @@ useEffect(() => {
       headers: { Authorization: `Bearer ${session.access_token}` }
     });
     
-    if (response.ok) {
-      const result = await response.json();
-      setMedpicSummaries(prev => ({
-        ...prev,
-        [category]: {
-          summary: result.summary,
-          discussed: result.discussed,
-          analyzed_at: result.analyzed_at
-        }
-      }));
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to generate summary: ${response.status} - ${errorText}`);
     }
-  } catch (error) {
-    console.error(`Error loading ${category} summary:`, error);
+    
+    const result = await response.json();
     setMedpicSummaries(prev => ({
       ...prev,
       [category]: {
-        summary: "Failed to load analysis. Please try again.",
-        discussed: false
+        summary: result.summary,
+        discussed: result.discussed,
+        analyzed_at: result.analyzed_at
       }
+    }));
+    setMedpicGenerationTimes(prev => ({ ...prev, [category]: Date.now() }));
+  } catch (error) {
+    console.error(`Error loading ${category} summary:`, error);
+    setMedpicErrors(prev => ({
+      ...prev,
+      [category]: error instanceof Error ? error.message : 'Failed to generate summary'
     }));
   } finally {
     setLoadingMedpicCategories(prev => {
@@ -1017,41 +1050,6 @@ useEffect(() => {
     });
   }
 };
-
-  const debugSentimentStatus = async () => {
-  if (!session || !botId) {
-    console.log("Debug: No session or botId available");
-    return;
-  }
-
-  try {
-    // Check bot status
-    const debugResponse = await fetch(`${service_url_recall}/debug/bot-status/${session.user?.id}`, {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-    
-    if (debugResponse.ok) {
-      const debugData = await debugResponse.json();
-      console.log("🔍 Bot Status Debug:", debugData);
-    }
-
-    // Try to fetch sentiment analysis directly
-    const sentimentResponse = await fetch(`${service_url_recall}/sentiment/analysis`, {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-
-    if (sentimentResponse.ok) {
-      const sentimentData = await sentimentResponse.json();
-      console.log("🎯 Sentiment Analysis Success:", sentimentData);
-    } else {
-      const errorText = await sentimentResponse.text();
-      console.error("❌ Sentiment Analysis Failed:", sentimentResponse.status, errorText);
-    }
-  } catch (error) {
-    console.error("🚨 Debug request failed:", error);
-  }
-};
-  // ** END: MODIFIED RECALL.AI FUNCTIONALITIES **
 
   useEffect(() => {
     const fetchHistoryAndConnect = async (currentBotId: string) => {
@@ -1557,47 +1555,175 @@ useEffect(() => {
     }
   };
 
-  const loadCustomGoalSummary = async (goalId: string) => {
-    if (!session || loadingCustomGoals.has(goalId)) return;
+const analyzeCustomGoal = async (goalId: string) => {
+  if (!session || loadingCustomGoals.has(goalId) || isTyping) return;
+  
+  // Check 1-minute cooldown
+  const lastGenerated = customGoalGenerationTimes[goalId];
+  if (lastGenerated && (Date.now() - lastGenerated) < 60000) {
+    const remainingTime = Math.ceil((60000 - (Date.now() - lastGenerated)) / 60000);
+    alert(`Please wait ${remainingTime} more minute(s) before regenerating this analysis.`);
+    return;
+  }
+  
+  const goal = customGoals.find(g => g.id === goalId);
+  if (!goal) return;
+  
+  setLoadingCustomGoals(prev => new Set([...prev, goalId]));
+  setGoalAnalysis(prev => ({ ...prev, [goalId]: 'Generating analysis...' }));
+
+  const transcriptText = transcript
+    .map(seg => `[${Math.floor(seg.start)}s] ${seg.speaker || 'Unknown'}: ${seg.text}`)
+    .join('\n');
+
+  let promptParts: string[] = [];
+
+  // Core instruction
+  promptParts.push(`Based on the transcript, analyze this custom goal:
+
+Goal: ${goal.goal_description}
+${goal.evaluation_criteria ? `Criteria: ${goal.evaluation_criteria}` : ''}
+
+Your output MUST follow this format:
+**Status:** [Achieved/In Progress/Not Started]
+**Analysis:** [Your detailed analysis...]
+`);
+
+  // Format instruction based on settings
+  let formatInstruction = `Your response MUST contain:
+1. **Status:** Clear achievement status
+2. **Analysis:** Concise analysis (strictly ${goalSettings.wordLimit} words).`;
+
+  if (goalSettings.format === 'detailed') {
+    formatInstruction = `Your response MUST contain:
+1. **Status:** Clear achievement status
+2. **Analysis:** Thorough analysis (${goalSettings.wordLimit} words).
+3. **Evidence:** Markdown list of relevant quotes from transcript.`;
+  } else if (goalSettings.format === 'speakers_only') {
+    formatInstruction = `Your response MUST contain:
+1. **Status:** Clear achievement status
+2. **Analysis:** List ONLY speaker names who contributed evidence.`;
+  }
+
+  // Inclusion options
+  let inclusionInstruction = '';
+  if (goalSettings.includeSpeakers) {
+    inclusionInstruction += 'Mention speaker(s) associated with key evidence. ';
+  }
+  if (goalSettings.includeTimestamps) {
+    inclusionInstruction += 'Include timestamps [Xs] next to critical evidence. ';
+  }
+  if (goalSettings.includeInstances) {
+    inclusionInstruction += 'Include exact quotes where goal was addressed. ';
+  }
+  if (goalSettings.promptExtension.trim()) {
+    inclusionInstruction += `\nADDITIONAL: ${goalSettings.promptExtension.trim()}`;
+  }
+
+  promptParts.push(formatInstruction);
+  if (inclusionInstruction) {
+    promptParts.push(`\nRequirements: ${inclusionInstruction}`);
+  }
+  
+  const finalPrompt = promptParts.join('\n\n') + `\n\n---\nTRANSCRIPT:\n${transcriptText}`;
+
+  try {
+    const response = await fetch(`${service_url_recall}/api/process-template`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ prompt: finalPrompt }),
+    });
+
+    if (!response.ok) throw new Error('Goal analysis failed');
     
-    // FIX 1: Spread Set properly
-    setLoadingCustomGoals(prev => new Set(Array.from(prev).concat(goalId)));
+    const data = await response.json();
+    const rawResponse = data.response as string;
     
-    try {
-      const response = await fetch(`${service_url_recall}/sentiment/custom-goals/${goalId}/analyze`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` }
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        setCustomGoalSummaries(prev => ({
-          ...prev,
-          // FIX 2: Use computed property correctly
-          [goalId]: {
-            summary: result.summary,
-            is_achieved: result.is_achieved,
-            analyzed_at: result.analyzed_at
-          }
-        }));
-      }
-    } catch (error) {
-      console.error(`Error loading custom goal ${goalId} summary:`, error);
-      setCustomGoalSummaries(prev => ({
-        ...prev,
-        [goalId]: {
-          summary: "Failed to load analysis. Please try again.",
-          is_achieved: false
-        }
-      }));
-    } finally {
-      setLoadingCustomGoals(prev => {
-        const newSet = new Set(Array.from(prev));
-        newSet.delete(goalId);
-        return newSet;
-      });
-    }
-  };
+    setGoalAnalysis(prev => ({ ...prev, [goalId]: rawResponse }));
+    setCustomGoalGenerationTimes(prev => ({ ...prev, [goalId]: Date.now() }));
+    
+  } catch (error) {
+    console.error("Error analyzing goal:", error);
+    setGoalAnalysis(prev => ({ ...prev, [goalId]: 'Error generating analysis. Please try again.' }));
+  } finally {
+    setLoadingCustomGoals(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(goalId);
+      return newSet;
+    });
+  }
+};
+
+  const analyzeBuyingSignals = async () => {
+  if (!session || isAnalyzingSignals || isTyping) return;
+  
+  // Check 1-minute cooldown
+  if (signalsGenerationTime && (Date.now() - signalsGenerationTime) < 60000) {
+    const remainingTime = Math.ceil((60000 - (Date.now() - signalsGenerationTime)) / 60000);
+    alert(`Please wait ${remainingTime} more minute(s) before regenerating this analysis.`);
+    return;
+  }
+  
+  const signals = sentimentData.buying_signals.recent_signals;
+  if (!signals || signals.length === 0) {
+    alert('No buying signals detected yet to analyze.');
+    return;
+  }
+  
+  setIsAnalyzingSignals(true);
+  setBuyingSignalsSummary('Generating narrative summary...');
+  
+  // Build chronological signal list
+  const signalList = signals
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    .map(signal => 
+      `[${new Date(signal.timestamp).toLocaleTimeString()}] ${signal.speaker}: "${signal.phrase}" (${signal.signal_type}, ${signal.points} points)`
+    )
+    .join('\n');
+  
+    const prompt = `Tell a brief story of how the customer's buying interest changed during this conversation, based on these signals:
+
+    ${signalList}
+    
+    Write EXACTLY 2-3 sentences following this narrative structure:
+    1. How did the customer START? (initial interest/questions they asked)
+    2. What CHANGED their mood? (specific moment/topic that shifted engagement)
+    3. Where are they NOW? (current stance - interested/hesitant/concerned)
+    
+    Example format: "In the beginning the client showed interest and asked about timeline and next steps, but when we discussed pricing their interest decreased and they expressed concerns about cost."
+    
+    Be conversational and tell it like a story. Maximum 60 words.`;
+
+  try {
+    const response = await fetch(`${service_url_recall}/api/process-template`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ 
+        prompt: prompt
+      }),
+    });
+
+    if (!response.ok) throw new Error('Buying signals analysis failed');
+    
+    const data = await response.json();
+    const summary = data.response as string;
+    
+    setBuyingSignalsSummary(summary);
+    setSignalsGenerationTime(Date.now());
+    
+  } catch (error) {
+    console.error("Error analyzing buying signals:", error);
+    setBuyingSignalsSummary('Error generating summary. Please try again.');
+  } finally {
+    setIsAnalyzingSignals(false);
+  }
+};
 
   const toggleRecommendation = async (speaker: string, participantData: ParticipantCard) => {
     const isExpanded = expandedRecommendations.has(speaker);
@@ -2364,6 +2490,7 @@ const deleteCustomGoal = async (goalId: string) => {
   
         case "buying-signals":
           if (data.buying_signals) {
+            console.log("🔍 Buying Signals Data:", data.buying_signals); // ADD THIS DEBUG
             setSentimentData((prev) => ({
               ...prev,
               buying_signals: data.buying_signals,
@@ -2483,7 +2610,7 @@ const deleteCustomGoal = async (goalId: string) => {
       )}
     </button>
   );
-
+    
     // Alert management functions
     useEffect(() => {
       // Auto-hide acknowledged alerts after 5 seconds
@@ -4535,9 +4662,28 @@ useEffect(() => {
                       
                       {/* Signal Details */}
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2 leading-snug">
-                          Buying Signals Detected
-                        </h4>
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-snug">
+                            Buying Signals Detected
+                          </h4>
+                          {/* ADD SPARKLE BUTTON HERE */}
+                          <button
+                            onClick={() => analyzeBuyingSignals()}
+                            disabled={isAnalyzingSignals}
+                            className={`p-1.5 rounded-full transition-all ${
+                              isAnalyzingSignals
+                                ? "bg-blue-100 dark:bg-blue-900/50 cursor-wait"
+                                : "bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-800/50"
+                            }`}
+                            title={isAnalyzingSignals ? "Generating summary..." : "Generate AI summary"}
+                          >
+                            {isAnalyzingSignals ? (
+                              <Loader className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
+                            ) : (
+                              <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            )}
+                          </button>
+                        </div>
                         
                         {/* Score Display */}
                         <div className="mb-2">
@@ -4549,42 +4695,22 @@ useEffect(() => {
                           </div>
                         </div>
                         
-                        {/* Trend Indicator */}
-                        <div className="flex items-center space-x-2 mb-3">
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center ${
-                              sentimentData.buying_signals.trend === "increasing"
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
-                                : sentimentData.buying_signals.trend === "decreasing"
-                                ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
-                                : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                            }`}
-                          >
-                            {sentimentData.buying_signals.trend === "increasing"
-                              ? "↗"
-                              : sentimentData.buying_signals.trend === "decreasing"
-                              ? "↘"
-                              : "→"}
-                            <span className="ml-1">
-                              {sentimentData.buying_signals.trend}
-                            </span>
-                          </span>
-                          {(sentimentData.buying_signals as any)?.analysis_method && (
-                            <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">
-                              {(sentimentData.buying_signals as any).analysis_method === "llm_enhanced" ? "AI Enhanced" : "Pattern Based"}
-                            </span>
-                          )}
-                        </div>
+                        {/* Trend Indicator - existing code */}
                         
-                        {/* LLM Summary if available */}
-                        {(sentimentData.buying_signals as any)?.llm_summary && (
-                          <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                            <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">
-                              AI Analysis:
+                        {/* AI SUMMARY SECTION - NEW */}
+                        {buyingSignalsSummary && (
+                          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2">
+                              📊 AI Analysis:
                             </p>
-                            <p className="text-xs text-blue-700 dark:text-blue-300">
-                              {(sentimentData.buying_signals as any).llm_summary}
+                            <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
+                              {buyingSignalsSummary}
                             </p>
+                            {signalsGenerationTime && (
+                              <p className="text-xs text-gray-400 mt-2">
+                                Generated {new Date(signalsGenerationTime).toLocaleTimeString()}
+                              </p>
+                            )}
                           </div>
                         )}
 
@@ -4613,7 +4739,6 @@ useEffect(() => {
               </div>
 
               {/* MEDPIC Progress - Enhanced Card Layout */}
-              {/* Replace the entire existing MEDPIC Progress section with this */}
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
@@ -4629,43 +4754,94 @@ useEffect(() => {
                   {Object.entries(MEDPIC_CATEGORIES).map(([categoryName, label]) => {
                     const isLoading = loadingMedpicCategories.has(categoryName);
                     const summary = medpicSummaries[categoryName];
+                    const error = medpicErrors[categoryName];
+                    const lastGenerated = medpicGenerationTimes[categoryName];
+                    const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 60000;
                     
-                    // Ensure label is a string for rendering
-                    const safeLabel: React.ReactNode = typeof label === "string" ? label : String(label);
-
                     return (
                       <details key={categoryName} className="group">
                         <summary 
-                          className={`p-3 cursor-pointer font-medium rounded-lg border transition-all ${
+                          className={`p-3 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between ${
                             summary?.discussed 
-                              ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700/50" 
+                              ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50" 
+                              : summary
+                              ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50"
                               : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                          } list-none flex items-center justify-between`}
-                          onClick={(e) => {
-                            if (!summary && !isLoading) {
-                              e.preventDefault();
-                              loadMedpicCategorySummary(categoryName);
-                            }
-                          }}
+                          }`}
                         >
-                          <div className="flex items-center space-x-2">
-                            <span>{safeLabel}</span>
+                          <div className="flex items-center space-x-2 flex-1">
+                            <span>{label}</span>
                             {summary?.discussed && (
                               <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 px-2 py-0.5 rounded-full">
                                 Discussed
                               </span>
                             )}
+                            {summary && !summary.discussed && (
+                              <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                                Analyzed
+                              </span>
+                            )}
                           </div>
-                          <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                loadMedpicCategorySummary(categoryName);
+                              }}
+                              disabled={isLoading || !canRegenerate}
+                              className={`p-1.5 rounded-full transition-all ${
+                                isLoading
+                                  ? "bg-blue-100 dark:bg-blue-900/50 cursor-wait"
+                                  : !canRegenerate
+                                  ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50"
+                                  : "bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-800/50"
+                              }`}
+                              title={
+                                isLoading 
+                                  ? "Generating summary..." 
+                                  : !canRegenerate
+                                  ? "Wait 1 minute before regenerating"
+                                  : summary 
+                                  ? "Regenerate summary" 
+                                  : "Generate summary"
+                              }
+                            >
+                              {isLoading ? (
+                                <Loader className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
+                              ) : (
+                                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                              )}
+                            </button>
+                            <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
+                          </div>
                         </summary>
                         
                         <div className="p-3 mt-2 border-t border-gray-200 dark:border-gray-700">
-                          {isLoading ? (
-                            <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
-                              <Loader className="w-4 h-4 animate-spin" />
-                              <span className="text-sm">Analyzing transcript...</span>
+                          {error && (
+                            <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                  <p className="text-sm text-red-600 dark:text-red-400">
+                                    {error}
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    loadMedpicCategorySummary(categoryName);
+                                  }}
+                                  className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                                >
+                                  Retry
+                                </button>
+                              </div>
                             </div>
-                          ) : summary ? (
+                          )}
+                          
+                          {summary ? (
                             <div className="space-y-2">
                               <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
                                 <div 
@@ -4675,13 +4851,13 @@ useEffect(() => {
                               </div>
                               {summary.analyzed_at && (
                                 <p className="text-xs text-gray-400">
-                                  Analyzed at {new Date(summary.analyzed_at).toLocaleTimeString()}
+                                  Generated {new Date(summary.analyzed_at).toLocaleTimeString()}
                                 </p>
                               )}
                             </div>
                           ) : (
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              Click to analyze this category
+                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                              Click the ✨ icon to generate AI summary
                             </p>
                           )}
                         </div>
@@ -4693,7 +4869,6 @@ useEffect(() => {
             </div>
 
             {/* Custom Goals Progress - Enhanced Version */}
-            {/* Custom Goals Progress - Summary Based */}
             {customGoals.length > 0 && (
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
@@ -4701,6 +4876,13 @@ useEffect(() => {
                     <span>🎯 Custom Goals</span>
                   </span>
                   <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setShowGoalSettingsModal(true)}
+                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                      title="Analysis Settings"
+                    >
+                      <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </button>
                     <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
                       {customGoals.length} active
                     </span>
@@ -4708,35 +4890,34 @@ useEffect(() => {
                 </div>
 
                 <div className="space-y-3">
-                  {customGoals.map((goal) => {
+                  {customGoals.map((goal, goalIndex) => {
+                    const analysis = goalAnalysis[goal.id];
+                    const hasAnalysis = analysis && analysis !== 'Generating analysis...' && !analysis.startsWith('Error');
                     const isLoading = loadingCustomGoals.has(goal.id);
-                    const summary = customGoalSummaries[goal.id];
+                    
+                    // Define cooldown check INSIDE the map
+                    const lastGenerated = customGoalGenerationTimes[goal.id];
+                    const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 60000;
                     
                     return (
                       <details key={goal.id} className="group">
-                        <summary 
-                          className={`p-4 cursor-pointer font-medium rounded-lg border transition-all ${
-                            summary?.is_achieved 
-                              ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700/50" 
-                              : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                          } list-none flex items-center justify-between`}
-                          onClick={(e) => {
-                            if (!summary && !isLoading) {
-                              e.preventDefault();
-                              loadCustomGoalSummary(goal.id);
-                            }
-                          }}
-                        >
-                          <div className="flex items-start space-x-3 flex-1">
+                        <summary className={`p-4 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between ${
+                          hasAnalysis
+                            ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50" 
+                            : analysis
+                            ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50"
+                            : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                        }`}>
+                          <div className="flex items-center space-x-3 flex-1">
                             <div className={`flex items-center justify-center p-2 rounded-lg flex-shrink-0 w-8 h-8 ${
-                              summary?.is_achieved 
-                                ? "bg-green-100 dark:bg-green-800/50" 
-                                : "bg-gray-100 dark:bg-gray-800/50"
+                              hasAnalysis ? "bg-green-100 dark:bg-green-800/50" : "bg-gray-100 dark:bg-gray-800/50"
                             }`}>
-                              {summary?.is_achieved ? (
+                              {hasAnalysis ? (
                                 <span className="text-green-600 dark:text-green-400">✓</span>
                               ) : (
-                                <span className="font-bold text-gray-600 dark:text-gray-400">?</span>
+                                <span className="font-bold text-gray-600 dark:text-gray-400">
+                                  {goalIndex + 1}
+                                </span>
                               )}
                             </div>
                             
@@ -4745,60 +4926,74 @@ useEffect(() => {
                                 {goal.goal_description}
                               </h4>
                               <div className="flex items-center space-x-2">
-                                <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                                  summary?.is_achieved
-                                    ? "bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300"
-                                    : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                                }`}>
-                                  {summary?.is_achieved ? "✅ Achieved" : "⏳ Pending"}
-                                </span>
-                                {goal.evaluation_criteria && (
-                                  <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
-                                    {goal.evaluation_criteria}
+                                {hasAnalysis && (
+                                  <span className="text-xs bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300 px-2 py-0.5 rounded-full">
+                                    Analysis Ready
+                                  </span>
+                                )}
+                                {isLoading && (
+                                  <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                                    Analyzing...
                                   </span>
                                 )}
                               </div>
                             </div>
                           </div>
                           
-                          <div className="flex items-center space-x-2 ml-2">
-                            <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
+                          <div className="flex items-center space-x-2">
                             <button
                               onClick={(e) => {
+                                e.preventDefault();
                                 e.stopPropagation();
-                                deleteCustomGoal(goal.id);
+                                analyzeCustomGoal(goal.id);
                               }}
-                              className="p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-100 dark:hover:bg-red-900/30 hover:scale-110"
-                              title="Delete goal"
+                              disabled={isLoading || !canRegenerate}
+                              className={`p-1.5 rounded-full transition-all ${
+                                isLoading
+                                  ? "bg-blue-100 dark:bg-blue-900/50 cursor-wait"
+                                  : !canRegenerate
+                                  ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50"
+                                  : "bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-800/50"
+                              }`}
+                              title={
+                                isLoading 
+                                  ? "Generating analysis..." 
+                                  : !canRegenerate
+                                  ? "Wait 1 minute before regenerating"
+                                  : hasAnalysis 
+                                  ? "Regenerate analysis" 
+                                  : "Generate analysis"
+                              }
                             >
-                              <span className="text-lg">🗑️</span>
+                              {isLoading ? (
+                                <Loader className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
+                              ) : (
+                                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                              )}
                             </button>
+                            <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
                           </div>
                         </summary>
                         
                         <div className="p-3 mt-2 border-t border-gray-200 dark:border-gray-700">
-                          {isLoading ? (
-                            <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
-                              <Loader className="w-4 h-4 animate-spin" />
-                              <span className="text-sm">Analyzing transcript...</span>
-                            </div>
-                          ) : summary ? (
+                          {hasAnalysis ? (
                             <div className="space-y-2">
                               <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
                                 <div 
-                                  className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line"
-                                  dangerouslySetInnerHTML={{ __html: formatSummary(summary.summary) }}
+                                  className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+                                  dangerouslySetInnerHTML={{ 
+                                    __html: analysis
+                                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                      .replace(/\n/g, '<br/>')
+                                  }}
                                 />
                               </div>
-                              {summary.analyzed_at && (
-                                <p className="text-xs text-gray-400">
-                                  Analyzed at {new Date(summary.analyzed_at).toLocaleTimeString()}
-                                </p>
-                              )}
                             </div>
                           ) : (
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              Click to analyze this goal
+                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                              {analysis === 'Generating analysis...' 
+                                ? 'AI is analyzing this goal...' 
+                                : 'Click the ✨ icon to generate AI analysis'}
                             </p>
                           )}
                         </div>
@@ -4809,6 +5004,139 @@ useEffect(() => {
               </div>
             )}
             
+            {/* ADD THIS SETTINGS MODAL */}
+            {showGoalSettingsModal && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className={`w-full max-w-2xl rounded-2xl shadow-2xl ${
+                  isDarkMode ? 'bg-gray-800' : 'bg-white'
+                } max-h-[90vh] overflow-y-auto`}>
+                  <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                      Goal Analysis Settings
+                    </h2>
+                    <button
+                      onClick={() => setShowGoalSettingsModal(false)}
+                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  
+                  <div className="p-6 space-y-6">
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
+                        Auto-Update Interval (seconds)
+                      </label>
+                      <input
+                        type="number"
+                        min="30"
+                        max="300"
+                        value={goalSettings.pollInterval / 1000}
+                        onChange={(e) => {
+                          const val = Math.max(30, Math.min(300, parseInt(e.target.value))) * 1000;
+                          setGoalSettings(prev => ({ ...prev, pollInterval: val }));
+                        }}
+                        className={`w-full px-4 py-3 border rounded-xl ${
+                          isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
+                        Output Format
+                      </label>
+                      <div className="flex gap-4">
+                        {['summary', 'detailed', 'speakers_only'].map((fmt) => (
+                          <label key={fmt} className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              value={fmt}
+                              checked={goalSettings.format === fmt}
+                              onChange={(e) => setGoalSettings(prev => ({ 
+                                ...prev, 
+                                format: e.target.value as any 
+                              }))}
+                              className="form-radio"
+                            />
+                            <span className="text-sm capitalize">{fmt.replace('_', ' ')}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
+                        Word Limit: {goalSettings.wordLimit}
+                      </label>
+                      <input
+                        type="range"
+                        min="50"
+                        max="500"
+                        step="50"
+                        value={goalSettings.wordLimit}
+                        onChange={(e) => setGoalSettings(prev => ({ 
+                          ...prev, 
+                          wordLimit: parseInt(e.target.value) 
+                        }))}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="block text-sm font-semibold text-gray-900 dark:text-white">
+                        Include in Analysis
+                      </label>
+                      {[
+                        { key: 'includeTimestamps', label: 'Timestamps' },
+                        { key: 'includeSpeakers', label: 'Speaker Names' },
+                        { key: 'includeInstances', label: 'Exact Quotes' },
+                      ].map(({ key, label }) => (
+                        <label key={key} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={goalSettings[key as keyof typeof goalSettings] as boolean}
+                            onChange={(e) => setGoalSettings(prev => ({ 
+                              ...prev, 
+                              [key]: e.target.checked 
+                            }))}
+                            className="form-checkbox"
+                          />
+                          <span className="text-sm">{label}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
+                        Additional Instructions (Optional)
+                      </label>
+                      <textarea
+                        value={goalSettings.promptExtension}
+                        onChange={(e) => setGoalSettings(prev => ({ 
+                          ...prev, 
+                          promptExtension: e.target.value 
+                        }))}
+                        placeholder="e.g., Focus on buyer commitments only"
+                        rows={3}
+                        className={`w-full px-4 py-3 border rounded-xl ${
+                          isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className={`p-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                    <button
+                      onClick={() => setShowGoalSettingsModal(false)}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800"
+                    >
+                      Save Settings
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* ADDED: Clear Sentiment Button */}
             <div className="mt-6 flex justify-left">

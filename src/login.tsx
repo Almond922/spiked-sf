@@ -329,7 +329,8 @@ const AuthPages: React.FC = () => {
                         </div>
                         <h2 className="text-5xl font-extrabold tracking-tight">SpikedAI</h2>
                     </div>
-                    <p className="text-gray-300 text-lg leading-relaxed">Unlock AI-powered insights and create smarter solutions. Sign in or create an account to get started with SpikedAI.</p>
+                    <p className="text-gray-300 text-lg leading-relaxed">The Revenue OS Platform. <br />
+                        Sell like the CEO and unlock Quantum leap in revenue</p>
                 </div>
             </div>
 

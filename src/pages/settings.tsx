@@ -506,7 +506,7 @@ const SpikedAISettings: React.FC = () => {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Settings</h1>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Personalisation</h1>
               <p className={`text-sm mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>Configure your AI sales copilot</p>
             </div>
           </div>
@@ -531,7 +531,10 @@ const SpikedAISettings: React.FC = () => {
                 <h2 className="text-xl font-semibold">Bot Configuration</h2>
               </div>
               <input type="text" value={botName} onChange={(e) => setBotName(e.target.value)} className={`w-full max-w-md px-4 py-3 border rounded-xl focus:border-blue-500 focus:outline-none focus:ring-2 transition-all duration-200 ${isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-800" : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-200"}`} placeholder="Enter bot name" />
+              
             </section>
+
+            <h2 className="text-xl font-semibold">Before the meeting</h2>
             
             <section className={`rounded-2xl p-8 shadow-sm border transition-colors duration-200 ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
               <div className="flex items-center space-x-4 mb-8">
@@ -645,7 +648,7 @@ const SpikedAISettings: React.FC = () => {
                   <div className={`p-2 rounded-lg ${isDarkMode ? "bg-indigo-900/20" : "bg-indigo-100"}`}><Tag className={`w-6 h-6 ${isDarkMode ? "text-indigo-400" : "text-indigo-600"}`} /></div>
                   <div>
                     <h2 className="text-2xl font-semibold">Meeting Focus</h2>
-                    <p className={`text-sm mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>Add topics to focus the AI</p>
+                    <p className={`text-sm mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>Add topics to focus the AI before the meeting</p>
                   </div>
                 </div>
                 <div className="relative group">

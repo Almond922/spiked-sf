@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, X, Send, Copy, FileText, ChevronRight } from 'lucide-react';
+import { Mail, X, Copy, FileText, ChevronRight } from 'lucide-react';
 
 interface EmailDialogProps {
     isOpen: boolean;
@@ -26,6 +26,9 @@ Visit us at: https://www.spiked.ai
     `.trim());
     const [showSignatureEditor, setShowSignatureEditor] = useState(false);
     const [previewUrl, setPreviewUrl] = useState('');
+    const [recipients, setRecipients] = useState('');
+    const [ccRecipients, setCcRecipients] = useState('');
+    const [bccRecipients, setBccRecipients] = useState('');
 
     useEffect(() => {
         // Create the preview URL when the body changes
@@ -55,17 +58,44 @@ Visit us at: https://www.spiked.ai
     };
 
     const handleGmailClick = (signature: string) => {
-        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(getEmailBody(signature))}`;
+        let gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(getEmailBody(signature))}`;
+        if (recipients) {
+            gmailUrl += `&to=${encodeURIComponent(recipients)}`;
+        }
+        if (ccRecipients) {
+            gmailUrl += `&cc=${encodeURIComponent(ccRecipients)}`;
+        }
+        if (bccRecipients) {
+            gmailUrl += `&bcc=${encodeURIComponent(bccRecipients)}`;
+        }
         window.open(gmailUrl, '_blank');
     };
 
     const handleYahooClick = (signature: string) => {
-        const yahooUrl = `https://compose.mail.yahoo.com/?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(getEmailBody(signature))}`;
+        let yahooUrl = `https://compose.mail.yahoo.com/?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(getEmailBody(signature))}`;
+        if (recipients) {
+            yahooUrl += `&to=${encodeURIComponent(recipients)}`;
+        }
+        if (ccRecipients) {
+            yahooUrl += `&cc=${encodeURIComponent(ccRecipients)}`;
+        }
+        if (bccRecipients) {
+            yahooUrl += `&bcc=${encodeURIComponent(bccRecipients)}`;
+        }
         window.open(yahooUrl, '_blank');
     };
 
     const handleOutlookClick = (signature: string) => {
-        const outlookUrl = `https://outlook.live.com/mail/0/deeplink/compose?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(getEmailBody(signature))}`;
+        let outlookUrl = `https://outlook.live.com/mail/0/deeplink/compose?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(getEmailBody(signature))}`;
+        if (recipients) {
+            outlookUrl += `&to=${encodeURIComponent(recipients)}`;
+        }
+        if (ccRecipients) {
+            outlookUrl += `&cc=${encodeURIComponent(ccRecipients)}`;
+        }
+        if (bccRecipients) {
+            outlookUrl += `&bcc=${encodeURIComponent(bccRecipients)}`;
+        }
         window.open(outlookUrl, '_blank');
     };
 
@@ -115,6 +145,79 @@ Visit us at: https://www.spiked.ai
 
                 {/* Content */}
                 <div className="p-6 space-y-6">
+                    {/* Recipients */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <label 
+                                htmlFor="recipients" 
+                                className={`block text-sm font-medium ${
+                                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                }`}
+                            >
+                                To *
+                            </label>
+                            <input
+                                id="recipients"
+                                type="email"
+                                value={recipients}
+                                onChange={(e) => setRecipients(e.target.value)}
+                                className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 transition-shadow ${
+                                    isDarkMode 
+                                        ? 'bg-gray-800 border-gray-700 text-white focus:ring-blue-500/50' 
+                                        : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500/50'
+                                }`}
+                                placeholder="recipient@example.com"
+                                multiple
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label 
+                                htmlFor="cc" 
+                                className={`block text-sm font-medium ${
+                                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                }`}
+                            >
+                                CC
+                            </label>
+                            <input
+                                id="cc"
+                                type="email"
+                                value={ccRecipients}
+                                onChange={(e) => setCcRecipients(e.target.value)}
+                                className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 transition-shadow ${
+                                    isDarkMode 
+                                        ? 'bg-gray-800 border-gray-700 text-white focus:ring-blue-500/50' 
+                                        : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500/50'
+                                }`}
+                                placeholder="cc@example.com"
+                                multiple
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label 
+                                htmlFor="bcc" 
+                                className={`block text-sm font-medium ${
+                                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                }`}
+                            >
+                                BCC
+                            </label>
+                            <input
+                                id="bcc"
+                                type="email"
+                                value={bccRecipients}
+                                onChange={(e) => setBccRecipients(e.target.value)}
+                                className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 transition-shadow ${
+                                    isDarkMode 
+                                        ? 'bg-gray-800 border-gray-700 text-white focus:ring-blue-500/50' 
+                                        : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500/50'
+                                }`}
+                                placeholder="bcc@example.com"
+                                multiple
+                            />
+                        </div>
+                    </div>
+
                     {/* Subject */}
                     <div className="space-y-2">
                         <label 
@@ -231,25 +334,37 @@ Visit us at: https://www.spiked.ai
                         )}
                     </div>
 
+                    {/* Validation message */}
+                    {!recipients && (
+                        <div className={`p-3 rounded-lg border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20`}>
+                            <p className={`text-sm ${isDarkMode ? 'text-yellow-200' : 'text-yellow-800'}`}>
+                                💡 <strong>Tip:</strong> Add recipient emails above, then click any email service to open with pre-filled content.
+                            </p>
+                        </div>
+                    )}
+
                     {/* Email client buttons */}
                     <div className="flex flex-col sm:flex-row gap-3">
                         <button
                             onClick={() => handleGmailClick(emailSignature)}
-                            className="flex-1 flex items-center justify-center px-4 py-3 rounded-lg text-white bg-red-500 hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"
+                            className="flex-1 flex items-center justify-center px-4 py-3 rounded-lg text-white bg-red-500 hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!recipients.trim()}
                         >
                             <Mail className="w-5 h-5 mr-2" />
                             Open in Gmail
                         </button>
                         <button
                             onClick={() => handleYahooClick(emailSignature)}
-                            className="flex-1 flex items-center justify-center px-4 py-3 rounded-lg text-white bg-purple-500 hover:bg-purple-600 transition-colors shadow-lg shadow-purple-500/20"
+                            className="flex-1 flex items-center justify-center px-4 py-3 rounded-lg text-white bg-purple-500 hover:bg-purple-600 transition-colors shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!recipients.trim()}
                         >
                             <Mail className="w-5 h-5 mr-2" />
                             Open in Yahoo
                         </button>
                         <button
                             onClick={() => handleOutlookClick(emailSignature)}
-                            className="flex-1 flex items-center justify-center px-4 py-3 rounded-lg text-white bg-blue-500 hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20"
+                            className="flex-1 flex items-center justify-center px-4 py-3 rounded-lg text-white bg-blue-500 hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!recipients.trim()}
                         >
                             <Mail className="w-5 h-5 mr-2" />
                             Open in Outlook

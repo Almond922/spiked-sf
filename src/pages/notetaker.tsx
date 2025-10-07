@@ -34,20 +34,14 @@ import {
     X,
     Save,
     ChevronDown,
-    TrendingUp,
     CheckCircle,
     Loader
 } from 'lucide-react';
-import { jsPDF } from "jspdf";
 
 const BASE_URL = 'https://recall-backend-production-409019309412.us-central1.run.app';
 const SALES_ASSISTANT_BASE_URL = 'https://spikedai-old-backend-409019309412.us-central1.run.app';
 const service_url_recall = "https://spikedai-production-application-409019309412.us-central1.run.app";
 
-interface Session {
-    user: { id: string; email: string };
-    access_token: string;
-}
 
 interface Template {
     id: number;
@@ -114,17 +108,6 @@ interface CustomGoalProgress {
     summary?: string; // Add summary here
 }
 
-interface CustomGoalUpdate {
-    goal_id: string;
-    speakers: string[];
-    summary: string;
-    timestamp: Date;
-    instances: Array<{
-        speaker: string;
-        text: string;
-        timestamp: string;
-    }>;
-}
 
 interface GoalSettings {
     format: 'summary' | 'detailed' | 'speakers_only';
@@ -218,6 +201,13 @@ const deleteFromIndexedDB = async (storeName: string, key: any): Promise<boolean
 const loadFromIndexedDB = async (storeName: string, key?: string): Promise<any> => {
     try {
         const db = await initDB();
+        
+        // Check if the object store exists
+        if (!db.objectStoreNames.contains(storeName)) {
+            console.log(`Object store '${storeName}' does not exist yet`);
+            return key ? null : [];
+        }
+        
         const transaction = db.transaction([storeName], 'readonly');
         const store = transaction.objectStore(storeName);
         if (key) {
@@ -361,6 +351,10 @@ export default function Notetaker() {
         pollInterval: 30000,
         promptExtension: '', // NEW: Default to empty
     }));
+    const [retryCount, setRetryCount] = useState(0);
+    const [maxRetries] = useState(3);
+    const [lastFetchTime, setLastFetchTime] = useState(0);
+    const [fetchCooldown] = useState(5000); // 5 seconds cooldown between fetches
 
     const transcriptEndRef = useRef<HTMLDivElement>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
@@ -391,23 +385,43 @@ export default function Notetaker() {
             console.log('No session, skipping goals fetch');
             return;
         }
+        
+        // Check cooldown to prevent too many API calls
+        const now = Date.now();
+        if (now - lastFetchTime < fetchCooldown) {
+            console.log('Goals fetch in cooldown, skipping...');
+            return;
+        }
+        
         try {
-            console.log('Fetching goals...');
+            setLastFetchTime(now);
             const response = await fetch(`${service_url_recall}/meetingGoals`, {
                 headers: { Authorization: `Bearer ${session.access_token}` },
             });
             if (response.ok) {
                 const goals = await response.json();
                 setCustomGoals(goals);
+            } else if (response.status === 404) {
+                console.log('Custom goals endpoint not available');
+                setCustomGoals([]);
+            } else {
+                console.error("Failed to fetch custom goals:", response.status, response.statusText);
             }
         } catch (error) {
             console.error("Error fetching custom goals:", error);
+            setCustomGoals([]);
         }
     };
 
     // Lightweight fetch for real-time progress bar/evidence tracking
     const fetchCustomGoalsProgress = async () => {
         if (!session || !customGoals.length) return;
+
+        // Check cooldown to prevent too many API calls
+        const now = Date.now();
+        if (now - lastFetchTime < fetchCooldown) {
+            return;
+        }
 
         try {
             // NOTE: Removed isPollingGoals check here to allow progress fetching even if analysis is running
@@ -429,6 +443,8 @@ export default function Notetaker() {
                 } else {
                     console.error('Invalid data format for custom goals progress:', data);
                 }
+            } else if (response.status === 404) {
+                // Silently handle 404 - this endpoint might not be implemented yet
             } else {
                 console.error("Failed to fetch custom goals progress:", response.status, response.statusText);
             }
@@ -763,15 +779,43 @@ ${transcriptText}`;
                             saveToSessionStorage('spikedai_transcript', newTranscripts);
                             return newTranscripts;
                         });
+                        // Reset retry count on successful message
+                        setRetryCount(0);
                     } catch (e) {
                         console.error("Error parsing new transcript message:", e);
                     }
                 },
                 onerror(err) {
                     console.error('Transcript Stream Error:', err);
-                    setError('Transcript stream failed. Please refresh the page.');
-                    setIsConnected(false);
-                    cleanup();
+                    
+                    // Increment retry count
+                    setRetryCount(prev => prev + 1);
+                    
+                    // Stop retrying after max attempts
+                    if (retryCount >= maxRetries) {
+                        console.log('Max retry attempts reached, stopping transcript stream');
+                        if (err.message && err.message.includes('403')) {
+                            setError('Access denied to transcript stream. Please check your permissions.');
+                        } else if (err.message && err.message.includes('Expected content-type')) {
+                            setError('Transcript stream format error. The service may be temporarily unavailable.');
+                        } else {
+                            setError('Transcript stream failed. Please refresh the page.');
+                        }
+                        setIsConnected(false);
+                        cleanup();
+                        return;
+                    }
+                    
+                    // For 403 errors, stop immediately
+                    if (err.message && err.message.includes('403')) {
+                        setError('Access denied to transcript stream. Please check your permissions.');
+                        setIsConnected(false);
+                        cleanup();
+                        return;
+                    }
+                    
+                    // For other errors, allow limited retries
+                    console.log(`Transcript stream error, retry ${retryCount + 1}/${maxRetries}`);
                 },
             });
 
@@ -1035,9 +1079,15 @@ ${transcriptText}`;
             const textPrimary = '#212121';
             const textSecondary = '#757575';
             const borderLight = '#E0E0E0';
+            const bgLight = '#F8F9FA';
 
-            const logoBase64 = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wgARCADIAMgDASIAAhEBAxEB/8QAGgABAAMBAQEAAAAAAAAAAAAAAAUHCAQGA//EABoBAQADAQEBAAAAAAAAAAAAAAAEBQcGAgP/2gAIAQEAAwAAAPPjn/RoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADSGb9dTeFgeL3UfO4HIwpN4AAAAAAAAAAa6yLrqfn3fHyEfYZxkYUHogAAAAAAAAABrrIuup+fdv/8QAKhAAAAQIEBAUEAwAAAAAAAAAAAgEDBEBzsQAQERIUUXGS0SIyNHAxM5H/2gAIAQEABj8C+oWDKERSIEVV3Ly64+GncXnD5jCIhCCqi7l5dZeGpjbKJplaXhqY2yiaZWl4amNsommVpeGpjbKJplaXhqY2yiaZWl4amNsommVpeGpjbKJplaXhqY2yiaZWl22+FbXYKD7lx8RvuXDjfCtpvFR13LLsuq6/qYIS6KnLpj9z/wAU8YdcR1/UAUvyniXhaQ2yiaZWl2GyF7cAIK6CnLrj2v8AYnnDzYi9qQKKelPP1F//xAAcEAABBQEBAQAAAAAAAAAAAAABEBFAUfAhMXD/2gAIAQEAAg/h+Q+rCMJIIGeaKOJBR2lRNq0fSom1aPpUTatH0qJtWj6VE2tH0qJtWj6VE2rR9KibVoOAggAnowZHChEIBwcNHFLCRg5AoXE9hIFhwHjseqbVo/m0mJwAQI7YOjTkN8if/9oADAMBAAIAAwAAABAEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEF4EEEEEEEEEEED0EEEEEEEEEEED0EEEEEEEEEEED0EEEEEEEEEEEfEEEEEEEEEEEEP0EEEEEEEEEEFOAEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEH/8QAIhEBAAEDAwQDAAAAAAAAAAAAAREAMFExcYFQobHwIUGR/9oACAEEDAQE/EOmO7Cykl8GsJRAww/Te56HFOyebnocU7J5uehxTsnm4E1NMoahGqYopkCPNvcTcpEfcBULApjO1yXiGpDGtDSmM8OOnf//EAB4RAAEEAgMBAAAAAAAAAAAAAAEAETAxIbFBUJGh/9oACAECAQE/EOsbw9J2x8EmqrJNVWSaqskMkVogEP8ADIPBdAljIaJ5olDY867/xAAgEAEBAAEEAQUAAAAAAAAAAAAABESEAEEFwMUBQYcHw/9oACAEBA/EOoXxc46BccldhB6O09QOYwh2/GPRj0Y9GPRj0Y9GPRjwBmCkFTj41+S+tOqYAQyTHF9OYN+MKAvhXZxbaguWBnhT3AoeStd1UiPCmxAwNwNRFeFeov/2Q==';
-            doc.addImage(logoBase64, 'JPEG', 15, 21, 10, 10);
+            // Add SpikedAI logo (simplified version)
+            doc.setFillColor(accentRed);
+            doc.rect(15, 15, 8, 8, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.text('SA', 19, 20);
 
             const addHeader = (): void => {
                 doc.setFont('helvetica', 'bold');
@@ -1056,7 +1106,6 @@ ${transcriptText}`;
             const addFooter = (): void => {
                 doc.setFontSize(8);
                 doc.setTextColor(textSecondary);
-                // Cast to 'any' to access internal methods for page numbering
                 const currentPage = (doc as any).internal.getCurrentPageInfo().pageNumber;
                 const totalPages = (doc as any).internal.getNumberOfPages();
                 doc.text(`Page ${currentPage} of ${totalPages}`, 195, 290, { align: 'right' });
@@ -1080,12 +1129,14 @@ ${transcriptText}`;
             addHeader();
             yPosition = 50;
 
+            // Title
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(22);
             doc.setTextColor(textPrimary);
             doc.text('Conversation Summary', margin, yPosition);
             yPosition += 15;
 
+            // Date
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(10);
             doc.setTextColor(textSecondary);
@@ -1097,58 +1148,121 @@ ${transcriptText}`;
                 minute: '2-digit'
             });
             doc.text(`Generated on ${date}`, margin, yPosition);
-            yPosition += 15;
+            yPosition += 20;
 
+            // Add meeting URL if available
+            if (meetingUrl) {
+                doc.setFontSize(9);
+                doc.setTextColor(textSecondary);
+                doc.text('Meeting URL:', margin, yPosition);
+                yPosition += 5;
+                doc.setFontSize(8);
+                doc.setTextColor('#666666');
+                const urlLines = doc.splitTextToSize(meetingUrl, contentWidth);
+                doc.text(urlLines, margin, yPosition);
+                yPosition += urlLines.length * 4 + 15;
+            }
+
+            // Process messages with better formatting
             chatMessages.forEach((msg, index) => {
-                checkPageBreak(80);
+                checkPageBreak(60);
 
+                // Add separator line between messages
                 if (index > 0) {
                     doc.setDrawColor(borderLight);
                     doc.setLineWidth(0.2);
                     doc.line(margin, yPosition - 5, pageWidth - margin, yPosition - 5);
+                    yPosition += 5;
                 }
 
-                doc.setFontSize(11);
-                doc.setTextColor(accentRed);
-                doc.setFont('helvetica', 'bold');
+                // Message bubble background
                 const sender = msg.isUser ? 'You' : 'AI Assistant';
-                doc.text(sender, margin, yPosition + 5);
-                yPosition += 10;
-
-                checkPageBreak(20);
-                doc.setFontSize(10);
-                doc.setTextColor(textPrimary);
-                doc.setFont('helvetica', 'normal');
-                // Simple markdown processing to plain text for PDF (could be enhanced, but using splitTextToSize for layout)
-                const plainText = msg.text.replace(/(\*\*|__)(.*?)\1/g, '$2').replace(/\*/g, '').replace(/### /g, '').replace(/## /g, '').replace(/- /g, '\u2022 ').replace(/\[\d+s\] /g, '');
-                const messageLines = doc.splitTextToSize(plainText, contentWidth);
+                const isUser = msg.isUser;
                 
-                // Estimate height needed for text + padding
-                const textHeight = messageLines.length * 5 + 15;
+                // Clean and format text properly
+                let cleanText = msg.text
+                    .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markers
+                    .replace(/\*(.*?)\*/g, '$1') // Remove italic markers
+                    .replace(/### (.*)/g, '$1') // Remove h3 markers
+                    .replace(/## (.*)/g, '$1') // Remove h2 markers
+                    .replace(/- (.*)/g, '• $1') // Convert bullets
+                    .replace(/\[\d+s\] /g, '') // Remove timestamps
+                    .replace(/\n\s*\n/g, '\n') // Remove multiple newlines
+                    .trim();
+
+                // Split text into lines
+                const messageLines = doc.splitTextToSize(cleanText, contentWidth - 20);
+                const textHeight = messageLines.length * 4.5 + 20;
+
                 checkPageBreak(textHeight);
 
-                doc.text(messageLines, margin, yPosition);
-                yPosition += messageLines.length * 5 + 10; // Adjust spacing
-
-                if (msg.timestamp) {
+                // Draw message bubble
+                if (isUser) {
+                    // User message - right aligned with red background
+                    const bubbleWidth = Math.min(contentWidth * 0.7, 120);
+                    const bubbleX = pageWidth - margin - bubbleWidth;
+                    
+                    doc.setFillColor(accentRed);
+                    doc.roundedRect(bubbleX, yPosition, bubbleWidth, textHeight, 2, 2, 'F');
+                    
+                    doc.setFontSize(9);
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(sender, bubbleX + 8, yPosition + 8);
+                    
                     doc.setFontSize(8);
-                    doc.setTextColor(textSecondary);
-                    doc.setFont('helvetica', 'italic');
-                    const time = msg.timestamp.toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-                    doc.text(time, pageWidth - margin, yPosition - 5, { align: 'right' });
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(messageLines, bubbleX + 8, yPosition + 15);
+                    
+                    // Timestamp
+                    if (msg.timestamp) {
+                        doc.setFontSize(7);
+                        doc.setTextColor(255, 255, 255, 0.8);
+                        const time = msg.timestamp.toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        doc.text(time, bubbleX + bubbleWidth - 8, yPosition + textHeight - 5, { align: 'right' });
+                    }
+                } else {
+                    // AI message - left aligned with light background
+                    const bubbleWidth = Math.min(contentWidth * 0.8, 140);
+                    
+                    doc.setFillColor(bgLight);
+                    doc.roundedRect(margin, yPosition, bubbleWidth, textHeight, 2, 2, 'F');
+                    
+                    doc.setFontSize(9);
+                    doc.setTextColor(accentRed);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(sender, margin + 8, yPosition + 8);
+                    
+                    doc.setFontSize(8);
+                    doc.setTextColor(textPrimary);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(messageLines, margin + 8, yPosition + 15);
+                    
+                    // Timestamp
+                    if (msg.timestamp) {
+                        doc.setFontSize(7);
+                        doc.setTextColor(textSecondary);
+                        const time = msg.timestamp.toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        doc.text(time, margin + bubbleWidth - 8, yPosition + textHeight - 5, { align: 'right' });
+                    }
                 }
-                yPosition += 5; // Final padding after message block
+
+                yPosition += textHeight + 10;
             });
 
             addFooter();
 
             const fileName = `SpikedAI_Conversation_${new Date().toISOString().split('T')[0]}.pdf`;
             doc.save(fileName);
-        } catch (error) {
-            console.error('Error generating PDF:', error);
+        } catch (err) {
+            console.error('Error generating PDF:', err);
+            alert('Error generating PDF. Please try again.');
         } finally {
             setIsGeneratingPDF(false);
         }
@@ -1156,6 +1270,48 @@ ${transcriptText}`;
 
     const handleShareClick = () => {
         setIsEmailDialogOpen(true);
+    };
+
+    // Generate comprehensive email content
+    const generateEmailContent = () => {
+        const date = new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        let content = `Meeting Summary - ${date}\n\n`;
+        
+        // Add meeting URL if available
+        if (meetingUrl) {
+            content += `Meeting URL: ${meetingUrl}\n\n`;
+        }
+
+        // Add transcript if available
+        if (transcript.length > 0) {
+            content += `=== MEETING TRANSCRIPT ===\n\n`;
+            const transcriptText = groupTranscriptBySpeaker(transcript)
+                .map(group => `${group.speaker || 'Unknown'}: ${group.text}`)
+                .join('\n\n');
+            content += transcriptText + '\n\n';
+        }
+
+        // Add AI conversation
+        if (chatMessages.length > 0) {
+            content += `=== AI ASSISTANT CONVERSATION ===\n\n`;
+            chatMessages.forEach(msg => {
+                const sender = msg.isUser ? 'You' : 'AI Assistant';
+                const time = msg.timestamp.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                content += `${sender} (${time}):\n${msg.text}\n\n`;
+            });
+        }
+
+        content += `\n---\nGenerated by SpikedAI\nVisit us at: https://www.spiked.ai`;
+
+        return content;
     };
 
     return (
@@ -1510,30 +1666,40 @@ ${transcriptText}`;
                 </div>
                 
                 <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-                        {transcript.length > 0 ? (
-                            groupTranscriptBySpeaker(transcript).map((group) => (
-                                <div key={group.id} className={`flex items-start space-x-3 p-4 rounded-xl border transition-all duration-200 hover:shadow-md ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
-                                    <div className={`w-8 h-8 flex-shrink-0 rounded-full border-2 ${getSpeakerColor(group.speaker)} flex items-center justify-center font-bold text-sm text-white`}>
-                                        {group.speaker ? group.speaker.charAt(0).toUpperCase() : '?'}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className={`text-sm font-semibold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{group.speaker || 'Unknown Speaker'}</h4>
-                                        <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{group.text}</p>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                                <div className={`p-4 rounded-full mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
-                                    <Headphones className="w-12 h-12 text-gray-400" />
-                                </div>
-                                <h3 className="mb-2 text-lg font-bold text-black-600 dark:text-red-400">No Transcription Data</h3>
-                                <p className="text-sm text-gray-500">Enter a meeting URL and click Start to begin recording.</p>
+                <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+                    {error && (
+                        <div className={`p-4 rounded-xl border-l-4 border-red-500 ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50'}`}>
+                            <div className="flex items-center space-x-2">
+                                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                <p className={`text-sm ${isDarkMode ? 'text-red-200' : 'text-red-800'}`}>
+                                    {error}
+                                </p>
                             </div>
-                        )}
-                        <div ref={transcriptEndRef} />
-                    </div>
+                        </div>
+                    )}
+                    {transcript.length > 0 ? (
+                        groupTranscriptBySpeaker(transcript).map((group) => (
+                            <div key={group.id} className={`flex items-start space-x-3 p-4 rounded-xl border transition-all duration-200 hover:shadow-md ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+                                <div className={`w-8 h-8 flex-shrink-0 rounded-full border-2 ${getSpeakerColor(group.speaker)} flex items-center justify-center font-bold text-sm text-white`}>
+                                    {group.speaker ? group.speaker.charAt(0).toUpperCase() : '?'}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className={`text-sm font-semibold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{group.speaker || 'Unknown Speaker'}</h4>
+                                    <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{group.text}</p>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                            <div className={`p-4 rounded-full mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                                <Headphones className="w-12 h-12 text-gray-400" />
+                            </div>
+                            <h3 className="mb-2 text-lg font-bold text-black-600 dark:text-red-400">No Transcription Data</h3>
+                            <p className="text-sm text-gray-500">Enter a meeting URL and click Start to begin recording.</p>
+                        </div>
+                    )}
+                    <div ref={transcriptEndRef} />
+                </div>
                 </div>
             </div>
 
@@ -1589,10 +1755,7 @@ ${transcriptText}`;
                             isOpen={isEmailDialogOpen}
                             onClose={() => setIsEmailDialogOpen(false)}
                             defaultSubject={`SpikedAI Meeting Summary - ${new Date().toLocaleDateString()}`}
-                            defaultBody={chatMessages
-                                .filter(msg => !msg.isUser)
-                                .map(msg => msg.text)
-                                .join('\n\n') + '\n\n---\nGenerated by SpikedAI\nVisit us at: https://www.spiked.ai'}
+                            defaultBody={generateEmailContent()}
                             isDarkMode={isDarkMode}
                         />
                     </div>

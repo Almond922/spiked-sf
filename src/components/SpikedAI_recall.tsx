@@ -4761,133 +4761,133 @@ useEffect(() => {
 
               {/* MEDPIC Progress - Enhanced Card Layout */}
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
-                    <span>📋</span>
-                    <span>MEDPIC Analysis</span>
-                  </span>
-                  <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
-                    Sales Framework
-                  </span>
-                </div>
+    <div className="flex items-center justify-between mb-4">
+        <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+            <span>📋</span>
+            <span>Playbook</span>
+        </span>
+        <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
+            Sales Framework
+        </span>
+    </div>
 
-                <div className="space-y-3">
-                  {Object.entries(MEDPIC_CATEGORIES).map(([categoryName, label]) => {
-                    const isLoading = loadingMedpicCategories.has(categoryName);
-                    const summary = medpicSummaries[categoryName];
-                    const error = medpicErrors[categoryName];
-                    const lastGenerated = medpicGenerationTimes[categoryName];
-                    const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 60000;
-                    
-                    return (
-                      <details key={categoryName} className="group">
-                        <summary 
-                          className={`p-3 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between ${
+    <div className="space-y-3">
+        {Object.entries(MEDPIC_CATEGORIES).map(([categoryName, label]) => {
+            const isLoading = loadingMedpicCategories.has(categoryName);
+            const summary = medpicSummaries[categoryName];
+            const error = medpicErrors[categoryName];
+            const lastGenerated = medpicGenerationTimes[categoryName];
+            const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 60000;
+            
+            return (
+                <details key={categoryName} className="group">
+                    <summary 
+                        className={`p-3 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between ${
                             summary?.discussed 
-                              ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50" 
-                              : summary
-                              ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50"
-                              : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                          }`}
-                        >
-                          <div className="flex items-center space-x-2 flex-1">
+                                ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50" 
+                                : summary
+                                ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50"
+                                : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                        }`}
+                    >
+                        {/* ADDED: dark:text-gray-100 for the category label */}
+                        <div className="flex items-center space-x-2 flex-1 text-gray-700 dark:text-gray-100">
                             <span>{label}</span>
                             {summary?.discussed && (
-                              <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 px-2 py-0.5 rounded-full">
-                                Discussed
-                              </span>
+                                <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 px-2 py-0.5 rounded-full">
+                                    Discussed
+                                </span>
                             )}
                             {summary && !summary.discussed && (
-                              <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                                Analyzed
-                              </span>
+                                <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                                    Analyzed
+                                </span>
                             )}
-                          </div>
-                          <div className="flex items-center space-x-2">
+                        </div>
+                        <div className="flex items-center space-x-2">
                             <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                loadMedpicCategorySummary(categoryName);
-                              }}
-                              disabled={isLoading || !canRegenerate}
-                              className={`p-1.5 rounded-full transition-all ${
-                                isLoading
-                                  ? "bg-blue-100 dark:bg-blue-900/50 cursor-wait"
-                                  : !canRegenerate
-                                  ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50"
-                                  : "bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-800/50"
-                              }`}
-                              title={
-                                isLoading 
-                                  ? "Generating summary..." 
-                                  : !canRegenerate
-                                  ? "Wait 1 minute before regenerating"
-                                  : summary 
-                                  ? "Regenerate summary" 
-                                  : "Generate summary"
-                              }
-                            >
-                              {isLoading ? (
-                                <Loader className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
-                              ) : (
-                                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                              )}
-                            </button>
-                            <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
-                          </div>
-                        </summary>
-                        
-                        <div className="p-3 mt-2 border-t border-gray-200 dark:border-gray-700">
-                          {error && (
-                            <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
-                                  <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                                  <p className="text-sm text-red-600 dark:text-red-400">
-                                    {error}
-                                  </p>
-                                </div>
-                                <button
-                                  onClick={(e) => {
+                                onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
                                     loadMedpicCategorySummary(categoryName);
-                                  }}
-                                  className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                                >
-                                  Retry
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {summary ? (
-                            <div className="space-y-2">
-                              <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                                <div 
-                                  className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line"
-                                  dangerouslySetInnerHTML={{ __html: formatSummary(summary.summary) }}
-                                />
-                              </div>
-                              {summary.analyzed_at && (
-                                <p className="text-xs text-gray-400">
-                                  Generated {new Date(summary.analyzed_at).toLocaleTimeString()}
-                                </p>
-                              )}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                              Click the ✨ icon to generate AI summary
-                            </p>
-                          )}
+                                }}
+                                disabled={isLoading || !canRegenerate}
+                                className={`p-1.5 rounded-full transition-all ${
+                                    isLoading
+                                        ? "bg-blue-100 dark:bg-blue-900/50 cursor-wait"
+                                        : !canRegenerate
+                                        ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50"
+                                        : "bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-800/50"
+                                }`}
+                                title={
+                                    isLoading 
+                                        ? "Generating summary..." 
+                                        : !canRegenerate
+                                        ? "Wait 1 minute before regenerating"
+                                        : summary 
+                                        ? "Regenerate summary" 
+                                        : "Generate summary"
+                                }
+                            >
+                                {isLoading ? (
+                                    <Loader className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
+                                ) : (
+                                    <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                )}
+                            </button>
+                            <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
                         </div>
-                      </details>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+                    </summary>
+                    
+                    <div className="p-3 mt-2 border-t border-gray-200 dark:border-gray-700">
+                        {error && (
+                            <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-2">
+                                        <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                        <p className="text-sm text-red-600 dark:text-red-400">
+                                            {error}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            loadMedpicCategorySummary(categoryName);
+                                        }}
+                                        className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                                    >
+                                        Retry
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {summary ? (
+                            <div className="space-y-2">
+                                <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                                    <div 
+                                        // MODIFIED: Added dark:text-gray-300 to ensure summary is visible
+                                        className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line"
+                                        dangerouslySetInnerHTML={{ __html: formatSummary(summary.summary) }}
+                                    />
+                                </div>
+                                <p className="text-xs text-gray-400">
+                                    Generated {summary.analyzed_at ? new Date(summary.analyzed_at).toLocaleTimeString() : "Unknown"}
+                                </p>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                                Click the ✨ icon to generate AI summary
+                            </p>
+                        )}
+                    </div>
+                </details>
+            );
+        })}
+    </div>
+</div>
+</div>
 
             {/* Custom Goals Progress - Enhanced Version */}
             {customGoals.length > 0 && (

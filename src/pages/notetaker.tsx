@@ -8,6 +8,7 @@ import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import EmailDialog from '../components/EmailDialog';
 import { useBotId } from '../BotIdContext';
 import { useAuth } from '../AuthContext';
+import { useTheme } from '../ThemeContext'; // Import the universal theme hook
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import {
     Send,
@@ -21,7 +22,6 @@ import {
     MessageSquare,
     ChevronRight,
     Moon,
-    Sun,
     FileText as Document,
     Headphones,
     Settings,
@@ -299,8 +299,8 @@ const saveToSessionStorage = (key: string, value: any) => {
 export default function Notetaker() {
     const { botId, setBotId } = useBotId();
     const { session } = useAuth();
+    const { isDarkMode, toggleDarkMode } = useTheme(); // Use universal theme context
     const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-    const [isDarkMode, setIsDarkMode] = useState(false);
     
     const [customTemplates, setCustomTemplates] = useState<Template[]>([]);
     const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
@@ -323,7 +323,6 @@ export default function Notetaker() {
     const [chatInput, setChatInput] = useState('');
     const [isProcessingTemplate, setIsProcessingTemplate] = useState(false);
     const [isAITyping, setIsAITyping] = useState(false);
-    // Removed follow-up questions state as requested
     const [additionalQuestions, setAdditionalQuestions] = useState<string[]>([]); 
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
     const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
@@ -1626,9 +1625,6 @@ ${transcriptText}`;
                         </div>
                     </div>
                     <div className="flex items-center flex-shrink-0 space-x-2">
-                        <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2.5 rounded-xl transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-yellow-400' : 'hover:bg-gray-200 text-gray-600 hover:text-blue-600'} hover:scale-105`}>
-                            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                        </button>
                         <button className={`p-2.5 rounded-xl transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-white' : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'} hover:scale-105`}>
                             <Settings className="w-5 h-5" />
                         </button>

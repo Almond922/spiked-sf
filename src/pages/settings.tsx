@@ -19,6 +19,7 @@ import {
   Edit,
 } from "lucide-react";
 import { useAuth } from "../AuthContext";
+import { useTheme } from "../ThemeContext"; 
 
 const API_BASE_URL =
   "https://spikedai-production-application-409019309412.us-central1.run.app";
@@ -153,17 +154,16 @@ const GoalModal: React.FC<{
 
 const SpikedAISettings: React.FC = () => {
   const { session } = useAuth();
+  const { isDarkMode, toggleDarkMode } = useTheme();
+  
   const [selectedPersona, setSelectedPersona] = useState<string>("balanced");
   const [customPrompt, setCustomPrompt] = useState("");
   const [selectedAnswerStyles, setSelectedAnswerStyles] = useState<string[]>([]);
   const [botName, setBotName] = useState("SpikedAI");
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [meetingDomains, setMeetingDomains] = useState<string[]>([]);
   const [meetingGoals, setMeetingGoals] = useState<MeetingGoal[]>([]);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<MeetingGoal | null>(null);
-
   const [initialSettings, setInitialSettings] = useState<SettingsModel | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "loading" | "saved">("idle");
@@ -239,14 +239,6 @@ const SpikedAISettings: React.FC = () => {
   }, [session]);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    setIsDarkMode(mediaQuery.matches);
-    const handleChange = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
-
-  useEffect(() => {
     const fetchInitialSettings = async () => {
       if (!session) return;
       try {
@@ -298,8 +290,6 @@ const SpikedAISettings: React.FC = () => {
     meetingDomains,
     initialSettings,
   ]);
-
-  const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   const customerPersonas: CustomerPersona[] = [
     { id: "balanced", name: "Balanced (Default)", description: "Versatile profile for general business users in B2B settings", prompt: "" },
@@ -506,14 +496,11 @@ const SpikedAISettings: React.FC = () => {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Personalisation</h1>
-              <p className={`text-sm mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>Configure your AI sales copilot before the call</p>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Settings</h1>
+              <p className={`text-sm mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>Configure your AI sales copilot</p>
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <button onClick={toggleDarkMode} className={`p-2.5 rounded-xl transition-all duration-200 ${isDarkMode ? "hover:bg-gray-800 text-gray-400 hover:text-yellow-400" : "hover:bg-gray-200 text-gray-600 hover:text-blue-600"}`} title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}>
-              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
             <button onClick={handleReset} disabled={!isDirty} className={`px-5 py-3 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed ${isDarkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-200 hover:bg-gray-300"}`}>
               <RotateCcw className="w-4 h-4" />
             </button>
@@ -531,10 +518,7 @@ const SpikedAISettings: React.FC = () => {
                 <h2 className="text-xl font-semibold">Bot Configuration</h2>
               </div>
               <input type="text" value={botName} onChange={(e) => setBotName(e.target.value)} className={`w-full max-w-md px-4 py-3 border rounded-xl focus:border-blue-500 focus:outline-none focus:ring-2 transition-all duration-200 ${isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-800" : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-200"}`} placeholder="Enter bot name" />
-              
             </section>
-
-            <h2 className="text-xl font-semibold">Before the meeting</h2>
             
             <section className={`rounded-2xl p-8 shadow-sm border transition-colors duration-200 ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
               <div className="flex items-center space-x-4 mb-8">
@@ -648,7 +632,7 @@ const SpikedAISettings: React.FC = () => {
                   <div className={`p-2 rounded-lg ${isDarkMode ? "bg-indigo-900/20" : "bg-indigo-100"}`}><Tag className={`w-6 h-6 ${isDarkMode ? "text-indigo-400" : "text-indigo-600"}`} /></div>
                   <div>
                     <h2 className="text-2xl font-semibold">Meeting Focus</h2>
-                    <p className={`text-sm mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>Add topics to focus the AI before the meeting</p>
+                    <p className={`text-sm mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>Add topics to focus the AI</p>
                   </div>
                 </div>
                 <div className="relative group">

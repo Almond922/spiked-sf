@@ -115,7 +115,7 @@ type SessionType = 'Q&A' | 'AI Quiz';
 const Resizer = ({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => void }) => (
   <div
     onMouseDown={onMouseDown}
-    className="w-1.5 h-full cursor-col-resize bg-gray-200 hover:bg-blue-500 transition-colors duration-200 flex-shrink-0"
+    className="w-1.5 h-full cursor-col-resize bg-gray-200 dark:bg-gray-700 hover:bg-blue-500 transition-colors duration-200 flex-shrink-0"
     style={{ flexShrink: 0 }}
   />
 );
@@ -123,7 +123,6 @@ const Resizer = ({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => void }
 
 const MeetingPrep = () => {
   const [currentPhase, setCurrentPhase] = useState(1);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<number | null>(null);
 
   // --- Panel Resizing State ---
@@ -1157,44 +1156,44 @@ const handleDownloadReport = (): void => {
 
   // --- RENDER FUNCTIONS ---
   const renderLeftPanel = () => (
-    <div className="flex flex-col h-full p-6 bg-white border-r border-gray-200 overflow-y-auto">
+    <div className="flex flex-col h-full p-6 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
       <div className="mb-6">
         <div className="flex items-center gap-2">
-          <button onClick={handleBack} className={`p-2.5 rounded-xl transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-white' : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'}`}>
+          <button onClick={handleBack} className={`p-2.5 rounded-xl transition-all duration-200 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white`}>
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h2 className="text-xl font-bold text-gray-800">Configuration</h2>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Configuration</h2>
         </div>
       </div>
 
         {/* Document Selection */}
         <div className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-500 mb-3">TRAINING MATERIALS</h3>
+            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">TRAINING MATERIALS</h3>
             <div
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
-                className="border-2 border-dashed rounded-lg p-4 text-center text-gray-500 mb-4"
+                className="border-2 border-dashed rounded-lg p-4 text-center text-gray-500 dark:text-gray-400 dark:border-gray-600 mb-4"
             >
                 <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                <p className="text-sm">Drag & drop or <span className="text-blue-600 font-semibold cursor-pointer" onClick={() => fileInputRef.current?.click()}>browse</span></p>
+                <p className="text-sm">Drag & drop or <span className="text-blue-600 dark:text-blue-400 font-semibold cursor-pointer" onClick={() => fileInputRef.current?.click()}>browse</span></p>
                 <input ref={fileInputRef} type="file" accept=".pdf,.docx,.pptx,.xlsx" onChange={handleFileUpload} className="hidden" />
             </div>
             <div className="space-y-2">
                 {existingDocuments.map(doc => (
                     <div key={doc.doc_id} className="flex items-center text-sm">
-                        <input type="checkbox" id={doc.doc_id} checked={selectedDocuments.has(doc.filename)} onChange={e => handleDocumentSelection(doc.filename, e.target.checked)} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
-                        <label htmlFor={doc.doc_id} className="ml-3 text-gray-700 truncate">{doc.filename}</label>
+                        <input type="checkbox" id={doc.doc_id} checked={selectedDocuments.has(doc.filename)} onChange={e => handleDocumentSelection(doc.filename, e.target.checked)} className="h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500" />
+                        <label htmlFor={doc.doc_id} className="ml-3 text-gray-700 dark:text-gray-300 truncate">{doc.filename}</label>
                     </div>
                 ))}
                 {uploadedDocuments.map(doc => (
                      <div key={doc.doc_id} className="flex items-center text-sm">
-                        <input type="checkbox" id={doc.doc_id} checked={selectedDocuments.has(doc.filename)} onChange={e => handleDocumentSelection(doc.filename, e.target.checked)} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
-                        <label htmlFor={doc.doc_id} className="ml-3 text-gray-700 truncate">{doc.filename}</label>
+                        <input type="checkbox" id={doc.doc_id} checked={selectedDocuments.has(doc.filename)} onChange={e => handleDocumentSelection(doc.filename, e.target.checked)} className="h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500" />
+                        <label htmlFor={doc.doc_id} className="ml-3 text-gray-700 dark:text-gray-300 truncate">{doc.filename}</label>
                         <button onClick={() => deleteDocument(doc.doc_id)} className="ml-auto text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                     </div>
                 ))}
                 {isUploading && (
-                    <div className="flex items-center text-sm p-2 text-gray-500">
+                    <div className="flex items-center text-sm p-2 text-gray-500 dark:text-gray-400">
                         <Loader2 className="w-4 h-4 mr-3 animate-spin" />
                         <span>Uploading document...</span>
                     </div>
@@ -1204,12 +1203,12 @@ const handleDownloadReport = (): void => {
 
         {/* Persona Selection */}
         <div className="mb-6">
-             <h3 className="text-sm font-semibold text-gray-500 mb-3">TARGET AUDIENCE</h3>
+             <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">TARGET AUDIENCE</h3>
              <div className="space-y-2">
                 {personas.map(p => (
-                    <button key={p.id} onClick={() => setSelectedPersona(p.id as Persona)} className={`w-full flex items-center p-3 rounded-md text-left transition-colors ${selectedPersona === p.id ? 'bg-blue-50 border-blue-200 border' : 'hover:bg-gray-50'}`}>
-                        <p.icon className={`w-5 h-5 mr-3 ${selectedPersona === p.id ? 'text-blue-600' : 'text-gray-400'}`} />
-                        <span className={`text-sm font-medium ${selectedPersona === p.id ? 'text-blue-700' : 'text-gray-600'}`}>{p.name}</span>
+                    <button key={p.id} onClick={() => setSelectedPersona(p.id as Persona)} className={`w-full flex items-center p-3 rounded-md text-left transition-colors ${selectedPersona === p.id ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 border' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
+                        <p.icon className={`w-5 h-5 mr-3 ${selectedPersona === p.id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'}`} />
+                        <span className={`text-sm font-medium ${selectedPersona === p.id ? 'text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-300'}`}>{p.name}</span>
                     </button>
                 ))}
              </div>
@@ -1217,12 +1216,12 @@ const handleDownloadReport = (): void => {
 
         {/* --- NEW: Session Type Selection --- */}
         <div className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-500 mb-3">SESSION TYPE</h3>
-            <div className="flex bg-gray-100 p-1 rounded-md">
-                <button onClick={() => setSessionType('Q&A')} className={`w-1/2 py-1.5 text-sm font-semibold rounded flex items-center justify-center gap-2 ${sessionType === 'Q&A' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'}`}>
+            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">SESSION TYPE</h3>
+            <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-md">
+                <button onClick={() => setSessionType('Q&A')} className={`w-1/2 py-1.5 text-sm font-semibold rounded flex items-center justify-center gap-2 ${sessionType === 'Q&A' ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>
                     <MessageCircleQuestion className="w-4 h-4" /> Q&A
                 </button>
-                <button onClick={() => setSessionType('AI Quiz')} className={`w-1/2 py-1.5 text-sm font-semibold rounded flex items-center justify-center gap-2 ${sessionType === 'AI Quiz' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'}`}>
+                <button onClick={() => setSessionType('AI Quiz')} className={`w-1/2 py-1.5 text-sm font-semibold rounded flex items-center justify-center gap-2 ${sessionType === 'AI Quiz' ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>
                     <BookCheck className="w-4 h-4" /> AI Quiz
                 </button>
             </div>
@@ -1233,10 +1232,10 @@ const handleDownloadReport = (): void => {
           <>
             {/* AI Mode */}
             <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-500 mb-3">AI MODE</h3>
-                <div className="flex bg-gray-100 p-1 rounded-md">
-                    <button onClick={() => setAiMode('AI Auto')} className={`w-1/2 py-1.5 text-sm font-semibold rounded ${aiMode === 'AI Auto' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'}`}>Auto</button>
-                    <button onClick={() => setAiMode('AI Custom')} className={`w-1/2 py-1.5 text-sm font-semibold rounded ${aiMode === 'AI Custom' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'}`}>Custom</button>
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">AI MODE</h3>
+                <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-md">
+                    <button onClick={() => setAiMode('AI Auto')} className={`w-1/2 py-1.5 text-sm font-semibold rounded ${aiMode === 'AI Auto' ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>Auto</button>
+                    <button onClick={() => setAiMode('AI Custom')} className={`w-1/2 py-1.5 text-sm font-semibold rounded ${aiMode === 'AI Custom' ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>Custom</button>
                 </div>
                 {aiMode === 'AI Custom' && (
                     <textarea 
@@ -1244,20 +1243,20 @@ const handleDownloadReport = (): void => {
                         onChange={e => setCustomInstructions(e.target.value)}
                         placeholder="Add custom instructions..."
                         rows={3}
-                        className="w-full mt-2 p-2 text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full mt-2 p-2 text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     />
                 )}
             </div>
 
             {/* Meeting Objective */}
             <div className="mb-6">
-                 <h3 className="text-sm font-semibold text-gray-500 mb-3">MEETING OBJECTIVE (OPTIONAL)</h3>
+                 <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">MEETING OBJECTIVE (OPTIONAL)</h3>
                  <input
                     type="text"
                     value={meetingObjective}
                     onChange={(e) => setMeetingObjective(e.target.value)}
                     placeholder="e.g., Secure technical buy-in"
-                    className="w-full p-2 text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full p-2 text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md focus:ring-blue-500 focus:border-blue-500"
                  />
             </div>
           </>
@@ -1265,7 +1264,7 @@ const handleDownloadReport = (): void => {
         
         {/* Session Duration */}
         <div className="mb-auto">
-             <h3 className="text-sm font-semibold text-gray-500 mb-3">SESSION DURATION</h3>
+             <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">SESSION DURATION</h3>
              <div className="flex items-center">
                 <input
                     type="range"
@@ -1274,9 +1273,9 @@ const handleDownloadReport = (): void => {
                     step="5"
                     value={sessionDuration}
                     onChange={(e) => setSessionDuration(Number(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer"
                 />
-                <span className="ml-4 text-sm font-medium text-gray-700 w-12 text-right">{sessionDuration} min</span>
+                <span className="ml-4 text-sm font-medium text-gray-700 dark:text-gray-300 w-12 text-right">{sessionDuration} min</span>
              </div>
         </div>
 
@@ -1287,7 +1286,7 @@ const handleDownloadReport = (): void => {
                  <button
                     onClick={handleStartSession}
                     disabled={!selectedPersona || selectedDocuments.size === 0 || isUploading || isStartingSession}
-                    className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 transition-colors flex items-center justify-center"
+                    className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-colors flex items-center justify-center"
                 >
                     {isStartingSession ? (
                         <>
@@ -1331,11 +1330,11 @@ const handleDownloadReport = (): void => {
                 <div className="bg-blue-600 p-5 rounded-2xl mb-6 inline-block">
                     <Gamepad2 className="w-12 h-12 text-white" />
                 </div>
-                <h1 className="text-4xl font-bold text-gray-800">AI Simulator & Quiz</h1>
-                <p className="mt-4 max-w-lg text-lg text-gray-500">
+                <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100">AI Simulator & Quiz</h1>
+                <p className="mt-4 max-w-lg text-lg text-gray-500 dark:text-gray-400">
                     Transform your sales performance. Choose Q&A for AI-powered roleplay or AI Quiz to test your knowledge with multiple-choice questions.
                 </p>
-                <p className="mt-8 text-gray-400">
+                <p className="mt-8 text-gray-400 dark:text-gray-500">
                     Configure your session in the left panel to begin.
                 </p>
             </div>
@@ -1352,14 +1351,14 @@ const handleDownloadReport = (): void => {
                         if (msg.type === 'ai_question') {
                             return (
                                 <div key={index} className="flex justify-start">
-                                    <div className="p-5 rounded-lg max-w-2xl bg-gray-100">
+                                    <div className="p-5 rounded-lg max-w-2xl bg-gray-100 dark:bg-gray-700">
                                         <div className="flex items-center mb-2">
-                                            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 mr-3">
-                                                <MessageSquare className="w-4 h-4 text-gray-600" />
+                                            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-600 mr-3">
+                                                <MessageSquare className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                                             </div>
-                                            <span className="font-bold text-gray-800">AI Question</span>
+                                            <span className="font-bold text-gray-800 dark:text-gray-200">AI Question</span>
                                         </div>
-                                        <div className="prose prose-lg max-w-none text-gray-700"><ReactMarkdown>{msg.text}</ReactMarkdown></div>
+                                        <div className="prose prose-lg max-w-none text-gray-700 dark:text-gray-300"><ReactMarkdown>{msg.text}</ReactMarkdown></div>
                                     </div>
                                 </div>
                             );
@@ -1380,21 +1379,21 @@ const handleDownloadReport = (): void => {
                     })}
                      {isAiTyping && (
                         <div className="flex justify-start">
-                            <div className="p-4 rounded-lg bg-gray-100">
+                            <div className="p-4 rounded-lg bg-gray-100 dark:bg-gray-700">
                                <div className="flex items-center space-x-2 text-sm">
-                                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-                                    <span className="text-gray-600">AI is analyzing...</span>
+                                    <div className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce"></div>
+                                    <span className="text-gray-600 dark:text-gray-400">AI is analyzing...</span>
                                </div>
                             </div>
                         </div>
                     )}
                 </div>
-                <div className="p-6 border-t border-gray-200">
+                <div className="p-6 border-t border-gray-200 dark:border-gray-700">
                       <div className="flex items-center space-x-3">
                         <button
                             onClick={handleIDontKnow}
                             disabled={isAiTyping || showAnalysis || isRecording}
-                            className="px-4 py-2 rounded-lg font-medium border border-yellow-400 text-yellow-600 bg-white shadow-sm hover:bg-yellow-400 hover:text-white hover:shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-4 py-2 rounded-lg font-medium border border-yellow-400 dark:border-yellow-600 text-yellow-600 dark:text-yellow-400 bg-white dark:bg-gray-800 shadow-sm hover:bg-yellow-400 hover:text-white dark:hover:bg-yellow-500 dark:hover:text-white hover:shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Skip this question"
                         >
                             Skip
@@ -1407,16 +1406,16 @@ const handleDownloadReport = (): void => {
                                 onChange={(e) => setUserChatInput(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && !isRecording && handleUserSendMessage()}
                                 disabled={isAiTyping || showAnalysis}
-                                className="w-full p-3 pr-24 rounded-lg border border-gray-300 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full p-3 pr-24 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                             />
                             {isSupported && (
                                 <button
                                     onClick={toggleListening}
                                     disabled={!isSupported || isAiTyping || showAnalysis}
-                                    className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-lg transition-all duration-300 ${
+                                    className={`absolute right-12 top-1/2 transform -translate-y-1/2 p-2 rounded-lg transition-all duration-300 ${
                                         isRecording 
                                         ? 'bg-red-500 text-white animate-pulse hover:bg-red-600' 
-                                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                        : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
                                     } ${!isSupported ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
                                     title={!isSupported ? 'Speech recognition not supported' : isRecording ? 'Stop listening' : 'Start voice input'}
                                 >
@@ -1427,7 +1426,7 @@ const handleDownloadReport = (): void => {
                         <button
                             onClick={() => handleUserSendMessage(false)}
                             disabled={!userChatInput.trim() || isAiTyping || showAnalysis || isRecording}
-                            className="px-5 py-3 rounded-lg font-semibold transition-colors bg-gray-800 text-white hover:bg-gray-700 disabled:bg-gray-300"
+                            className="px-5 py-3 rounded-lg font-semibold transition-colors bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-800 hover:bg-gray-700 dark:hover:bg-white disabled:bg-gray-300 dark:disabled:bg-gray-600"
                         >
                             <Send className="w-5 h-5" />
                         </button>
@@ -1440,38 +1439,38 @@ const handleDownloadReport = (): void => {
       // --- NEW: RENDER QUIZ SESSION ---
       if (sessionType === 'AI Quiz') {
         return (
-          <div className="flex flex-col h-full bg-white">
-            <div className="p-6 border-b">
-              <h1 className="text-2xl font-bold text-gray-800">AI Knowledge Quiz</h1>
-              <p className="text-gray-500">Answer the following questions based on the provided documents.</p>
+          <div className="flex flex-col h-full bg-white dark:bg-gray-800">
+            <div className="p-6 border-b dark:border-gray-700">
+              <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">AI Knowledge Quiz</h1>
+              <p className="text-gray-500 dark:text-gray-400">Answer the following questions based on the provided documents.</p>
             </div>
             <div className="flex-1 p-8 overflow-y-auto space-y-8">
               {quizQuestions.map((q, index) => (
                 <div key={q.question_id}>
-                  <p className="font-semibold text-gray-800 mb-3">{index + 1}. {q.question}</p>
+                  <p className="font-semibold text-gray-800 dark:text-gray-200 mb-3">{index + 1}. {q.question}</p>
                   <div className="space-y-2">
                     {q.options.map((option, i) => (
-                      <label key={i} className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${userQuizAnswers[q.question_id] === option ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50'}`}>
+                      <label key={i} className={`flex items-center p-3 rounded-lg border dark:border-gray-600 cursor-pointer transition-colors ${userQuizAnswers[q.question_id] === option ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
                         <input
                           type="radio"
                           name={q.question_id}
                           value={option}
                           checked={userQuizAnswers[q.question_id] === option}
                           onChange={() => handleQuizAnswerSelect(q.question_id, option)}
-                          className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                          className="h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-500 focus:ring-blue-500"
                         />
-                        <span className="ml-3 text-sm text-gray-700">{option}</span>
+                        <span className="ml-3 text-sm text-gray-700 dark:text-gray-300">{option}</span>
                       </label>
                     ))}
                   </div>
                 </div>
               ))}
             </div>
-            <div className="p-6 border-t">
+            <div className="p-6 border-t dark:border-gray-700">
               <button
                 onClick={handleSubmitQuiz}
                 disabled={Object.keys(userQuizAnswers).length < quizQuestions.length}
-                className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 transition-colors"
+                className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-colors"
               >
                 Submit Quiz
               </button>
@@ -1488,36 +1487,36 @@ const handleDownloadReport = (): void => {
         const scoreColor = finalScore >= 75 ? 'text-green-500' : finalScore >= 60 ? 'text-yellow-500' : 'text-red-500';
         
         return (
-             <div className="flex flex-col h-full bg-white overflow-y-auto">
-                 <div className="p-10 text-center border-b">
+             <div className="flex flex-col h-full bg-white dark:bg-gray-800 overflow-y-auto">
+                 <div className="p-10 text-center border-b dark:border-gray-700">
                     <div className="mb-6">
-                        <Award className="w-16 h-16 text-gray-800 mx-auto" />
+                        <Award className="w-16 h-16 text-gray-800 dark:text-gray-200 mx-auto" />
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Training Session Complete</h1>
+                    <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">Training Session Complete</h1>
                     <p className={`text-6xl font-bold ${scoreColor} mb-4`}>
                         {finalScore}%
                     </p>
-                    <p className="text-lg text-gray-600 mb-8">
+                    <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
                       Overall Success Rate (7+ Scores)
                     </p>
                      <div className="grid grid-cols-3 gap-6 w-full max-w-2xl mx-auto text-center mb-8">
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                            <p className="text-2xl font-bold text-gray-800">{questionCount}</p>
-                            <p className="text-sm text-gray-500">Answered</p>
+                        <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                            <p className="text-2xl font-bold text-gray-800 dark:text-gray-200">{questionCount}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Answered</p>
                         </div>
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                            <p className="text-2xl font-bold text-gray-800">{sessionStats.avgScore.toFixed(1)}</p>
-                            <p className="text-sm text-gray-500">Avg. Score</p>
+                        <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                            <p className="text-2xl font-bold text-gray-800 dark:text-gray-200">{sessionStats.avgScore.toFixed(1)}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Avg. Score</p>
                         </div>
-                         <div className="bg-gray-50 p-4 rounded-lg">
-                            <p className="text-2xl font-bold text-gray-800">{sessionStats.avgResponseTime.toFixed(0)}s</p>
-                            <p className="text-sm text-gray-500">Avg. Time</p>
+                         <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                            <p className="text-2xl font-bold text-gray-800 dark:text-gray-200">{sessionStats.avgResponseTime.toFixed(0)}s</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Avg. Time</p>
                         </div>
                      </div>
                      <div className="flex space-x-4 justify-center">
                          <button 
                             onClick={handleDownloadReport} 
-                            className="px-5 py-2 rounded-lg font-semibold flex items-center space-x-2 bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            className="px-5 py-2 rounded-lg font-semibold flex items-center space-x-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
                          >
                             <Download className="w-4 h-4" />
                             <span>Download Report</span>
@@ -1526,13 +1525,13 @@ const handleDownloadReport = (): void => {
                  </div>
 
                 <div className="p-8">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">Detailed Review</h2>
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Detailed Review</h2>
                     <div className="space-y-2">
                         {sessionHistory.map((record, index) => (
-                            <div key={index} className="border rounded-lg bg-gray-50 overflow-hidden">
+                            <div key={index} className="border dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50 overflow-hidden">
                                 <button
                                     onClick={() => setOpenAccordion(openAccordion === index ? null : index)}
-                                    className="w-full flex justify-between items-center p-4 text-left font-semibold text-gray-700 hover:bg-gray-100 focus:outline-none"
+                                    className="w-full flex justify-between items-center p-4 text-left font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600/50 focus:outline-none"
                                 >
                                     <span>Q{index + 1}: {record.question}</span>
                                     <svg
@@ -1552,18 +1551,18 @@ const handleDownloadReport = (): void => {
                                 </button>
 
                                 {openAccordion === index && (
-                                    <div className="p-4 border-t border-gray-200 bg-white">
+                                    <div className="p-4 border-t border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800">
                                         <div className="mb-3">
-                                            <p className="text-sm font-medium text-blue-700">Your Answer (Score: {record.score}/10)</p>
-                                            <p className="text-sm text-gray-600 p-2 bg-blue-50 rounded-md mt-1">{record.userAnswer}</p>
+                                            <p className="text-sm font-medium text-blue-700 dark:text-blue-400">Your Answer (Score: {record.score}/10)</p>
+                                            <p className="text-sm text-gray-600 dark:text-gray-300 p-2 bg-blue-50 dark:bg-blue-900/30 rounded-md mt-1">{record.userAnswer}</p>
                                         </div>
                                         <div className="mb-3">
-                                            <p className="text-sm font-medium text-green-700">Ideal Answer</p>
-                                            <p className="text-sm text-gray-600 p-2 bg-green-50 rounded-md mt-1">{record.idealAnswer}</p>
+                                            <p className="text-sm font-medium text-green-700 dark:text-green-400">Ideal Answer</p>
+                                            <p className="text-sm text-gray-600 dark:text-gray-300 p-2 bg-green-50 dark:bg-green-900/30 rounded-md mt-1">{record.idealAnswer}</p>
                                         </div>
                                         <div>
-                                            <p className="text-sm font-medium text-yellow-700">Feedback</p>
-                                            <p className="text-sm text-gray-600 p-2 bg-yellow-50 rounded-md mt-1">{record.feedback}</p>
+                                            <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400">Feedback</p>
+                                            <p className="text-sm text-gray-600 dark:text-gray-300 p-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-md mt-1">{record.feedback}</p>
                                         </div>
                                     </div>
                                 )}
@@ -1580,31 +1579,31 @@ const handleDownloadReport = (): void => {
         const finalPercentage = quizQuestions.length > 0 ? Math.round((quizScore / quizQuestions.length) * 100) : 0;
         const scoreColor = finalPercentage >= 80 ? 'text-green-500' : finalPercentage >= 60 ? 'text-yellow-500' : 'text-red-500';
         return (
-          <div className="flex flex-col h-full bg-white overflow-y-auto">
-            <div className="p-10 text-center border-b">
-              <Award className="w-16 h-16 text-gray-800 mx-auto mb-4" />
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">Quiz Complete!</h1>
-              <p className="text-lg text-gray-600 mb-4">You scored</p>
+          <div className="flex flex-col h-full bg-white dark:bg-gray-800 overflow-y-auto">
+            <div className="p-10 text-center border-b dark:border-gray-700">
+              <Award className="w-16 h-16 text-gray-800 dark:text-gray-200 mx-auto mb-4" />
+              <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">Quiz Complete!</h1>
+              <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">You scored</p>
               <p className={`text-6xl font-bold ${scoreColor} mb-4`}>
                 {quizScore} / {quizQuestions.length}
               </p>
             </div>
             <div className="p-8">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Detailed Quiz Review</h2>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Detailed Quiz Review</h2>
               <div className="space-y-4">
                 {quizQuestions.map((q, index) => {
                   const userAnswer = userQuizAnswers[q.question_id] || "Not Answered";
                   const isCorrect = userAnswer === q.correct_answer;
                   return (
-                    <div key={q.question_id} className={`border rounded-lg p-4 ${isCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                      <p className="font-semibold text-gray-800 mb-2">{index + 1}. {q.question}</p>
-                      <p className={`text-sm ${isCorrect ? 'text-green-800' : 'text-red-800'}`}>
+                    <div key={q.question_id} className={`border rounded-lg p-4 ${isCorrect ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800'}`}>
+                      <p className="font-semibold text-gray-800 dark:text-gray-200 mb-2">{index + 1}. {q.question}</p>
+                      <p className={`text-sm ${isCorrect ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'}`}>
                         Your answer: <span className="font-medium">{userAnswer}</span>
                         {!isCorrect && <span className="ml-2 font-medium">(Correct: {q.correct_answer})</span>}
                       </p>
                       <div className="mt-2 pt-2 border-t border-dashed">
-                        <p className="text-xs font-semibold text-gray-500">EXPLANATION</p>
-                        <p className="text-sm text-gray-700 mt-1">{q.explanation}</p>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">EXPLANATION</p>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{q.explanation}</p>
                       </div>
                     </div>
                   );
@@ -1623,9 +1622,9 @@ const handleDownloadReport = (): void => {
     // Show a placeholder in Phase 1
     if (currentPhase === 1) {
         return (
-            <div className="flex flex-col h-full p-6 bg-white border-l border-gray-200 overflow-y-auto">
-                <h2 className="text-xl font-bold text-gray-800 mb-6">Session Preview</h2>
-                <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
+            <div className="flex flex-col h-full p-6 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6">Session Preview</h2>
+                <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 dark:text-gray-400">
                     <HelpCircle className="w-10 h-10 mb-4 text-gray-400" />
                     <p className="text-sm">Session progress and live feedback will appear here once the training begins.</p>
                 </div>
@@ -1637,43 +1636,43 @@ const handleDownloadReport = (): void => {
     if (sessionType === 'Q&A' && showAnalysis && currentAnalysis) {
         const { score, coverage, strengths, improvements } = currentAnalysis;
         return (
-            <div className="flex flex-col h-full p-6 bg-white border-l border-gray-200 overflow-y-auto">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Feedback & Analysis</h2>
+            <div className="flex flex-col h-full p-6 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Feedback & Analysis</h2>
                  <div className="grid grid-cols-2 gap-4 mb-6 text-center">
-                        <div className="p-4 rounded-lg bg-gray-50">
+                        <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
                           <div className={`text-2xl font-bold ${
                             score >= 8 ? 'text-green-500' : score >= 6 ? 'text-yellow-500' : score >= 4 ? 'text-orange-500' : 'text-red-500'
                           }`}>
                             {score}/10
                           </div>
-                          <div className="text-sm font-medium text-gray-500">AI Score</div>
+                          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">AI Score</div>
                         </div>
-                        <div className="p-4 rounded-lg bg-gray-50">
-                          <div className="text-lg font-bold text-gray-800">
+                        <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                          <div className="text-lg font-bold text-gray-800 dark:text-gray-200">
                             {coverage}
                           </div>
-                          <div className="text-sm font-medium text-gray-500">Coverage</div>
+                          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Coverage</div>
                         </div>
                 </div>
                 
                 <div className="mb-6">
-                  <h4 className="font-semibold text-gray-700 mb-2">Ideal Answer</h4>
-                  <div className="prose prose-sm max-w-none p-4 bg-green-50 text-green-800 rounded-md">
+                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Ideal Answer</h4>
+                  <div className="prose prose-sm max-w-none p-4 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-md">
                       <ReactMarkdown>{chatHistory.find(m => m.type === 'ai_ideal_answer')?.text}</ReactMarkdown>
                   </div>
                 </div>
 
                 <div className="mb-6">
-                  <h4 className="font-semibold text-gray-700 mb-2">Strengths</h4>
+                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Strengths</h4>
                   <ul className="text-sm space-y-2">
-                      {strengths.map((s, i) => <li key={i} className="flex items-start"><CheckCircle className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" /> <span className="text-gray-600">{s}</span></li>)}
+                      {strengths.map((s, i) => <li key={i} className="flex items-start"><CheckCircle className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" /> <span className="text-gray-600 dark:text-gray-400">{s}</span></li>)}
                   </ul>
                 </div>
 
                  <div className="mb-6">
-                  <h4 className="font-semibold text-gray-700 mb-2">Improvements</h4>
+                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Improvements</h4>
                   <ul className="text-sm space-y-2">
-                      {improvements.map((imp, i) => <li key={i} className="flex items-start"><Target className="w-4 h-4 text-yellow-500 mr-2 mt-0.5 flex-shrink-0" /> <span className="text-gray-600">{imp}</span></li>)}
+                      {improvements.map((imp, i) => <li key={i} className="flex items-start"><Target className="w-4 h-4 text-yellow-500 mr-2 mt-0.5 flex-shrink-0" /> <span className="text-gray-600 dark:text-gray-400">{imp}</span></li>)}
                   </ul>
                 </div>
 
@@ -1693,12 +1692,12 @@ const handleDownloadReport = (): void => {
     // --- RENDER SESSION PROGRESS PANEL (FOR BOTH Q&A and QUIZ) ---
     if (currentPhase === 2) {
         return (
-            <div className="flex flex-col h-full p-6 bg-white border-l border-gray-200 overflow-y-auto">
-                 <h2 className="text-xl font-bold text-gray-800 mb-6">Session Progress</h2>
+            <div className="flex flex-col h-full p-6 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto">
+                 <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6">Session Progress</h2>
 
                  <div className="mb-6 text-center">
-                    <p className="text-sm text-gray-500">TIME REMAINING</p>
-                    <p className={`font-mono text-4xl font-bold ${timer < 120 ? 'text-red-500' : 'text-gray-800'}`}>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">TIME REMAINING</p>
+                    <p className={`font-mono text-4xl font-bold ${timer < 120 ? 'text-red-500' : 'text-gray-800 dark:text-gray-200'}`}>
                         {formatTime(timer)}
                     </p>
                  </div>
@@ -1706,25 +1705,25 @@ const handleDownloadReport = (): void => {
                  {sessionType === 'Q&A' && (
                      <div className="space-y-4">
                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-600">Progress</span>
-                            <span className="font-semibold text-gray-800">{questionCount}/{generatedQuestions.length}</span>
+                            <span className="text-gray-600 dark:text-gray-400">Progress</span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-200">{questionCount}/{generatedQuestions.length}</span>
                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                             <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${(questionCount / (generatedQuestions.length || 1)) * 100}%` }}></div>
                           </div>
 
                           <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-600">Success Rate (7+)</span>
+                            <span className="text-gray-600 dark:text-gray-400">Success Rate (7+)</span>
                             <span className="font-semibold text-green-600">{questionCount > 0 ? Math.round((correctAnswerCount / questionCount) * 100) : 0}%</span>
                          </div>
 
                           <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-600">Avg. Score</span>
-                            <span className="font-semibold text-gray-800">{sessionStats.avgScore.toFixed(1)}/10</span>
+                            <span className="text-gray-600 dark:text-gray-400">Avg. Score</span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-200">{sessionStats.avgScore.toFixed(1)}/10</span>
                          </div>
                           <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-600">Avg. Response Time</span>
-                            <span className="font-semibold text-gray-800">{sessionStats.avgResponseTime.toFixed(0)}s</span>
+                            <span className="text-gray-600 dark:text-gray-400">Avg. Response Time</span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-200">{sessionStats.avgResponseTime.toFixed(0)}s</span>
                          </div>
                      </div>
                  )}
@@ -1732,21 +1731,21 @@ const handleDownloadReport = (): void => {
                  {sessionType === 'AI Quiz' && (
                      <div className="space-y-4">
                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-600">Progress</span>
-                            <span className="font-semibold text-gray-800">{Object.keys(userQuizAnswers).length}/{quizQuestions.length}</span>
+                            <span className="text-gray-600 dark:text-gray-400">Progress</span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-200">{Object.keys(userQuizAnswers).length}/{quizQuestions.length}</span>
                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                             <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${(Object.keys(userQuizAnswers).length / (quizQuestions.length || 1)) * 100}%` }}></div>
                           </div>
                      </div>
                  )}
 
-                 <div className="mt-8 pt-6 border-t border-gray-200">
-                     <h3 className="text-sm font-semibold text-gray-500 mb-3">DOCUMENT CONTEXT</h3>
+                 <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                     <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">DOCUMENT CONTEXT</h3>
                      <div className="text-sm space-y-1">
                         {Array.from(selectedDocuments).map((filename, index) => (
-                            <div key={index} className="flex items-center text-gray-600">
-                                <File className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
+                            <div key={index} className="flex items-center text-gray-600 dark:text-gray-300">
+                                <File className="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2 flex-shrink-0" />
                                 <span className="truncate">{filename}</span>
                             </div>
                         ))}
@@ -1761,7 +1760,7 @@ const handleDownloadReport = (): void => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 font-sans overflow-hidden">
       {/* Left Panel */}
       <div style={{ width: `${panelWidths.left}%` }} className="flex-shrink-0 h-full">
         {renderLeftPanel()}
@@ -1770,7 +1769,7 @@ const handleDownloadReport = (): void => {
       <Resizer onMouseDown={handleMouseDown('left')} />
 
       {/* Center Panel */}
-      <div className="flex-1 bg-gray-50 h-full flex flex-col">
+      <div className="flex-1 bg-gray-50 dark:bg-gray-800/50 h-full flex flex-col">
         {isStartingSession && !isAiTyping ? 
             <div className="flex items-center justify-center h-full">
               <Loader2 className="w-8 h-8 text-blue-600 animate-spin" /> 

@@ -54,6 +54,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../AuthContext";
 import { useBotId } from '../BotIdContext';
+import { useTheme } from '../ThemeContext';
 
 const service_url_recall =
   "https://recall-backend-production-409019309412.us-central1.run.app";
@@ -540,6 +541,7 @@ const loadFromSessionStorage = (key: string, defaultValue: any = null) => {
 const SpikedAI = () => {
   const { botId, setBotId } = useBotId(); 
   const { session, loading } = useAuth();
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -565,7 +567,6 @@ const SpikedAI = () => {
   const [alertTimers, setAlertTimers] = useState<Record<string, NodeJS.Timeout>>({});
   const [seenAlerts, setSeenAlerts] = useState<Set<string>>(new Set());
   const [visibleAlerts, setVisibleAlerts] = useState<CriticalAlert[]>([]);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
   const [showDocuments, setShowDocuments] = useState(false);
@@ -5851,40 +5852,6 @@ useEffect(() => {
                     ))}
                   </div>
                 )}
-              </div>
-
-              {/* Dark/Light Mode Toggle */}
-              <div className="relative group">
-                <button
-                  onClick={() => setIsDarkMode(!isDarkMode)}
-                  className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
-                    isDarkMode
-                      ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600"
-                      : "bg-gradient-to-r from-berkeley-blue to-cerulean text-white hover:from-cerulean hover:to-berkeley-blue"
-                  } shadow-lg`}
-                >
-                  {isDarkMode ? (
-                    <Sun className="w-5 h-5" />
-                  ) : (
-                    <Moon className="w-5 h-5" />
-                  )}
-                </button>
-                <div
-                  className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 text-sm rounded-md 
-                    opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none
-                    shadow-md whitespace-nowrap z-10 ${
-                      isDarkMode
-                        ? "bg-slate-200 text-slate-800"
-                        : "bg-slate-800 text-slate-100"
-                    }`}
-                >
-                  {isDarkMode ? "Light Mode" : "Dark Mode"}
-                  <div
-                    className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
-                      isDarkMode ? "bg-slate-200" : "bg-slate-800"
-                    }`}
-                  ></div>
-                </div>
               </div>
 
               {/* User Button */}

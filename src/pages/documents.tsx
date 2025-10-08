@@ -183,14 +183,14 @@ const api = {
 // --- UI HELPER ---
 const getSpaceColor = (space: string) => {
   const colors = [
-    "bg-blue-100 text-blue-800 border-blue-200",
-    "bg-emerald-100 text-emerald-800 border-emerald-200",
-    "bg-purple-100 text-purple-800 border-purple-200",
-    "bg-orange-100 text-orange-800 border-orange-200",
-    "bg-pink-100 text-pink-800 border-pink-200",
-    "bg-indigo-100 text-indigo-800 border-indigo-200",
-    "bg-teal-100 text-teal-800 border-teal-200",
-    "bg-red-100 text-red-800 border-red-200",
+    "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800",
+    "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-300 dark:border-emerald-800",
+    "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/50 dark:text-purple-300 dark:border-purple-800",
+    "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800",
+    "bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-900/50 dark:text-pink-300 dark:border-pink-800",
+    "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/50 dark:text-indigo-300 dark:border-indigo-800",
+    "bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-900/50 dark:text-teal-300 dark:border-teal-800",
+    "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-800",
   ];
   let hash = 0;
   for (let i = 0; i < space.length; i++) {
@@ -269,29 +269,29 @@ const Sidebar = memo(
 
     return (
       <div
-        className={`bg-white border-r border-gray-100 flex flex-col h-screen transition-all duration-300 ${
+        className={`bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 flex flex-col h-screen transition-all duration-300 ${
           isCollapsed ? "w-20" : "w-64"
         }`}
       >
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0 h-20">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-shrink-0 h-20">
           {!isCollapsed && (
             <div className="flex items-center space-x-3">
               <button
                 onClick={onBack}
-                className="flex items-center space-x-2 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors p-2 rounded-lg hover:bg-gray-100 -ml-2"
+                className="flex items-center space-x-2 text-sm font-medium text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 -ml-2"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
-              <span className="font-semibold text-lg text-gray-800">
+              <span className="font-semibold text-lg text-gray-800 dark:text-gray-200">
                 Content Hub
               </span>
             </div>
           )}
           <button
             onClick={onToggleCollapse}
-            className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors"
+            className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
-            <Menu className="w-5 h-5 text-gray-600" />
+            <Menu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
         </div>
         <nav className="flex-1 overflow-y-auto p-3">
@@ -304,8 +304,8 @@ const Sidebar = memo(
                     onClick={() => onPageChange(item.id)}
                     className={`w-full p-3 flex items-center justify-center rounded-lg transition-all duration-200 ${
                       currentPage === item.id
-                        ? "bg-blue-50 text-blue-600"
-                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                        ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300"
+                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
                     }`}
                     title={item.label}
                   >
@@ -319,7 +319,7 @@ const Sidebar = memo(
               <div key={section.section} className="mb-4">
                 <button
                   onClick={() => toggleSection(section.section)}
-                  className="w-full px-2 py-2 text-left text-xs font-semibold text-gray-400 hover:text-gray-600 flex items-center justify-between transition-colors"
+                  className="w-full px-2 py-2 text-left text-xs font-semibold text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 flex items-center justify-between transition-colors"
                 >
                   <span>{section.title}</span>
                   <ChevronDown
@@ -336,8 +336,8 @@ const Sidebar = memo(
                         onClick={() => onPageChange(item.id)}
                         className={`w-full px-3 py-2.5 text-left text-sm flex items-center space-x-3 rounded-lg transition-all duration-200 ${
                           currentPage === item.id
-                            ? "bg-blue-50 text-blue-600 font-medium"
-                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                            ? "bg-blue-50 text-blue-600 font-medium dark:bg-blue-900/30 dark:text-blue-300"
+                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700/50 dark:hover:text-gray-200"
                         }`}
                       >
                         <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -366,20 +366,24 @@ const Layout = memo(
     description?: string;
   }) => (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 px-6 py-5 flex-shrink-0 h-20 flex items-center justify-between">
+      <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 px-6 py-5 flex-shrink-0 h-20 flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md">
             <Search className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {title}
+            </h1>
             {description && (
-              <p className="text-sm text-gray-500 mt-1">{description}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {description}
+              </p>
             )}
           </div>
         </div>
       </header>
-      <main className="flex-1 p-6 overflow-y-auto bg-gray-50/50">
+      <main className="flex-1 p-6 overflow-y-auto bg-gray-50/50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto">{children}</div>
       </main>
     </div>
@@ -442,10 +446,10 @@ const SpacesInput = ({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
         Spaces (Optional)
       </label>
-      <div className="p-2 border border-gray-200 rounded-lg min-h-[44px]">
+      <div className="p-2 border border-gray-200 dark:border-gray-600 rounded-lg min-h-[44px]">
         <div className="flex flex-wrap gap-2 items-center">
           {spaces.map((space) => (
             <span
@@ -469,7 +473,7 @@ const SpacesInput = ({
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddSpace(inputValue)}
             placeholder="Add a space..."
-            className="flex-grow p-1 border-none focus:ring-0 text-sm"
+            className="flex-grow p-1 border-none focus:ring-0 text-sm bg-transparent"
           />
         </div>
       </div>
@@ -510,13 +514,15 @@ const WebsiteCrawlModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg transform transition-all">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900">Add Website</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg transform transition-all">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Add Website
+          </h2>
           <button
             onClick={onClose}
             disabled={status === "crawling"}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <X className="w-6 h-6" />
           </button>
@@ -525,7 +531,7 @@ const WebsiteCrawlModal = ({
           <div>
             <label
               htmlFor="url-input"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >
               Website URL
             </label>
@@ -536,13 +542,13 @@ const WebsiteCrawlModal = ({
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               disabled={status === "crawling"}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 transition-all"
+              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 dark:disabled:bg-gray-700 transition-all"
             />
           </div>
           <div>
             <label
               htmlFor="desc-input"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >
               Description (Optional)
             </label>
@@ -553,21 +559,21 @@ const WebsiteCrawlModal = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={status === "crawling"}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 transition-all"
+              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 dark:disabled:bg-gray-700 transition-all"
             />
           </div>
           <SpacesInput spaces={spaces} setSpaces={setSpaces} allSpaces={[]} />
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700 text-sm">{error}</p>
+            <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 rounded-lg">
+              <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
             </div>
           )}
         </div>
-        <div className="p-5 flex justify-end items-center space-x-3 bg-gray-50 border-t border-gray-100 rounded-b-xl">
+        <div className="p-5 flex justify-end items-center space-x-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 rounded-b-xl">
           <button
             onClick={onClose}
             disabled={status === "crawling"}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:bg-gray-100 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:bg-gray-100 transition-colors dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 dark:disabled:bg-gray-600"
           >
             Cancel
           </button>
@@ -634,34 +640,36 @@ const DocumentUploadModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg transform transition-all">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg transform transition-all">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             Upload Document
           </h2>
           <button
             onClick={onClose}
             disabled={isUploading}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
         <div className="p-6 space-y-5">
           <div
-            className="border-2 border-dashed rounded-xl p-8 text-center transition-colors border-gray-300 hover:border-blue-400 hover:bg-blue-50/50 cursor-pointer"
+            className="border-2 border-dashed rounded-xl p-8 text-center transition-colors border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 cursor-pointer"
             onClick={() => fileInputRef.current?.click()}
           >
-            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FileText className="w-6 h-6 text-gray-500" />
+            <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileText className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             </div>
-            <p className="text-gray-700 mb-2">
-              <span className="font-medium text-blue-600 hover:text-blue-700">
+            <p className="text-gray-700 dark:text-gray-300 mb-2">
+              <span className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
                 Click to upload
               </span>{" "}
               or drag and drop
             </p>
-            <p className="text-xs text-gray-500">PDF, DOC, TXT, etc.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              PDF, DOC, TXT, etc.
+            </p>
             <input
               ref={fileInputRef}
               type="file"
@@ -669,11 +677,11 @@ const DocumentUploadModal = ({
               className="hidden"
             />
             {file && (
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg border text-left">
-                <div className="text-sm text-gray-800 font-medium">
+              <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border dark:border-gray-600 text-left">
+                <div className="text-sm text-gray-800 dark:text-gray-200 font-medium">
                   {file.name}
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 dark:text-gray-400">
                   {(file.size / 1024 / 1024).toFixed(2)} MB
                 </div>
               </div>
@@ -682,7 +690,7 @@ const DocumentUploadModal = ({
           <div>
             <label
               htmlFor="description"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >
               Description (Optional)
             </label>
@@ -692,22 +700,22 @@ const DocumentUploadModal = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={isUploading}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 transition-all"
+              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 dark:disabled:bg-gray-700 transition-all"
               placeholder="Add a brief description..."
             />
           </div>
           <SpacesInput spaces={spaces} setSpaces={setSpaces} allSpaces={[]} />
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700 text-sm">{error}</p>
+            <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 rounded-lg">
+              <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
             </div>
           )}
         </div>
-        <div className="p-5 flex justify-end items-center space-x-3 bg-gray-50 border-t border-gray-100 rounded-b-xl">
+        <div className="p-5 flex justify-end items-center space-x-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 rounded-b-xl">
           <button
             onClick={onClose}
             disabled={isUploading}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:bg-gray-100 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:bg-gray-100 transition-colors dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 dark:disabled:bg-gray-600"
           >
             Cancel
           </button>
@@ -770,7 +778,7 @@ const EditableField = ({
       className="group"
       onDoubleClick={() => !isEditing && setIsEditing(true)}
     >
-      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
         {label}
       </label>
       {isEditing ? (
@@ -788,15 +796,19 @@ const EditableField = ({
                 setText(value);
                 setIsEditing(false);
               }}
-              className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+              className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
             >
               Cancel
             </button>
           </div>
         </div>
       ) : (
-        <p className="mt-1 p-2 rounded-lg group-hover:bg-gray-50/80 cursor-pointer min-h-[24px] transition-colors text-sm text-gray-700">
-          {value || <span className="text-gray-400 italic">{placeholder}</span>}
+        <p className="mt-1 p-2 rounded-lg group-hover:bg-gray-50/80 dark:group-hover:bg-white/5 cursor-pointer min-h-[24px] transition-colors text-sm text-gray-700 dark:text-gray-300">
+          {value || (
+            <span className="text-gray-400 dark:text-gray-500 italic">
+              {placeholder}
+            </span>
+          )}
         </p>
       )}
     </div>
@@ -830,7 +842,7 @@ const EditableDescription = ({
           ref={ref}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+          className="w-full p-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
           rows={3}
         />
       )}
@@ -889,11 +901,11 @@ const EditableSpaces = ({
 
   return (
     <div ref={containerRef} className="group">
-      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
         Spaces
       </label>
       <div
-        className="mt-1 flex flex-wrap gap-2 items-center p-2 rounded-lg group-hover:bg-gray-50/80 cursor-pointer transition-colors min-h-[24px]"
+        className="mt-1 flex flex-wrap gap-2 items-center p-2 rounded-lg group-hover:bg-gray-50/80 dark:group-hover:bg-white/5 cursor-pointer transition-colors min-h-[24px]"
         onDoubleClick={() => !isEditing && setIsEditing(true)}
       >
         {spaces.map((space) => (
@@ -915,7 +927,7 @@ const EditableSpaces = ({
           </span>
         ))}
         {!isEditing && spaces.length === 0 && (
-          <span className="text-gray-400 italic text-sm">
+          <span className="text-gray-400 dark:text-gray-500 italic text-sm">
             Double-click to add spaces...
           </span>
         )}
@@ -926,7 +938,7 @@ const EditableSpaces = ({
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddSpace(inputValue)}
             placeholder="Add space..."
-            className="text-xs p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="text-xs p-1 border border-gray-300 dark:bg-gray-700 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         )}
       </div>
@@ -1014,28 +1026,30 @@ const SourceCard = ({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg p-5 flex flex-col space-y-4 transition-all duration-300 hover:border-blue-300">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:shadow-lg p-5 flex flex-col space-y-4 transition-all duration-300 hover:border-blue-300 dark:hover:border-blue-500">
       <div className="flex justify-between items-start">
         <div className="flex items-center space-x-4 flex-1 min-w-0">
           <div
             className={`w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 ${
-              isWebsite ? "bg-emerald-50" : "bg-blue-50"
+              isWebsite
+                ? "bg-emerald-50 dark:bg-emerald-900/40"
+                : "bg-blue-50 dark:bg-blue-900/40"
             }`}
           >
             {isWebsite ? (
-              <Globe className="w-6 h-6 text-emerald-600" />
+              <Globe className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
             ) : (
-              <FileText className="w-6 h-6 text-blue-600" />
+              <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             )}
           </div>
           <div className="min-w-0 flex-1">
             <h3
-              className="font-semibold text-gray-800 truncate text-base"
+              className="font-semibold text-gray-800 dark:text-gray-200 truncate text-base"
               title={source.filename}
             >
               {source.filename}
             </h3>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
               Added on {new Date(source.created_at).toLocaleDateString()}
             </p>
           </div>
@@ -1045,12 +1059,12 @@ const SourceCard = ({
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen((prev) => !prev)}
-              className="p-2 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-all"
+              className="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
             >
               <MoreHorizontal className="w-4 h-4" />
             </button>
             <div
-              className={`absolute top-full right-0 mt-2 w-40 bg-white border rounded-lg shadow-xl z-10 transition-all duration-200 ${
+              className={`absolute top-full right-0 mt-2 w-40 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-lg shadow-xl z-10 transition-all duration-200 ${
                 isMenuOpen
                   ? "opacity-100 pointer-events-auto"
                   : "opacity-0 pointer-events-none"
@@ -1061,7 +1075,7 @@ const SourceCard = ({
                   href={source.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   title="Open URL"
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
@@ -1070,7 +1084,7 @@ const SourceCard = ({
               ) : (
                 <button
                   onClick={() => handleMenuAction(handleDownload)}
-                  className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   title="Download File"
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
@@ -1081,14 +1095,14 @@ const SourceCard = ({
               {isWebsite && onRecrawl && (
                 <button
                   onClick={() => handleMenuAction(() => onRecrawl(source))}
-                  className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" /> Recrawl
                 </button>
               )}
               <button
                 onClick={() => handleMenuAction(() => onDelete(source))}
-                className="flex items-center w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                className="flex items-center w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
               >
                 <Trash2 className="w-4 h-4 mr-2" /> Delete
               </button>
@@ -1149,7 +1163,7 @@ const SourcesListPage = ({
             placeholder={`Search ${type}s...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-11 pr-4 py-2.5 border border-gray-300 rounded-lg w-80 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+            className="pl-11 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg w-80 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white dark:bg-gray-800 dark:text-gray-200"
           />
         </div>
         <button
@@ -1166,7 +1180,7 @@ const SourcesListPage = ({
           <Loader className="w-8 h-8 animate-spin text-blue-600" />
         </div>
       ) : error ? (
-        <div className="text-center p-6 bg-red-50 border border-red-200 text-red-700 rounded-xl">
+        <div className="text-center p-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300 rounded-xl">
           <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-500" />
           <p className="font-medium">Error loading {type}s</p>
           <p className="text-sm mt-1">{error}</p>
@@ -1185,18 +1199,18 @@ const SourcesListPage = ({
               />
             ))
           ) : (
-            <div className="col-span-full text-center py-16 bg-gray-100/50 rounded-xl">
-              <div className="w-16 h-16 bg-white border rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="col-span-full text-center py-16 bg-gray-100/50 dark:bg-gray-800/50 rounded-xl">
+              <div className="w-16 h-16 bg-white dark:bg-gray-700 border dark:border-gray-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 {type === "document" ? (
                   <FileText className="w-8 h-8 text-gray-400" />
                 ) : (
                   <Globe className="w-8 h-8 text-gray-400" />
                 )}
               </div>
-              <p className="text-gray-600 font-medium text-lg">
+              <p className="text-gray-600 dark:text-gray-300 font-medium text-lg">
                 No {type}s found
               </p>
-              <p className="text-gray-500 text-sm mt-1">
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
                 {searchQuery
                   ? `Try adjusting your search terms`
                   : `Click 'Add ${type}' to get started`}
@@ -1430,22 +1444,22 @@ const SourceChunksViewer = ({ sourceId }: { sourceId: string }) => {
   }, [loadChunks, session]);
 
   return (
-    <div className="p-6 bg-gray-50/50">
+    <div className="p-6 bg-gray-50/50 dark:bg-gray-900/50">
       <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
         {chunks.map((chunk, index) => (
           <div
             key={chunk.id}
-            className="p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+            className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
           >
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">
+              <p className="text-xs font-mono text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400 px-2 py-1 rounded">
                 Chunk #{index + 1}
               </p>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
                 ID: ...{chunk.id.slice(-8)}
               </p>
             </div>
-            <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+            <p className="text-sm text-gray-800 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
               {chunk.content}
             </p>
           </div>
@@ -1453,7 +1467,7 @@ const SourceChunksViewer = ({ sourceId }: { sourceId: string }) => {
       </div>
 
       {error && (
-        <div className="text-center p-4 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg mt-4">
+        <div className="text-center p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-300 text-sm rounded-lg mt-4">
           {error}
         </div>
       )}
@@ -1462,7 +1476,7 @@ const SourceChunksViewer = ({ sourceId }: { sourceId: string }) => {
         <div className="mt-6 text-center">
           <button
             onClick={() => loadChunks(page + 1)}
-            className="px-5 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+            className="px-5 py-2 text-sm font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
           >
             Load More Chunks
           </button>
@@ -1476,11 +1490,13 @@ const SourceChunksViewer = ({ sourceId }: { sourceId: string }) => {
 
       {!isLoading && chunks.length === 0 && !error && (
         <div className="text-center py-8">
-          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-3">
             <FileSearch className="w-6 h-6 text-gray-400" />
           </div>
-          <p className="text-gray-500 font-medium">No chunks found</p>
-          <p className="text-gray-400 text-sm mt-1">
+          <p className="text-gray-500 dark:text-gray-400 font-medium">
+            No chunks found
+          </p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
             This source may not have been processed yet.
           </p>
         </div>
@@ -1533,7 +1549,7 @@ const BrowsePage = () => {
 
   if (error) {
     return (
-      <div className="text-center p-6 bg-red-50 border border-red-200 text-red-700 rounded-xl">
+      <div className="text-center p-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300 rounded-xl">
         <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-500" />
         <p className="font-medium">Error loading sources</p>
         <p className="text-sm mt-1">{error}</p>
@@ -1546,32 +1562,34 @@ const BrowsePage = () => {
       {sources.map((source) => (
         <div
           key={source.id}
-          className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
+          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
         >
           <button
-            className="w-full p-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+            className="w-full p-5 text-left flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
             onClick={() => toggleSource(source.id)}
           >
             <div className="flex items-center space-x-4">
               <div
                 className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  source.url.startsWith("gcs:") ? "bg-blue-50" : "bg-emerald-50"
+                  source.url.startsWith("gcs:")
+                    ? "bg-blue-50 dark:bg-blue-900/40"
+                    : "bg-emerald-50 dark:bg-emerald-900/40"
                 }`}
               >
                 {source.url.startsWith("gcs:") ? (
-                  <FileText className="w-5 h-5 text-blue-600" />
+                  <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 ) : (
-                  <Globe className="w-5 h-5 text-emerald-600" />
+                  <Globe className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 )}
               </div>
               <div>
                 <h2
-                  className="text-lg font-semibold text-gray-800 truncate"
+                  className="text-lg font-semibold text-gray-800 dark:text-gray-200 truncate"
                   title={source.filename}
                 >
                   {source.filename}
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Created {new Date(source.created_at).toLocaleDateString()}
                 </p>
               </div>
@@ -1589,12 +1607,14 @@ const BrowsePage = () => {
       ))}
 
       {sources.length === 0 && (
-        <div className="text-center py-16 bg-gray-100/50 rounded-xl">
-          <div className="w-16 h-16 bg-white border rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="text-center py-16 bg-gray-100/50 dark:bg-gray-800/50 rounded-xl">
+          <div className="w-16 h-16 bg-white dark:bg-gray-700 border dark:border-gray-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <FileSearch className="w-8 h-8 text-gray-400" />
           </div>
-          <p className="text-gray-600 font-medium text-lg">No sources found</p>
-          <p className="text-gray-500 text-sm mt-1">
+          <p className="text-gray-600 dark:text-gray-300 font-medium text-lg">
+            No sources found
+          </p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
             Upload documents or add websites to browse their chunks.
           </p>
         </div>
@@ -1922,29 +1942,33 @@ const ConnectorsPage = () => {
     status: string;
     description: string;
   }) => (
-    <div className="bg-white/60 backdrop-blur-sm border border-gray-200/80 rounded-2xl p-6 flex flex-col transition-all duration-300 hover:shadow-xl hover:border-blue-400/50 group">
+    <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm border border-gray-200/80 dark:border-gray-700/80 rounded-2xl p-6 flex flex-col transition-all duration-300 hover:shadow-xl hover:border-blue-400/50 dark:hover:border-blue-500/50 group">
       <div className="flex items-center space-x-4">
-        <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-white rounded-xl border shadow-sm">
+        <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-white dark:bg-gray-700 rounded-xl border dark:border-gray-600 shadow-sm">
           {logo}
         </div>
         <div>
-          <h3 className="font-bold text-gray-900 text-md">{name}</h3>
+          <h3 className="font-bold text-gray-900 dark:text-gray-100 text-md">
+            {name}
+          </h3>
           <span
             className={`text-xs font-semibold px-2.5 py-1 mt-1.5 inline-block rounded-full ${
               status === "Connected"
-                ? "bg-emerald-100 text-emerald-800"
-                : "bg-gray-100 text-gray-700"
+                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300"
+                : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
             }`}
           >
             {status}
           </span>
         </div>
       </div>
-      <p className="text-gray-500 text-sm mt-4 flex-grow">{description}</p>
+      <p className="text-gray-500 dark:text-gray-400 text-sm mt-4 flex-grow">
+        {description}
+      </p>
       <button
         className={`w-full mt-5 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 shadow-sm ${
           status === "Connected"
-            ? "bg-white text-gray-800 border hover:bg-gray-50"
+            ? "bg-white text-gray-800 border hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
             : "bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transform hover:-translate-y-0.5"
         }`}
       >
@@ -1962,7 +1986,7 @@ const ConnectorsPage = () => {
           placeholder="Search for a connector..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white shadow-sm"
+          className="w-full pl-12 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white dark:bg-gray-800 dark:text-gray-200 shadow-sm"
         />
       </div>
 
@@ -1971,7 +1995,7 @@ const ConnectorsPage = () => {
           <div key={category.name}>
             <div className="flex items-center space-x-3 mb-6">
               <div className="w-1.5 h-6 bg-blue-500 rounded-full"></div>
-              <h2 className="text-2xl font-bold text-gray-800">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                 {category.name}
               </h2>
             </div>
@@ -1984,11 +2008,11 @@ const ConnectorsPage = () => {
         ))
       ) : (
         <div className="text-center py-16">
-          <FileSearch className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-800">
+          <FileSearch className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
             No Connectors Found
           </h3>
-          <p className="text-gray-500 mt-2">
+          <p className="text-gray-500 dark:text-gray-400 mt-2">
             Your search for "{searchQuery}" did not match any connectors.
           </p>
         </div>
@@ -2030,11 +2054,13 @@ const App: React.FC = () => {
 
   const ComingSoonPage = memo(({ title }: { title: string }) => (
     <div className="flex flex-col items-center justify-center h-full text-center">
-      <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-        <Wrench className="w-10 h-10 text-gray-400" />
+      <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6">
+        <Wrench className="w-10 h-10 text-gray-400 dark:text-gray-500" />
       </div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">{title}</h2>
-      <p className="text-gray-600 mb-4">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+        {title}
+      </h2>
+      <p className="text-gray-600 dark:text-gray-400 mb-4">
         This feature is under development and coming soon!
       </p>
     </div>
@@ -2103,7 +2129,7 @@ const App: React.FC = () => {
     pageConfig[currentPage] || pageConfig.documents;
 
   return (
-    <div className="flex h-screen bg-gray-50 font-sans text-gray-800">
+    <div className="flex h-screen bg-gray-50 font-sans text-gray-800 dark:bg-gray-900 dark:text-gray-200">
       <Sidebar
         currentPage={currentPage}
         onPageChange={handlePageChange}

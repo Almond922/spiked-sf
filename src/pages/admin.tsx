@@ -4,6 +4,7 @@ import { supabase } from "../supabaseClient";
 import { useAuth } from "../AuthContext";
 import ReactMarkdown from "react-markdown";
 import { useForm, ValidationError } from "@formspree/react";
+import { useTheme } from "../ThemeContext";
 import {
   ArrowLeft,
   Settings,
@@ -16,6 +17,7 @@ import {
   Plus,
   ChevronDown,
   User as UserIcon,
+  Link as LinkIcon,
   Activity,
   TrendingUp,
   CreditCard,
@@ -54,6 +56,10 @@ import {
   ChevronsRight,
   Bot,
   File as FileIcon,
+  DatabaseZap, 
+  Sun,
+  Moon,
+  Pencil,
 } from "lucide-react";
 import SpikedAILogo from "/SpikedAI.png";
 import RecallLogo from "/recall.png";
@@ -349,7 +355,33 @@ const MeetingsThisWeekChart: React.FC<{
 const MeetingLogCard: React.FC<{
   meeting: Meeting;
   onViewDetails: (id: string) => void;
-}> = ({ meeting, onViewDetails }) => {
+  onTitleUpdate: (id: string, newTitle: string) => void; // <-- Add this prop
+}> = ({ meeting, onViewDetails, onTitleUpdate }) => {
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editableTitle, setEditableTitle] = React.useState(meeting.title);
+
+  const handleSaveTitle = async () => {
+    if (editableTitle.trim() === "") {
+      setEditableTitle(meeting.title); // Reset if empty
+      setIsEditing(false);
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("meeting_logs")
+        .update({ title: editableTitle })
+        .eq("id", meeting.id);
+
+      if (error) throw error;
+      
+      onTitleUpdate(meeting.id, editableTitle); // Update parent state
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating meeting title:", error);
+      // Optionally show an error to the user
+    }
+  };
+
   const sentimentColor = {
     Positive:
       "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
@@ -361,9 +393,28 @@ const MeetingLogCard: React.FC<{
     <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow duration-300 space-y-4">
       <div className="flex justify-between items-start">
         <div>
-          <h4 className="font-semibold text-gray-900 dark:text-white">
-            {meeting.title}
-          </h4>
+          {isEditing ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={editableTitle}
+                onChange={(e) => setEditableTitle(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSaveTitle()}
+                onBlur={handleSaveTitle}
+                autoFocus
+                className="font-semibold text-gray-900 dark:text-white bg-transparent border-b-2 border-blue-500 focus:outline-none"
+              />
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <h4 className="font-semibold text-gray-900 dark:text-white">
+                {meeting.title}
+              </h4>
+              <button onClick={() => setIsEditing(true)} className="text-gray-400 hover:text-blue-500">
+                <Pencil size={14} />
+              </button>
+            </div>
+          )}
           <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400 mt-1">
             <span className="flex items-center">
               <Calendar size={12} className="mr-1.5" />
@@ -374,7 +425,6 @@ const MeetingLogCard: React.FC<{
               {meeting.duration}
             </span>
           </div>
-          {/* --- MODIFICATION START --- */}
           {meeting.participants.length > 0 && (
             <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mt-2">
               <Users size={12} className="mr-1.5 shrink-0" />
@@ -386,7 +436,6 @@ const MeetingLogCard: React.FC<{
               </span>
             </div>
           )}
-          {/* --- MODIFICATION END --- */}
         </div>
         <span
           className={`px-2.5 py-0.5 text-xs font-medium rounded-full ${
@@ -572,7 +621,7 @@ const StartMeetingModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               Meeting URL
             </label>
             <div className="relative">
-              <Link
+              <LinkIcon
                 size={16}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
               />
@@ -713,7 +762,7 @@ const BillingPage: React.FC = () => (
       </div>
     </Section>
     <div className="lg:col-span-3">
-      <Section title="Billing History">{/* Dummy invoice history */}</Section>
+      <Section title="Billing History"><></></Section>
     </div>
   </div>
 );
@@ -877,9 +926,11 @@ const fetchAndFormatMeetings = async (
   const logIds = logs.map((log) => log.id);
 
   const [participantsRes, snippetsRes] = await Promise.all([
-  supabase.rpc('get_participants_for_meetings_batch', { meeting_ids: logIds }),
-  supabase.rpc("get_first_snippets", { log_ids_in: logIds }),
-]);
+    supabase.rpc("get_participants_for_meetings_batch", {
+      meeting_ids: logIds,
+    }),
+    supabase.rpc("get_first_snippets", { log_ids_in: logIds }),
+  ]);
 
   if (participantsRes.error) throw participantsRes.error;
   if (snippetsRes.error) {
@@ -888,8 +939,13 @@ const fetchAndFormatMeetings = async (
   }
 
   const participantsByLogId = new Map<string, { name: string }[]>();
-  participantsRes.data?.forEach((p) => {
-    const existing = participantsByLogId.get(p.log_id) || [];
+  interface Participant {
+    log_id: string;
+    speaker_name: string;
+  }
+
+  participantsRes.data?.forEach((p: Participant) => {
+    const existing: { name: string }[] = participantsByLogId.get(p.log_id) || [];
     participantsByLogId.set(p.log_id, [...existing, { name: p.speaker_name }]);
   });
 
@@ -933,6 +989,15 @@ const MeetingLogsPage: React.FC<{ onViewDetails: (id: string) => void }> = ({
     };
     loadMeetings();
   }, [session]);
+
+  const handleTitleUpdate = (meetingId: string, newTitle: string) => {
+    setMeetings((prevMeetings) =>
+      prevMeetings.map((m) =>
+        m.id === meetingId ? { ...m, title: newTitle } : m
+      )
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -949,6 +1014,7 @@ const MeetingLogsPage: React.FC<{ onViewDetails: (id: string) => void }> = ({
               key={meeting.id}
               meeting={meeting}
               onViewDetails={onViewDetails}
+              onTitleUpdate={handleTitleUpdate} 
             />
           ))}
         </div>
@@ -1130,32 +1196,75 @@ const ProfilePage: React.FC<{
   );
 };
 
-const SettingsPage: React.FC = () => (
-  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <Section title="Workspace">{/* Dummy workspace settings */}</Section>
-    <Section title="Security">
-      <div className="flex items-center justify-between">
-        <p>Two-Factor Authentication (2FA)</p>
-        <ToggleLeft
-          size={36}
-          className="text-gray-300 dark:text-gray-600 cursor-pointer"
-        />
-      </div>
-    </Section>
-    <Section title="Notification Preferences">
-      <div className="space-y-4">
+const SettingsPage: React.FC = () => {
+  const { isDarkMode, toggleDarkMode } = useTheme();
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Section title="Workspace"><></></Section>
+
+      <Section title="Appearance" icon={Palette}>
         <div className="flex items-center justify-between">
-          <p>Email me for new meeting analysis</p>
-          <input type="checkbox" className="toggle" defaultChecked />
+          <p className="font-medium">Theme</p>
+          <label className="flex items-center cursor-pointer">
+            <Sun size={18} className="mr-3 text-yellow-500" />
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              checked={isDarkMode}
+              onChange={toggleDarkMode}
+            />
+            <div className="relative w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            <Moon size={18} className="ml-3 text-blue-300" />
+          </label>
         </div>
+      </Section>
+
+      <Section title="Notification Preferences">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p>Email me for new meeting analysis</p>
+            <input type="checkbox" className="toggle" defaultChecked />
+          </div>
+          <div className="flex items-center justify-between">
+            <p>In-app notification for usage alerts</p>
+            <input type="checkbox" className="toggle" defaultChecked />
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Security">
         <div className="flex items-center justify-between">
-          <p>In-app notification for usage alerts</p>
-          <input type="checkbox" className="toggle" defaultChecked />
+          <p>Two-Factor Authentication (2FA)</p>
+          <ToggleLeft
+            size={36}
+            className="text-gray-300 dark:text-gray-600 cursor-pointer"
+          />
         </div>
-      </div>
-    </Section>
-  </div>
-);
+      </Section>
+
+      <Section title="Data & Privacy" icon={DatabaseZap}>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm">Auto-delete meetings after</p>
+            <select
+              className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-500 text-sm rounded-lg px-3 py-2"
+              defaultValue="90"
+            >
+              <option value="30">30 days</option>
+              <option value="60">60 days</option>
+              <option value="90">90 days</option>
+              <option value="never">Never</option>
+            </select>
+          </div>
+          <button className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
+            Export All My Data
+          </button>
+        </div>
+      </Section>
+    </div>
+  );
+};
 
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
   <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 dark:text-gray-400">
@@ -1536,6 +1645,7 @@ const SimulatorPage: React.FC = () => {
   );
 };
 
+// --- MODIFICATION START: Corrected MeetingDetailsView ---
 const MeetingDetailsView: React.FC<{
   meetingId: string;
   onClose: () => void;
@@ -1549,11 +1659,15 @@ const MeetingDetailsView: React.FC<{
     "idle" | "loading" | "loaded" | "error"
   >("idle");
 
+  const [isEditingTitle, setIsEditingTitle] = React.useState(false);
+  const [editableTitle, setEditableTitle] = React.useState("");
+
   React.useEffect(() => {
     const fetchDetails = async () => {
       if (!meetingId || !session) return;
       setLoading(true);
       try {
+        // 1. Fetch the primary meeting log data
         const { data: logData, error: logError } = await supabase
           .from("meeting_logs")
           .select("*")
@@ -1561,14 +1675,43 @@ const MeetingDetailsView: React.FC<{
           .single();
         if (logError) throw logError;
 
+        // 2. Conditionally generate AI Summary if it's missing
         if (!logData.ai_generated_summary) {
           setSummaryStatus("loading");
-          // Logic to generate summary... (omitted for brevity)
+          try {
+            const response = await fetch(
+              `https://recall-backend-production-409019309412.us-central1.run.app/meetings/${meetingId}/generate-summary`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            if (!response.ok) {
+              const errorBody = await response.text();
+              console.error(`API Error: ${response.statusText}`, errorBody);
+              throw new Error(
+                `Failed to generate summary. Server responded with status ${response.status}.`
+              );
+            }
+
+            const summaryResponse = await response.json();
+            logData.ai_generated_summary = summaryResponse.summary; // Update data with new summary
+            setSummaryStatus("loaded");
+          } catch (genError) {
+            console.error("Failed to generate AI summary:", genError);
+            logData.ai_generated_summary =
+              "Error: The AI summary could not be generated at this time. Please try again later.";
+            setSummaryStatus("error");
+          }
         } else {
           setSummaryStatus("loaded");
         }
 
-        // Fetch transcript and participant data concurrently
+        // 3. Fetch transcript and participant data concurrently
         const [transcriptRes, participantsRes] = await Promise.all([
           supabase
             .from("log_transcripts")
@@ -1577,23 +1720,21 @@ const MeetingDetailsView: React.FC<{
             )
             .eq("log_id", meetingId)
             .order("start_offset_seconds"),
-
-          // --- MODIFICATION IS HERE ---
-          // This now calls your SQL function instead of querying the table directly
-          supabase.rpc('get_participants_for_meeting', { meeting_id: meetingId }),
+          supabase.rpc("get_participants_for_meeting", {
+            meeting_id: meetingId,
+          }),
         ]);
 
         if (transcriptRes.error) throw transcriptRes.error;
-        // Note: The RPC response object structure is slightly different
         if (participantsRes.error) throw participantsRes.error;
 
+        // 4. Set the final state for the component
         setDetails({
           id: logData.id,
           title:
             logData.title || `Meet ${formatDate(logData.meeting_started_at)}`,
           date: formatDate(logData.meeting_started_at),
           duration: formatDuration(logData.duration_seconds),
-          // Use the data from the RPC call
           participants: participantsRes.data.map((p: { speaker_name: string }) => ({
             name: p.speaker_name,
           })),
@@ -1608,6 +1749,7 @@ const MeetingDetailsView: React.FC<{
           critical_alerts_count: logData.critical_alerts_count,
           medpicc_completion: logData.medpicc_completion_percentage,
         });
+        setEditableTitle(logData.title || `Meet ${formatDate(logData.meeting_started_at)}`);
         setTranscript(transcriptRes.data);
       } catch (error) {
         console.error("Error fetching meeting details:", error);
@@ -1618,6 +1760,24 @@ const MeetingDetailsView: React.FC<{
     };
     fetchDetails();
   }, [meetingId, session]);
+
+  const handleSaveTitle = async () => {
+    if (!details || editableTitle.trim() === "") {
+        setIsEditingTitle(false);
+        return;
+    }
+    try {
+        const { error } = await supabase
+            .from("meeting_logs")
+            .update({ title: editableTitle })
+            .eq("id", details.id);
+        if (error) throw error;
+        setDetails(prevDetails => prevDetails ? { ...prevDetails, title: editableTitle } : null);
+        setIsEditingTitle(false);
+    } catch (error) {
+        console.error("Error updating meeting title:", error);
+    }
+  };
 
   const handleGoToNotetaker = () => {
     navigate("/note-taker", {
@@ -1640,7 +1800,24 @@ const MeetingDetailsView: React.FC<{
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-6xl h-[90vh] flex flex-col border dark:border-gray-700">
         <header className="p-4 border-b dark:border-gray-700 flex justify-between items-center shrink-0">
           <div>
-            <h2 className="text-xl font-bold">{details.title}</h2>
+            {isEditingTitle ? (
+                 <input
+                    type="text"
+                    value={editableTitle}
+                    onChange={(e) => setEditableTitle(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSaveTitle()}
+                    onBlur={handleSaveTitle}
+                    autoFocus
+                    className="text-xl font-bold bg-transparent border-b-2 border-blue-500 focus:outline-none dark:text-white"
+                />
+            ) : (
+                <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-bold">{details.title}</h2>
+                    <button onClick={() => setIsEditingTitle(true)} className="text-gray-400 hover:text-blue-500">
+                        <Pencil size={16} />
+                    </button>
+                </div>
+            )}
             <p className="text-xs text-gray-500">
               {details.date} &middot; {details.duration}
             </p>
@@ -1694,7 +1871,7 @@ const MeetingDetailsView: React.FC<{
                 </div>
               )}
             </Section>
-                        <Section
+            <Section
               title={`Participants (${details.participants.length})`}
               className="p-4"
               icon={Users}
@@ -1737,7 +1914,9 @@ const MeetingDetailsView: React.FC<{
                 <div className="flex justify-between">
                   <span>Talk/Listen Ratio:</span>
                   <span className="font-semibold">
-                    {details.talk_to_listen_ratio || "N/A"}
+                    {details.talk_to_listen_ratio
+                      ? `${details.talk_to_listen_ratio}:1`
+                      : "N/A"}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -1774,6 +1953,7 @@ const MeetingDetailsView: React.FC<{
     </div>
   );
 };
+// --- MODIFICATION END ---
 
 const AdminDashboard: React.FC = () => {
   const { session } = useAuth();
@@ -1809,6 +1989,13 @@ const AdminDashboard: React.FC = () => {
     { day: "Fri", meetings: 0 },
     { day: "Sat", meetings: 0 },
   ]);
+  const handleTitleUpdate = (meetingId: string, newTitle: string) => {
+    setRecentMeetings((prevMeetings) =>
+      prevMeetings.map((m) =>
+        m.id === meetingId ? { ...m, title: newTitle } : m
+      )
+    );
+  };
 
   // Effect for fetching user profile
   React.useEffect(() => {
@@ -2027,6 +2214,7 @@ const AdminDashboard: React.FC = () => {
                       key={meeting.id}
                       meeting={meeting}
                       onViewDetails={handleViewDetails}
+                      onTitleUpdate={handleTitleUpdate}
                     />
                   ))}
                 </div>
@@ -2066,7 +2254,6 @@ const AdminDashboard: React.FC = () => {
           <SupportPage
             userName={userFullName}
             userEmail={session?.user?.email || ""}
-            isProfileLoading={isProfileLoading}
           />
         );
       case "meeting_simulator":

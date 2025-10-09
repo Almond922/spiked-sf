@@ -279,6 +279,61 @@ const EnhancedMarkdown = ({ children, isDarkMode }: { children: string; isDarkMo
     );
 };
 
+const GoalAnalysisDisplay: React.FC<{ analysis: string; isDarkMode: boolean }> = ({ analysis, isDarkMode }) => {
+    if (analysis.startsWith('Generating analysis...') || analysis.startsWith('Error')) {
+        return <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{analysis}</p>;
+    }
+
+    // 1. Split the raw AI response into sections based on headers like "Status:", "Summary/Analysis:", etc.
+    const sections: { [key: string]: string } = {};
+    const lines = analysis.split('\n');
+    let currentHeader: string | null = null;
+    let currentContent: string[] = [];
+
+    for (const line of lines) {
+        const statusMatch = line.match(/^Status:\s*(.*)/i);
+        const summaryMatch = line.match(/^Summary\/Analysis:\s*(.*)/i);
+        
+        if (statusMatch) {
+            if (currentHeader) sections[currentHeader] = currentContent.join('\n').trim();
+            currentHeader = 'Status';
+            currentContent = [statusMatch[1].trim()];
+        } else if (summaryMatch) {
+            if (currentHeader) sections[currentHeader] = currentContent.join('\n').trim();
+            currentHeader = 'Summary/Analysis';
+            currentContent = [summaryMatch[1].trim()];
+        } else if (currentHeader && line.trim()) {
+            currentContent.push(line);
+        }
+    }
+    if (currentHeader) sections[currentHeader] = currentContent.join('\n').trim();
+
+    // 2. Format for display
+    const status = sections['Status'] || 'Unknown';
+    const summary = sections['Summary/Analysis'] || 'No detailed summary provided by AI.';
+
+    return (
+        <div className="space-y-3">
+            <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                <h5 className={`text-xs font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-1`}>Status</h5>
+                <span className={`text-sm font-bold ${status.includes('Achieved') ? 'text-green-500' : (status.includes('Progress') ? 'text-blue-500' : 'text-gray-500')}`}>
+                    {status}
+                </span>
+            </div>
+            
+            <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                <h5 className={`text-xs font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-1`}>Analysis</h5>
+                <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} prose prose-sm max-w-none dark:prose-invert`}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                        {summary}
+                    </ReactMarkdown>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 const loadFromSessionStorage = (key: string, defaultValue: any) => {
     try {
         const item = window.sessionStorage.getItem(key);
@@ -479,16 +534,20 @@ export default function Notetaker() {
     };
     
     // Core function to fetch and parse the consolidated AI analysis
+    // MODIFIED: Removed chat message logging
     const fetchCustomGoalUpdates = async () => {
         // Only run if a goal is defined, we have transcript data, and AI is not busy with chat/template
-        if (!session || isAITyping || isProcessingTemplate || !customGoals.length || transcript.length === 0) return;
+        if (!session || isAITyping || isProcessingTemplate || !customGoals.length || transcript.length === 0) {
+            console.log("Goal update skipped: busy or no data.");
+            return;
+        }
         
         setIsPollingGoals(true);
         // Display a temporary loading state for the analysis panel
         const loadingAnalysis = customGoals.reduce((acc, goal) => ({ ...acc, [goal.id]: 'Generating analysis...' }), {});
         setGoalAnalysis(loadingAnalysis);
 
-        console.log("Fetching consolidated goal updates...");
+        console.log("Fetching consolidated goal updates silently...");
 
         const goalsText = customGoals.map(goal => `Goal: ${goal.goal_description}${goal.evaluation_criteria ? ` (Criteria: ${goal.evaluation_criteria})` : ''}`).join('\n- ');
         // Prepare transcript text with timestamps in seconds
@@ -499,7 +558,7 @@ export default function Notetaker() {
         // 1. Core Instruction (Requesting the output structure to be parseable)
         promptParts.push(`Based on the full transcript provided below, analyze each of the custom goals and provide a consolidated update.
         
-Your output MUST adhere to the following strict format for *each* goal, starting with the exact "Goal:" line:
+Your output MUST adhere to the following strict format for *each* goal, starting with the exact "Goal:" line. Do NOT include any conversational filler before the first "Goal:" line.
 
 Goal: [The Goal's description]
 Status: [Achieved/In Progress/Not Started]
@@ -552,15 +611,7 @@ Goals to analyze:
 FULL TRANSCRIPT:
 ${transcriptText}`;
 
-        // Add a message to the chat indicating that analysis is running
-        const newGoalUpdateMessage: ChatMessage = { 
-            id: Date.now(), 
-            text: `**🤖 AI Goal Update Request**\n*Running analysis for ${customGoals.length} goals. Results will appear under each goal on the left.*`, 
-            isUser: true, 
-            timestamp: new Date() 
-        };
-        setChatMessages((prev) => [...prev, newGoalUpdateMessage]);
-        setIsAITyping(true);
+        // DO NOT log request to chat
 
         try {
             const response = await fetch(`${SALES_ASSISTANT_BASE_URL}/api/process-template`, {
@@ -571,62 +622,54 @@ ${transcriptText}`;
                 },
                 body: JSON.stringify({ prompt: finalPrompt, transcript: transcriptText }),
             });
-            if (!response.ok) throw new Error('Failed to process goals update');
+            if (!response.ok) throw new Error(`API failed with status ${response.status}`);
             const data = await response.json();
             
             // --- NEW LOGIC: PARSE THE CONSOLIDATED RESPONSE ---
             const rawResponse = data.response as string;
             const parsedAnalysis: Record<string, string> = {};
 
-            // 1. Split by the main goal separator, ensuring we handle the first entry correctly
+            // Split by the main goal separator, ensuring we handle the first entry correctly
             const goalSections = rawResponse.split(/Goal: /g).filter(s => s.trim().length > 0);
 
             for (const section of goalSections) {
-                // The first line should contain the goal description
-                const lines = section.trim().split('\n');
-                if (lines.length > 0) {
-                    // Extract the goal description from the first line
-                    const goalDescriptionLine = lines[0].trim();
-                    
-                    // Find the matching goal ID using a case-insensitive, partial match on description
-                    // We must be robust here as the AI might rephrase the goal slightly
-                    const matchingGoal = customGoals.find(g => 
-                        // Strip potential AI-added status/summary headers to get a clean match
-                        goalDescriptionLine.replace(/Status:.*$/i, '').replace(/Summary\/Analysis:.*$/i, '').toLowerCase().includes(g.goal_description.toLowerCase().trim())
-                    );
-                    
-                    if (matchingGoal) {
-                        // Reconstruct the analysis block in markdown format for display
-                        // Prepend the "Goal:" that was stripped by the split
-                        const markdownContent = `Goal: ${section.trim()}`;
-                        parsedAnalysis[matchingGoal.id] = markdownContent;
-                    } else {
-                        console.warn('Could not match AI analysis block to a custom goal:', goalDescriptionLine);
-                    }
+                // Prepend 'Goal: ' to the section content to ensure it starts cleanly for parsing/display
+                const fullSection = `Goal: ${section.trim()}`;
+                
+                // Extract the goal description from the first non-header line for matching
+                const lines = fullSection.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                const goalDescriptionLine = lines[0].replace(/^Goal:\s*/i, '').replace(/Status:.*$/i, '').replace(/Summary\/Analysis:.*$/i, '').trim();
+
+                // Find the matching goal ID
+                const matchingGoal = customGoals.find(g => 
+                    goalDescriptionLine.toLowerCase().includes(g.goal_description.toLowerCase().trim())
+                );
+                
+                if (matchingGoal) {
+                    parsedAnalysis[matchingGoal.id] = fullSection;
+                } else {
+                    console.warn('Could not match AI analysis block to a custom goal:', goalDescriptionLine);
                 }
             }
             
             setGoalAnalysis(parsedAnalysis);
-            // Optionally add a success message to the chat
-            const successResponse: ChatMessage = {
-                id: Date.now() + 2,
-                text: `**✅ Goal Analysis Updated**\nThe detailed analysis for all goals is now available under the 'Custom Goals' panel.`,
-                isUser: false,
-                timestamp: new Date(),
-            };
-            setChatMessages((prev) => [...prev, successResponse]);
+            console.log("✅ Goal analysis updated successfully (silently).");
+            
+            // DO NOT log success message to chat
 
         } catch (error) {
-            console.error("Error fetching custom goal updates:", error);
+            console.error("💥 Error fetching custom goal updates:", error);
+            // Revert loading state on error
+            setGoalAnalysis({});
+            
+            // Optionally, log only the error to the chat for debugging
             const errorResponse: ChatMessage = {
                 id: Date.now() + 1,
-                text: "Sorry, I'm having trouble getting a consolidated update on your goals. Please check your network or try again later.",
+                text: `**❌ Goal Analysis Error**\n*An error occurred during automated goal analysis. Check console for details. Re-running in ${goalSettings.pollInterval / 1000}s.*`,
                 isUser: false,
                 timestamp: new Date(),
             };
-            setChatMessages((prev) => [...prev, errorResponse]);
-            // Clear loading state on error
-            setGoalAnalysis({});
+            // setChatMessages((prev) => [...prev, errorResponse]); // Uncomment for debug logging
         } finally {
             setIsAITyping(false);
             setIsPollingGoals(false);
@@ -673,10 +716,13 @@ ${transcriptText}`;
             // Run initial lightweight progress update immediately
             fetchCustomGoalsProgress(); 
             
+            // Run initial heavy AI analysis immediately
+            fetchCustomGoalUpdates(); 
+            
             // Start the periodic polling loop for both types of updates
             intervalId = setInterval(() => {
                 fetchCustomGoalsProgress(); // Lightweight progress
-                fetchCustomGoalUpdates();  // Heavy AI analysis
+                fetchCustomGoalUpdates();  // Heavy AI analysis (now runs silently)
             }, goalSettings.pollInterval); // Use the user-configured interval
 
             // Cleanup function
@@ -1261,7 +1307,7 @@ ${transcriptText}`;
             doc.save(fileName);
         } catch (err) {
             console.error('Error generating PDF:', err);
-            alert('Error generating PDF. Please try again.');
+            alert('Error generating PDF. Please ensure jspdf is loaded and try again.');
         } finally {
             setIsGeneratingPDF(false);
         }
@@ -1304,7 +1350,10 @@ ${transcriptText}`;
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                content += `${sender} (${time}):\n${msg.text}\n\n`;
+                // Remove markdown formatting for plain text email
+                const cleanText = msg.text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/### /g, '').replace(/## /g, '').replace(/# /g, '');
+
+                content += `${sender} (${time}):\n${cleanText}\n\n`;
             });
         }
 
@@ -1357,7 +1406,7 @@ ${transcriptText}`;
                                     onClick={(e) => { e.stopPropagation(); fetchCustomGoalsProgress(); fetchCustomGoalUpdates(); }} // Refresh triggers both simple progress and full analysis
                                     disabled={isPollingGoals || isAITyping}
                                     title="Refresh Goals Status and Run AI Analysis"
-                                    className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 disabled:opacity-50 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                                    className={`p-1.5 rounded-full transition-all duration-200 hover:scale-105 disabled:opacity-50 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
                                 >
                                     <RotateCcw className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} ${isPollingGoals ? 'animate-spin' : ''}`} />
                                 </button>
@@ -1387,11 +1436,9 @@ ${transcriptText}`;
                                         let analysisTime = '';
                                         
                                         if (goalAnalysis[goal.id] && goalAnalysis[goal.id] !== 'Generating analysis...') {
-                                            // 1. If detailed analysis exists, parse the status from it (AI output starts with "Goal:")
                                             const statusMatch = goalAnalysis[goal.id].match(/Status:\s*(.*?)\n/i);
                                             statusText = statusMatch ? statusMatch[1].trim() : 'Analysis Complete';
 
-                                            // 2. Use time of the success message (which runs after analysis)
                                             const lastAnalysisMessage = chatMessages.slice().reverse().find(msg => !msg.isUser && msg.text.includes('Goal Analysis Updated'));
                                             if (lastAnalysisMessage) {
                                                 analysisTime = `Last Analysis: ${lastAnalysisMessage.timestamp.toLocaleTimeString()}`;
@@ -1400,7 +1447,6 @@ ${transcriptText}`;
                                             statusText = 'Running analysis...';
                                             analysisTime = 'Updating in progress';
                                         } else if (!goalAnalysis[goal.id] && evidenceCount > 0) {
-                                            // Fallback to quick-poll evidence only if no AI analysis is available
                                             statusText = isAchieved ? 'Achieved (Evidence Detected)' : 'In Progress (Evidence Detected)';
                                             analysisTime = `${evidenceCount} instance${evidenceCount !== 1 ? 's' : ''} found`;
                                         } else if (!goalAnalysis[goal.id] && evidenceCount === 0) {
@@ -1413,8 +1459,8 @@ ${transcriptText}`;
                                                 <div
                                                     onClick={() => toggleGoalExpansion(goal.id)}
                                                     className={`group p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg
-                                                         ${currentTheme.hoverBorder} ${currentTheme.hoverBg}
-                                                         ${expandedGoals.has(goal.id) ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`
+                                                        ${currentTheme.hoverBorder} ${currentTheme.hoverBg}
+                                                        ${expandedGoals.has(goal.id) ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`
                                                     }
                                                 >
                                                     <div className="flex items-center space-x-3">
@@ -1438,13 +1484,12 @@ ${transcriptText}`;
                                                         <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} ${expandedGoals.has(goal.id) ? 'rotate-180' : ''}`} />
                                                     </div>
                                                     
-                                                    {/* NEW: Display AI Analysis (if ready) */}
+                                                    {/* NEW: Display Formatted AI Analysis (if ready) */}
                                                     {expandedGoals.has(goal.id) && (
                                                         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
                                                             {goalAnalysis[goal.id] && goalAnalysis[goal.id] !== 'Generating analysis...' ? (
                                                                 <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border border-gray-200 dark:border-gray-700`}>
-                                                                    <h5 className={`text-sm font-bold mb-2 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>Detailed AI Analysis</h5>
-                                                                    <EnhancedMarkdown isDarkMode={isDarkMode}>{goalAnalysis[goal.id]}</EnhancedMarkdown>
+                                                                    <GoalAnalysisDisplay analysis={goalAnalysis[goal.id]} isDarkMode={isDarkMode} />
                                                                 </div>
                                                             ) : (
                                                                 <div className={`p-3 text-center text-sm rounded-xl ${isDarkMode ? 'bg-gray-900/50 text-gray-400' : 'bg-gray-50 text-gray-600'} border border-dashed border-gray-300 dark:border-gray-700`}>
@@ -1464,7 +1509,7 @@ ${transcriptText}`;
                                                     {/* Evidence Expansion Section (simplified UI) */}
                                                     {expandedGoals.has(goal.id) && progress && progress.evidences.length > 0 && (
                                                         <div className={`mt-3 pt-3 border-t ${goalAnalysis[goal.id] ? 'border-none pt-0' : 'border-gray-200 dark:border-gray-600'}`}>
-                                                            <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg space-y-2">
+                                                            <div className={`mt-2 p-3 rounded-lg space-y-2 border-2 ${isDarkMode ? 'bg-gray-900/50 border-red-900/50' : 'bg-red-50 border-red-300/50'}`}>
                                                                 <div className="flex items-center justify-between">
                                                                     <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                                                                         Evidence Instance {progress.current_evidence_index + 1} of {progress.evidences.length}
@@ -1530,8 +1575,8 @@ ${transcriptText}`;
                                             <div key={template.id} className="relative group">
                                                 <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)}
                                                     className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg
-                                                         ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
-                                                         ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
+                                                        ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
+                                                        ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
                                                     <div className="flex items-start space-x-3">
                                                         <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
                                                             {isProcessingTemplate && selectedTemplate?.id === template.id ?
@@ -1586,8 +1631,8 @@ ${transcriptText}`;
                                         <div key={template.id} className="relative group">
                                             <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)}
                                                 className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg
-                                                     ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
-                                                     ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
+                                                    ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
+                                                    ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
                                                 <div className="flex items-start space-x-3">
                                                     <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
                                                         {isProcessingTemplate && selectedTemplate?.id === template.id ?
@@ -1687,7 +1732,7 @@ ${transcriptText}`;
                         ))
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                            <div className={`p-4 rounded-full mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                            <div className={`p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
                                 <Headphones className="w-12 h-12 text-gray-400" />
                             </div>
                             <h3 className="mb-2 text-lg font-bold text-black-600 dark:text-red-400">No Transcription Data</h3>

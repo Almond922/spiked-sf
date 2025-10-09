@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -378,7 +378,7 @@ export default function Notetaker() {
     const [chatInput, setChatInput] = useState('');
     const [isProcessingTemplate, setIsProcessingTemplate] = useState(false);
     const [isAITyping, setIsAITyping] = useState(false);
-    const [additionalQuestions, setAdditionalQuestions] = useState<string[]>([]); 
+    const [additionalQuestions, setAdditionalQuestions] = useState<string[]>([]);    
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
     const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
 
@@ -397,8 +397,8 @@ export default function Notetaker() {
     const [isPollingGoals, setIsPollingGoals] = useState(false);
     const [showGoalSettingsModal, setShowGoalSettingsModal] = useState(false);
     const [goalSettings, setGoalSettings] = useState<GoalSettings>(loadFromSessionStorage('spikedai_goal_settings', {
-        format: 'summary', 
-        wordLimit: 150, 
+        format: 'summary',    
+        wordLimit: 150,    
         includeTimestamps: true,
         includeSpeakers: true,
         includeInstances: false,
@@ -414,14 +414,20 @@ export default function Notetaker() {
     const chatEndRef = useRef<HTMLDivElement>(null);
     const sseRefs = useRef<{ transcript: AbortController | null; }>({ transcript: null });
 
+    // Ref to hold the most current transcript array for use in callbacks that shouldn't re-run the polling loop
+    const transcriptRef = useRef(transcript);
+    useEffect(() => {
+        transcriptRef.current = transcript;
+    }, [transcript]);
+
     // Helper to group transcript for API calls
-    const groupTranscriptBySpeaker = (transcript: TranscriptSegment[]) => {
-        if (!transcript || transcript.length === 0) return [];
+    const groupTranscriptBySpeaker = useCallback((segments: TranscriptSegment[]) => {
+        if (!segments || segments.length === 0) return [];
         const groups: { speaker: string | null, text: string, id: number, start: number }[] = [];
         let currentGroup: { speaker: string | null, text: string, id: number, start: number } | null = null;
-        transcript.forEach((segment, index) => {
+        segments.forEach((segment, index) => {
             // Use segment.start for logging consistency
-            const startTimeInSeconds = segment.start; 
+            const startTimeInSeconds = segment.start;    
             if (currentGroup && currentGroup.speaker === segment.speaker) {
                 currentGroup.text += ' ' + segment.text;
             } else {
@@ -431,10 +437,10 @@ export default function Notetaker() {
         });
         if (currentGroup) groups.push(currentGroup);
         return groups;
-    };
+    }, []);
 
     // API calls for Custom Goals (Metadata fetching)
-    const fetchCustomGoals = async () => {
+    const fetchCustomGoals = useCallback(async () => {
         if (!session) {
             console.log('No session, skipping goals fetch');
             return;
@@ -465,20 +471,22 @@ export default function Notetaker() {
             console.error("Error fetching custom goals:", error);
             setCustomGoals([]);
         }
-    };
+    }, [session, lastFetchTime, fetchCooldown]);
 
     // Lightweight fetch for real-time progress bar/evidence tracking
-    const fetchCustomGoalsProgress = async () => {
-        if (!session || !customGoals.length) return;
+    const fetchCustomGoalsProgress = useCallback(async () => {
+        // Use ref for transcript to avoid constantly re-running this useCallback
+        const currentTranscript = transcriptRef.current;
+        if (!session || !customGoals.length || currentTranscript.length === 0) return;
 
         // Check cooldown to prevent too many API calls
         const now = Date.now();
         if (now - lastFetchTime < fetchCooldown) {
             return;
         }
+        setLastFetchTime(now); // Set time before the API call
 
         try {
-            // NOTE: Removed isPollingGoals check here to allow progress fetching even if analysis is running
             const response = await fetch(`${service_url_recall}/sentiment/custom-goals`, {
                 method: 'POST',
                 headers: {
@@ -487,7 +495,7 @@ export default function Notetaker() {
                 },
                 body: JSON.stringify({
                     goals: customGoals.map(g => ({ id: g.id, description: g.goal_description, criteria: g.evaluation_criteria })),
-                    transcript_segments: transcript,
+                    transcript_segments: currentTranscript, // Use the data from the ref
                 }),
             });
             if (response.ok) {
@@ -505,43 +513,22 @@ export default function Notetaker() {
         } catch (error) {
             console.error("Error fetching custom goals progress:", error);
         }
-    };
+    }, [session, customGoals, lastFetchTime, fetchCooldown]);
 
-    const navigateCustomGoalEvidence = async (goalId: string, direction: "next" | "prev") => {
-        if (!session) return;
-        setCustomGoalsProgress(prev => prev.map(progress => {
-            if (progress.goal.id === goalId) {
-                const currentIndex = progress.current_evidence_index || 0;
-                const newIndex = direction === "next"
-                    ? Math.min(currentIndex + 1, progress.evidences.length - 1)
-                    : Math.max(currentIndex - 1, 0);
-                return { ...progress, current_evidence_index: newIndex };
-            }
-            return progress;
-        }));
-    };
-
-    const toggleGoalExpansion = (goalId: string) => {
-        setExpandedGoals(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(goalId)) {
-                newSet.delete(goalId);
-            } else {
-                newSet.add(goalId);
-            }
-            return newSet;
-        });
-    };
-    
     // Core function to fetch and parse the consolidated AI analysis
-    // MODIFIED: Removed chat message logging
-    const fetchCustomGoalUpdates = async () => {
-        // Only run if a goal is defined, we have transcript data, and AI is not busy with chat/template
-        if (!session || isAITyping || isProcessingTemplate || !customGoals.length || transcript.length === 0) {
+    const fetchCustomGoalUpdates = useCallback(async () => {
+        const currentTranscript = transcriptRef.current;
+        if (!session || isAITyping || isProcessingTemplate || !customGoals.length || currentTranscript.length === 0) {
             console.log("Goal update skipped: busy or no data.");
             return;
         }
         
+        // This is the heavy lifting, prevent overlap
+        if (isPollingGoals) {
+            console.log("Goal update skipped: analysis already running.");
+            return;
+        }
+
         setIsPollingGoals(true);
         // Display a temporary loading state for the analysis panel
         const loadingAnalysis = customGoals.reduce((acc, goal) => ({ ...acc, [goal.id]: 'Generating analysis...' }), {});
@@ -551,7 +538,7 @@ export default function Notetaker() {
 
         const goalsText = customGoals.map(goal => `Goal: ${goal.goal_description}${goal.evaluation_criteria ? ` (Criteria: ${goal.evaluation_criteria})` : ''}`).join('\n- ');
         // Prepare transcript text with timestamps in seconds
-        const transcriptText = groupTranscriptBySpeaker(transcript).map(group => `[${group.start}s] ${group.speaker || 'Unknown'}: ${group.text}`).join('\n');
+        const transcriptText = groupTranscriptBySpeaker(currentTranscript).map(group => `[${group.start}s] ${group.speaker || 'Unknown'}: ${group.text}`).join('\n');
         
         let promptParts: string[] = [];
 
@@ -638,6 +625,7 @@ ${transcriptText}`;
                 
                 // Extract the goal description from the first non-header line for matching
                 const lines = fullSection.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                // Regex to strip "Goal:" and everything after the first header (Status: or Summary/Analysis:)
                 const goalDescriptionLine = lines[0].replace(/^Goal:\s*/i, '').replace(/Status:.*$/i, '').replace(/Summary\/Analysis:.*$/i, '').trim();
 
                 // Find the matching goal ID
@@ -663,17 +651,43 @@ ${transcriptText}`;
             setGoalAnalysis({});
             
             // Optionally, log only the error to the chat for debugging
-            const errorResponse: ChatMessage = {
-                id: Date.now() + 1,
-                text: `**❌ Goal Analysis Error**\n*An error occurred during automated goal analysis. Check console for details. Re-running in ${goalSettings.pollInterval / 1000}s.*`,
-                isUser: false,
-                timestamp: new Date(),
-            };
-            // setChatMessages((prev) => [...prev, errorResponse]); // Uncomment for debug logging
+            // const errorResponse: ChatMessage = {
+            //     id: Date.now() + 1,
+            //     text: `**❌ Goal Analysis Error**\n*An error occurred during automated goal analysis. Check console for details. Re-running in ${goalSettings.pollInterval / 1000}s.*`,
+            //     isUser: false,
+            //     timestamp: new Date(),
+            // };
+            // setChatMessages((prev) => [...prev, errorResponse]); 
         } finally {
             setIsAITyping(false);
             setIsPollingGoals(false);
         }
+    }, [session, customGoals, isAITyping, isProcessingTemplate, goalSettings, groupTranscriptBySpeaker]); // Added groupTranscriptBySpeaker as dependency for completeness
+
+    const navigateCustomGoalEvidence = async (goalId: string, direction: "next" | "prev") => {
+        if (!session) return;
+        setCustomGoalsProgress(prev => prev.map(progress => {
+            if (progress.goal.id === goalId) {
+                const currentIndex = progress.current_evidence_index || 0;
+                const newIndex = direction === "next"
+                    ? Math.min(currentIndex + 1, progress.evidences.length - 1)
+                    : Math.max(currentIndex - 1, 0);
+                return { ...progress, current_evidence_index: newIndex };
+            }
+            return progress;
+        }));
+    };
+
+    const toggleGoalExpansion = (goalId: string) => {
+        setExpandedGoals(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(goalId)) {
+                newSet.delete(goalId);
+            } else {
+                newSet.add(goalId);
+            }
+            return newSet;
+        });
     };
     
     // Initial load and settings save
@@ -681,7 +695,7 @@ ${transcriptText}`;
         saveToSessionStorage('spikedai_goal_settings', goalSettings);
     }, [goalSettings]);
 
-    const fetchTemplatesAndGoals = () => {
+    const fetchTemplatesAndGoals = useCallback(() => {
         const loadCustomTemplates = async () => {
             try {
                 const customTemplatesData = await loadFromIndexedDB(CUSTOM_TEMPLATES_STORE);
@@ -703,24 +717,28 @@ ${transcriptText}`;
             fetchCustomGoals();
             loadCustomTemplates();
         }
-    };
+    }, [session, fetchCustomGoals]);
 
     useEffect(() => {
         fetchTemplatesAndGoals();
-    }, [session]);
+    }, [fetchTemplatesAndGoals]);
 
-    // Automatic polling for progress and detailed updates
+    // MODIFIED: Automatic polling for progress and detailed updates
     useEffect(() => {
         let intervalId: NodeJS.Timeout | null = null;
+        
+        // This effect DEPENDS ONLY on state changes that should logically restart the polling timer.
+        // We remove 'transcript', 'isAITyping', and 'isProcessingTemplate' to prevent rapid restarts.
         if (isConnected && session && customGoals.length > 0) {
-            // Run initial lightweight progress update immediately
-            fetchCustomGoalsProgress(); 
-            
-            // Run initial heavy AI analysis immediately
-            fetchCustomGoalUpdates(); 
+            console.log(`Starting/Restarting Goal Polling Interval: ${goalSettings.pollInterval / 1000}s`);
+
+            // Run initial update immediately
+            fetchCustomGoalsProgress();    
+            fetchCustomGoalUpdates();    
             
             // Start the periodic polling loop for both types of updates
             intervalId = setInterval(() => {
+                console.log('Goal Polling triggered by interval.');
                 fetchCustomGoalsProgress(); // Lightweight progress
                 fetchCustomGoalUpdates();  // Heavy AI analysis (now runs silently)
             }, goalSettings.pollInterval); // Use the user-configured interval
@@ -728,6 +746,7 @@ ${transcriptText}`;
             // Cleanup function
             return () => {
                 if (intervalId) {
+                    console.log('Clearing old Goal Polling Interval.');
                     clearInterval(intervalId);
                 }
             };
@@ -738,7 +757,10 @@ ${transcriptText}`;
                 clearInterval(intervalId);
             }
         };
-    }, [isConnected, session, customGoals, transcript, goalSettings.pollInterval, isAITyping, isProcessingTemplate]); // Added isProcessingTemplate to avoid overlap with template generation
+    // FIX: Removed `transcript` dependency. Removed `isAITyping` and `isProcessingTemplate` which shouldn't reset the timer.
+    // The calls inside the interval will check those flags internally.
+    }, [isConnected, session, customGoals.length, goalSettings.pollInterval, fetchCustomGoalsProgress, fetchCustomGoalUpdates]); 
+
 
     useEffect(() => {
         const checkMobile = () => {
@@ -871,8 +893,9 @@ ${transcriptText}`;
             cleanup();
         }
 
-        return cleanup;
-    }, [botId, session]);
+        // Added fetchCustomGoals and fetchCustomGoalsProgress to the dependency array, 
+        // but since they are wrapped in useCallback, they only change if their internal dependencies change.
+    }, [botId, session, fetchCustomGoals, fetchCustomGoalsProgress]); 
 
     useEffect(() => {
         const handleStorageChange = (e: StorageEvent) => {
@@ -889,7 +912,7 @@ ${transcriptText}`;
         return () => {
             window.removeEventListener('storage', handleStorageChange);
         };
-    }, []);
+    }, [setBotId]);
     
     useEffect(() => {
         transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -947,7 +970,7 @@ ${transcriptText}`;
             const botResponse: ChatMessage = { id: Date.now() + 1, text: data.response, isUser: false, timestamp: new Date() };
             setChatMessages((prev) => [...prev, botResponse]);
             // No follow-up questions
-            // setAdditionalQuestions(data.additional_questions || []); 
+            // setAdditionalQuestions(data.additional_questions || []);    
         } catch (error) {
             console.error('Error handling chat message:', error);
             const errorResponse: ChatMessage = { id: Date.now() + 1, text: "Sorry, I'm having trouble connecting. Please try again.", isUser: false, timestamp: new Date() };
@@ -1262,7 +1285,7 @@ ${transcriptText}`;
                     // Timestamp
                     if (msg.timestamp) {
                         doc.setFontSize(7);
-                        doc.setTextColor(255, 255, 255, 0.8);
+                        (doc as any).setTextColor(255, 255, 255, 0.8);
                         const time = msg.timestamp.toLocaleTimeString('en-US', {
                             hour: '2-digit',
                             minute: '2-digit'
@@ -1575,8 +1598,8 @@ ${transcriptText}`;
                                             <div key={template.id} className="relative group">
                                                 <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)}
                                                     className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg
-                                                        ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
-                                                        ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
+                                                         ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
+                                                         ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
                                                     <div className="flex items-start space-x-3">
                                                         <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
                                                             {isProcessingTemplate && selectedTemplate?.id === template.id ?
@@ -1631,8 +1654,8 @@ ${transcriptText}`;
                                         <div key={template.id} className="relative group">
                                             <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)}
                                                 className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg
-                                                    ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
-                                                    ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
+                                                     ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
+                                                     ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
                                                 <div className="flex items-start space-x-3">
                                                     <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
                                                         {isProcessingTemplate && selectedTemplate?.id === template.id ?

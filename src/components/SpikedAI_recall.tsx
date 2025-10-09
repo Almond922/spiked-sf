@@ -3110,7 +3110,75 @@ const deleteCustomGoal = async (goalId: string) => {
 
   // UPDATED: Handles streaming response for /ask, gets sources from header, and calls /followup
 
-  
+  // ADD THIS NEW FUNCTION to collectively refresh all MEDDIC summaries
+const refreshAllMedpicSummaries = async () => {
+    if (!session) return;
+    
+    // 1. Get all categories
+    const categoriesToRefresh = Object.keys(MEDPIC_CATEGORIES) as MedpicCategoryKey[];
+    
+    console.log(`Starting bulk refresh for ${categoriesToRefresh.length} MEDPIC categories.`);
+
+    // 2. Set ALL categories to the loading state initially
+    const initialLoadingSet = new Set<string>(categoriesToRefresh);
+    setLoadingMedpicCategories(initialLoadingSet);
+    
+    // 3. Process each request sequentially
+    for (const category of categoriesToRefresh) {
+        try {
+            // This function already calls the API and updates medpicSummaries state
+            // and manages its own category loading state inside 'finally' block, 
+            // but for bulk processing, we run it and wait.
+            // We use the simpler existing loadMedpicCategorySummary:
+            await loadMedpicCategorySummary(category);
+            
+            // Remove from the set upon successful completion
+            setLoadingMedpicCategories(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(category);
+                return newSet;
+            });
+
+        } catch (error) {
+            console.error(`Failed to refresh MEDPIC category ${category}:`, error);
+            // On failure, keep it in the loading set temporarily for visual feedback or just clear it.
+            // For simplicity, we let it clear in the final step.
+        }
+    }
+
+    // 4. Final cleanup
+    setLoadingMedpicCategories(new Set()); 
+    console.log("MEDPIC bulk refresh completed.");
+};
+// ADD THIS NEW FUNCTION to collectively refresh all Custom Goals analyses
+const refreshAllCustomGoals = async () => {
+    // Get the latest list of custom goals
+    const goalsToAnalyze = customGoals;
+
+    console.log(`Starting bulk analysis for ${goalsToAnalyze.length} custom goals.`);
+    
+    const initialLoadingState = goalsToAnalyze.reduce((acc, goal) => {
+        acc.add(goal.id);
+        return acc;
+    }, new Set<string>());
+    
+    setIsAnalyzingGoals(true); // General flag
+    setLoadingCustomGoals(initialLoadingState);
+
+    // Process all requests sequentially to manage load and state updates
+    for (const goal of goalsToAnalyze) {
+        try {
+            // Note: We use the existing analyzeCustomGoal which handles its own cooldown/loading logic per goal
+            await analyzeCustomGoal(goal.id);
+        } catch (error) {
+            console.error(`Failed to analyze custom goal ${goal.id}:`, error);
+        }
+    }
+
+    setIsAnalyzingGoals(false);
+    setLoadingCustomGoals(new Set()); // Ensure cleanup
+    console.log("Custom goals bulk analysis completed.");
+};
 
   const askQuestion = async (
     question: string,
@@ -4767,9 +4835,28 @@ useEffect(() => {
             <span>📋</span>
             <span>Playbook</span>
         </span>
-        <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
-            Sales Framework
-        </span>
+        <div className="flex items-center space-x-2"> {/* MODIFIED: Added wrapper for refresh and badge */}
+            {/* NEW: REFRESH ALL MEDDIC BUTTON */}
+            <button
+                onClick={refreshAllMedpicSummaries}
+                disabled={loadingMedpicCategories.size > 0}
+                className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 ${
+                    loadingMedpicCategories.size > 0
+                        ? "bg-gray-200 dark:bg-gray-700 cursor-wait"
+                        : "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/50"
+                }`}
+                title="Refresh all Playbook summaries"
+            >
+                {loadingMedpicCategories.size > 0 ? (
+                    <Loader className="w-4 h-4 animate-spin" />
+                ) : (
+                    <RefreshCw className="w-4 h-4" />
+                )}
+            </button>
+            <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
+                Sales Framework
+            </span>
+        </div>
     </div>
 
     <div className="space-y-3">
@@ -4894,22 +4981,39 @@ useEffect(() => {
             {customGoals.length > 0 && (
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
-                    <span>🎯 Custom Goals</span>
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => setShowGoalSettingsModal(true)}
-                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-                      title="Analysis Settings"
-                    >
-                      <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                    </button>
-                    <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
-                      {customGoals.length} active
-                    </span>
-                  </div>
-                </div>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+                    <span>🎯 Custom Goals</span>
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    {/* NEW: REFRESH ALL CUSTOM GOALS BUTTON */}
+                    <button
+                      onClick={refreshAllCustomGoals}
+                      disabled={isAnalyzingGoals || loadingCustomGoals.size > 0}
+                      className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 ${
+                        isAnalyzingGoals || loadingCustomGoals.size > 0
+                          ? "bg-gray-200 dark:bg-gray-700 cursor-wait"
+                          : "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/50"
+                      }`}
+                      title="Refresh all Custom Goal analyses"
+                    >
+                      {isAnalyzingGoals || loadingCustomGoals.size > 0 ? (
+                        <Loader className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setShowGoalSettingsModal(true)}
+                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                      title="Analysis Settings"
+                    >
+                      <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </button>
+                    <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
+                      {customGoals.length} active
+                    </span>
+                  </div>
+                </div>
 
                 <div className="space-y-3">
                   {customGoals.map((goal, goalIndex) => {

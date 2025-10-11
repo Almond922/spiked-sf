@@ -197,6 +197,32 @@ interface BuyingSignalsData {
   analysis_method?: "llm_enhanced" | "pattern_based";  // ADD THIS
 }
 
+interface TrackedTaskProgress {
+  task: JiraTask;
+  is_achieved: boolean;
+  evidences: Array<{
+    text: string;
+    timestamp: string;
+    primary_speaker: string;
+    relevance_score: number;
+    segment_id: number;
+  }>;
+  current_evidence_index: number;
+  total_evidence_count: number;
+  achievement_percentage: number;
+}
+
+interface JiraTask {
+  task_key: string;
+  title: string;
+  description: string;
+  status: string;
+  project_key: string;
+  project_name: string;
+  due_date?: string;
+  assignee: string;
+}
+
 // Then update SentimentData interface to use it:
 interface SentimentData {
   critical_alerts: CriticalAlert[];
@@ -207,6 +233,7 @@ interface SentimentData {
   medpic_progress: MedpicProgress;
   last_updated: string;
   custom_goals_progress: CustomGoalProgress[];
+  tracked_tasks_progress: TrackedTaskProgress[]; // ADD THIS LINE
 }
 
 interface ParticipantEngagement {
@@ -402,6 +429,7 @@ const initialSentimentData: SentimentData = {
   },
   last_updated: "",
   custom_goals_progress: [], // <-- Add this field
+  tracked_tasks_progress: [],
 
 };
 
@@ -661,7 +689,6 @@ const SpikedAI = () => {
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const [sentimentPollingInterval, setSentimentPollingInterval] =
     useState<NodeJS.Timeout | null>(null);
-
   const [showMedpicModal, setShowMedpicModal] = useState(false);
   const [medpicSummaryData, setMedpicSummaryData] = useState<any>(null);
   const [isLoadingMedpicSummary, setIsLoadingMedpicSummary] = useState(false);
@@ -689,7 +716,8 @@ const SpikedAI = () => {
     transcript: null,
     question: null,
   });
-
+  const [selectedJiraTasks, setSelectedJiraTasks] = useState<any[]>([]);
+  const [jiraTasksCount, setJiraTasksCount] = useState(0);
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>(
     loadFromSessionStorage("spikedai_suggested_questions", [])
   );
@@ -697,7 +725,8 @@ const SpikedAI = () => {
     loadFromSessionStorage("spikedai_meeting_questions", [])
   );
   const [medpicErrors, setMedpicErrors] = useState<Record<string, string>>({});
-
+  const [trackedTasksProgress, setTrackedTasksProgress] = useState<any[]>([]);
+  const [expandedTrackedTasks, setExpandedTrackedTasks] = useState<Set<string>>(new Set());
 
   // ** START: MODIFIED RECALL.AI FUNCTIONALITIES **
   const [transcriptEventSource, setTranscriptEventSource] =
@@ -711,6 +740,61 @@ const SpikedAI = () => {
   const [buyingSignalsSummary, setBuyingSignalsSummary] = useState<string>("");
   const [isAnalyzingSignals, setIsAnalyzingSignals] = useState(false);
   const [signalsGenerationTime, setSignalsGenerationTime] = useState<number>(0);
+  // Add these state variables at the top with other useState hooks
+const [staticTrackedTasks, setStaticTrackedTasks] = useState<any[]>([]);
+const [syncing, setSyncing] = useState(false);
+const [syncResults, setSyncResults] = useState<any>(null);
+
+// Add fetch function with other functions
+const fetchTrackedTasks = async () => {
+  try {
+    const response = await fetch(`${service_url_recall}/integrations/jira/selected-tasks-summary`, {
+      headers: { Authorization: `Bearer ${session?.access_token}` }
+    });
+    const data = await response.json();
+    setStaticTrackedTasks(data.tasks || []);
+  } catch (error) {
+    console.error('Error fetching tracked tasks:', error);
+  }
+};
+
+const removeTrackedTask = async (taskKey: string) => {
+  try {
+    const response = await fetch(`${service_url_recall}/integrations/jira/tasks/${taskKey}/untrack`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session?.access_token}` }
+    });
+    if (response.ok) {
+      setStaticTrackedTasks(prev => prev.filter(t => t.task_key !== taskKey));
+    }
+  } catch (error) {
+    console.error('Error removing task:', error);
+  }
+};
+
+const syncProgressToJira = async () => {
+  try {
+    setSyncing(true);
+    setSyncResults(null);
+    const response = await fetch(`${service_url_recall}/integrations/jira/sync-progress`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session?.access_token}` }
+    });
+    const data = await response.json();
+    setSyncResults(data.synced_tasks || []);
+    setTimeout(() => setSyncResults(null), 5000);
+  } catch (error) {
+    console.error('Error syncing:', error);
+  } finally {
+    setSyncing(false);
+  }
+};
+
+useEffect(() => {
+  if (session?.access_token) {
+    fetchTrackedTasks();
+  }
+}, [session]);
 
   useEffect(() => {
     if (!loading && !session) {
@@ -962,7 +1046,7 @@ useEffect(() => {
         }`);
     }
 };
-
+  
   const stopBot = async () => {
   if (!botId || !session) {
     console.error("No botId or session to stop bot");
@@ -970,16 +1054,35 @@ useEffect(() => {
   }
   try {
     setBotStatus("stopping");
+    
+    // Reset tracked tasks selection
+    try {
+      await fetch(`${service_url_recall}/integrations/jira/tasks/select`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ task_ids: [] })
+      });
+      console.log("Tracked tasks selection reset");
+    } catch (error) {
+      console.error("Failed to reset tracked tasks:", error);
+      // Continue with bot cleanup even if this fails
+    }
+    
     const response = await fetch(`${service_url_recall}/remove-bot/${encodeURIComponent(botId)}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${session.access_token}`,
       },
     });
+    
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Failed to stop bot: ${response.status} - ${errorText}`);
     }
+    
     setIsBotRunning(false);
     setIsConnected(false);
     setIsTranscribing(false);
@@ -998,6 +1101,7 @@ useEffect(() => {
     alert(`Failed to stop bot: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
+
   const loadMedpicCategorySummary = async (category: string) => {
   if (!session || loadingMedpicCategories.has(category)) return;
   
@@ -1266,6 +1370,12 @@ useEffect(() => {
     };
     saveHistory();
   }, [chatHistory]);
+
+  useEffect(() => {
+    if (session) {
+      fetchSelectedJiraTasks();
+    }
+  }, [session]);
 
   useEffect(() => {
     saveToSessionStorage("spikedai_suggested_questions", suggestedQuestions);
@@ -1548,6 +1658,23 @@ const handleAskTranscript = async (segmentText: string) => {
         newSet.delete(speaker);
         return newSet;
       });
+    }
+  };
+
+  const fetchSelectedJiraTasks = async () => {
+    if (!session) return;
+    try {
+      const response = await fetch(
+        `${service_url_recall}/integrations/jira/selected-tasks-summary`,
+        { headers: { Authorization: `Bearer ${session.access_token}` } }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedJiraTasks(data.tasks || []);
+        setJiraTasksCount(data.selected_count);
+      }
+    } catch (error) {
+      console.error("Error fetching selected Jira tasks:", error);
     }
   };
 
@@ -2403,6 +2530,48 @@ const deleteCustomGoal = async (goalId: string) => {
     }
   };
   
+  const navigateTrackedTaskEvidence = async (taskKey: string, direction: "next" | "prev") => {
+  if (!session) return;
+  
+  try {
+    const currentProgress = sentimentData.tracked_tasks_progress?.find(
+      p => p.task.task_key === taskKey
+    );
+    
+    if (!currentProgress) return;
+    
+    const currentIndex = currentProgress.current_evidence_index || 0;
+    
+    const response = await fetch(
+      `${service_url_recall}/sentiment/tracked-tasks/${taskKey}/navigate/${direction}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ current_index: currentIndex })
+      }
+    );
+    
+    if (!response.ok) return;
+    
+    const result = await response.json();
+    
+    setSentimentData((prev) => ({
+      ...prev,
+      tracked_tasks_progress: prev.tracked_tasks_progress?.map(progress =>
+        progress.task.task_key === taskKey
+          ? { ...progress, current_evidence_index: result.current_index }
+          : progress
+      ) || [],
+    }));
+    
+  } catch (error) {
+    console.error(`Navigation failed for task ${taskKey}:`, error);
+  }
+};
+
   const getMedpicSummary = async () => {
     if (!meetingUrl || !session) return;
 
@@ -2540,6 +2709,16 @@ const deleteCustomGoal = async (goalId: string) => {
                 last_updated: new Date().toISOString(),
               };
             });
+          }
+          break;
+
+        case "tracked-tasks":
+          if (data.tracked_tasks_progress) {
+            setSentimentData((prev) => ({
+              ...prev,
+              tracked_tasks_progress: data.tracked_tasks_progress,
+              last_updated: new Date().toISOString(),
+            }));
           }
           break;
       }
@@ -2702,7 +2881,7 @@ const deleteCustomGoal = async (goalId: string) => {
               await fetchSentimentComponent("medpic");
               break;
             case 4:
-              await fetchSentimentComponent("custom-goals"); // Fetch again for responsiveness
+              await fetchSentimentComponent("tracked-tasks");  
               break;
           }
           console.log(`Sentiment cycle ${cycleIndex} completed`);
@@ -3110,75 +3289,7 @@ const deleteCustomGoal = async (goalId: string) => {
 
   // UPDATED: Handles streaming response for /ask, gets sources from header, and calls /followup
 
-  // ADD THIS NEW FUNCTION to collectively refresh all MEDDIC summaries
-const refreshAllMedpicSummaries = async () => {
-    if (!session) return;
-    
-    // 1. Get all categories
-    const categoriesToRefresh = Object.keys(MEDPIC_CATEGORIES) as MedpicCategoryKey[];
-    
-    console.log(`Starting bulk refresh for ${categoriesToRefresh.length} MEDPIC categories.`);
-
-    // 2. Set ALL categories to the loading state initially
-    const initialLoadingSet = new Set<string>(categoriesToRefresh);
-    setLoadingMedpicCategories(initialLoadingSet);
-    
-    // 3. Process each request sequentially
-    for (const category of categoriesToRefresh) {
-        try {
-            // This function already calls the API and updates medpicSummaries state
-            // and manages its own category loading state inside 'finally' block, 
-            // but for bulk processing, we run it and wait.
-            // We use the simpler existing loadMedpicCategorySummary:
-            await loadMedpicCategorySummary(category);
-            
-            // Remove from the set upon successful completion
-            setLoadingMedpicCategories(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(category);
-                return newSet;
-            });
-
-        } catch (error) {
-            console.error(`Failed to refresh MEDPIC category ${category}:`, error);
-            // On failure, keep it in the loading set temporarily for visual feedback or just clear it.
-            // For simplicity, we let it clear in the final step.
-        }
-    }
-
-    // 4. Final cleanup
-    setLoadingMedpicCategories(new Set()); 
-    console.log("MEDPIC bulk refresh completed.");
-};
-// ADD THIS NEW FUNCTION to collectively refresh all Custom Goals analyses
-const refreshAllCustomGoals = async () => {
-    // Get the latest list of custom goals
-    const goalsToAnalyze = customGoals;
-
-    console.log(`Starting bulk analysis for ${goalsToAnalyze.length} custom goals.`);
-    
-    const initialLoadingState = goalsToAnalyze.reduce((acc, goal) => {
-        acc.add(goal.id);
-        return acc;
-    }, new Set<string>());
-    
-    setIsAnalyzingGoals(true); // General flag
-    setLoadingCustomGoals(initialLoadingState);
-
-    // Process all requests sequentially to manage load and state updates
-    for (const goal of goalsToAnalyze) {
-        try {
-            // Note: We use the existing analyzeCustomGoal which handles its own cooldown/loading logic per goal
-            await analyzeCustomGoal(goal.id);
-        } catch (error) {
-            console.error(`Failed to analyze custom goal ${goal.id}:`, error);
-        }
-    }
-
-    setIsAnalyzingGoals(false);
-    setLoadingCustomGoals(new Set()); // Ensure cleanup
-    console.log("Custom goals bulk analysis completed.");
-};
+  
 
   const askQuestion = async (
     question: string,
@@ -4117,6 +4228,74 @@ useEffect(() => {
       setIsProcessingQuestions(false);
     }
   };
+  // ADD THIS NEW FUNCTION to collectively refresh all MEDDIC summaries
+const refreshAllMedpicSummaries = async () => {
+  if (!session) return;
+  
+  // 1. Get all categories
+  const categoriesToRefresh = Object.keys(MEDPIC_CATEGORIES) as MedpicCategoryKey[];
+  
+  console.log(`Starting bulk refresh for ${categoriesToRefresh.length} MEDPIC categories.`);
+
+  // 2. Set ALL categories to the loading state initially
+  const initialLoadingSet = new Set<string>(categoriesToRefresh);
+  setLoadingMedpicCategories(initialLoadingSet);
+  
+  // 3. Process each request sequentially
+  for (const category of categoriesToRefresh) {
+      try {
+          // This function already calls the API and updates medpicSummaries state
+          // and manages its own category loading state inside 'finally' block, 
+          // but for bulk processing, we run it and wait.
+          // We use the simpler existing loadMedpicCategorySummary:
+          await loadMedpicCategorySummary(category);
+          
+          // Remove from the set upon successful completion
+          setLoadingMedpicCategories(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(category);
+              return newSet;
+          });
+
+      } catch (error) {
+          console.error(`Failed to refresh MEDPIC category ${category}:`, error);
+          // On failure, keep it in the loading set temporarily for visual feedback or just clear it.
+          // For simplicity, we let it clear in the final step.
+      }
+  }
+
+  // 4. Final cleanup
+  setLoadingMedpicCategories(new Set()); 
+  console.log("MEDPIC bulk refresh completed.");
+};
+  const refreshAllCustomGoals = async () => {
+    // Get the latest list of custom goals
+    const goalsToAnalyze = customGoals;
+
+    console.log(`Starting bulk analysis for ${goalsToAnalyze.length} custom goals.`);
+    
+    const initialLoadingState = goalsToAnalyze.reduce((acc, goal) => {
+        acc.add(goal.id);
+        return acc;
+    }, new Set<string>());
+    
+    setIsAnalyzingGoals(true); // General flag
+    setLoadingCustomGoals(initialLoadingState);
+
+    // Process all requests sequentially to manage load and state updates
+    for (const goal of goalsToAnalyze) {
+        try {
+            // Note: We use the existing analyzeCustomGoal which handles its own cooldown/loading logic per goal
+            await analyzeCustomGoal(goal.id);
+        } catch (error) {
+            console.error(`Failed to analyze custom goal ${goal.id}:`, error);
+        }
+    }
+
+    setIsAnalyzingGoals(false);
+    setLoadingCustomGoals(new Set()); // Ensure cleanup
+    console.log("Custom goals bulk analysis completed.");
+};
 
   const getSentimentColor = (speaker: string | null) => {
     if (!speaker) return "border-l-4 border-cerulean";
@@ -4981,12 +5160,12 @@ useEffect(() => {
             {customGoals.length > 0 && (
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
-                    <span>🎯 Custom Goals</span>
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    {/* NEW: REFRESH ALL CUSTOM GOALS BUTTON */}
-                    <button
+                  <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+                    <span>🎯 Custom Goals</span>
+                  </span>
+
+                  <div className="flex items-center space-x-2">
+                  <button
                       onClick={refreshAllCustomGoals}
                       disabled={isAnalyzingGoals || loadingCustomGoals.size > 0}
                       className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 ${
@@ -5002,18 +5181,18 @@ useEffect(() => {
                         <RefreshCw className="w-4 h-4" />
                       )}
                     </button>
-                    <button
-                      onClick={() => setShowGoalSettingsModal(true)}
-                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-                      title="Analysis Settings"
-                    >
-                      <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                    </button>
-                    <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
-                      {customGoals.length} active
-                    </span>
-                  </div>
-                </div>
+                    <button
+                      onClick={() => setShowGoalSettingsModal(true)}
+                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                      title="Analysis Settings"
+                    >
+                      <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </button>
+                    <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
+                      {customGoals.length} active
+                    </span>
+                  </div>
+                </div>
 
                 <div className="space-y-3">
                   {customGoals.map((goal, goalIndex) => {
@@ -5130,6 +5309,210 @@ useEffect(() => {
               </div>
             )}
             
+            {/* Tracked Tasks */}
+            {(staticTrackedTasks.length > 0 || (sentimentData.tracked_tasks_progress && sentimentData.tracked_tasks_progress.length > 0)) && (
+              <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+                    <span>📋 Tracked Tasks</span>
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
+                      {(sentimentData.tracked_tasks_progress?.length || staticTrackedTasks.length)} tracking
+                    </span>
+                    <button
+                      onClick={fetchTrackedTasks}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <RefreshCw className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sync Results Toast */}
+                {syncResults && (
+                  <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="space-y-1">
+                      {syncResults.map((result: any) => (
+                        <div key={result.task_key} className="flex items-center justify-between text-xs">
+                          <span className="font-mono text-gray-700 dark:text-gray-300">{result.task_key}</span>
+                          {result.status === 'success' && (
+                            <span className="text-green-600 dark:text-green-400">{result.achievement}</span>
+                          )}
+                          {result.status === 'failed' && (
+                            <span className="text-red-600 dark:text-red-400">Failed</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  {/* During Meeting: Show Progress */}
+                  {sentimentData.tracked_tasks_progress && sentimentData.tracked_tasks_progress.length > 0 ? (
+                    sentimentData.tracked_tasks_progress.map((progress, idx) => {
+                      const currentEvidence = progress.evidences?.[progress.current_evidence_index || 0];
+                      
+                      return (
+                        <details key={progress.task.task_key} className="group">
+                          <summary className={`p-4 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between ${
+                            progress.is_achieved
+                              ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50"
+                              : progress.achievement_percentage > 0
+                              ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50"
+                              : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50"
+                          }`}>
+                            <div className="flex items-center space-x-3 flex-1">
+                              <div className={`flex items-center justify-center p-2 rounded-lg flex-shrink-0 w-8 h-8 ${
+                                progress.is_achieved ? "bg-green-100 dark:bg-green-800/50" : "bg-gray-100 dark:bg-gray-800/50"
+                              }`}>
+                                {progress.is_achieved ? (
+                                  <span className="text-green-600 dark:text-green-400">✓</span>
+                                ) : (
+                                  <span className="font-bold text-gray-600 dark:text-gray-400">{idx + 1}</span>
+                                )}
+                              </div>
+                              
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <span className="text-xs font-mono text-blue-500">
+                                    {progress.task.task_key}
+                                  </span>
+                                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                    isDarkMode ? "bg-slate-600" : "bg-gray-200"
+                                  }`}>
+                                    {progress.task.status}
+                                  </span>
+                                </div>
+                                
+                                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1 leading-snug">
+                                  {progress.task.title}
+                                </h4>
+                                
+                                <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
+                                  <span>{progress.achievement_percentage.toFixed(0)}% complete</span>
+                                  <span>•</span>
+                                  <span>{progress.total_evidence_count} evidence(s)</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
+                          </summary>
+                          
+                          <div className="p-3 mt-2 border-t border-gray-200 dark:border-gray-700">
+                            {progress.evidences && progress.evidences.length > 0 ? (
+                              <div className="space-y-2">
+                                <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                      Evidence {(progress.current_evidence_index || 0) + 1} of {progress.evidences.length}
+                                    </span>
+                                    <div className="flex items-center space-x-1">
+                                      <button
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          navigateTrackedTaskEvidence(progress.task.task_key, "prev");
+                                        }}
+                                        disabled={progress.current_evidence_index === 0}
+                                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"
+                                      >
+                                        <ChevronRight className="w-3 h-3 rotate-180" />
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          navigateTrackedTaskEvidence(progress.task.task_key, "next");
+                                        }}
+                                        disabled={progress.current_evidence_index >= progress.evidences.length - 1}
+                                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"
+                                      >
+                                        <ChevronRight className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  
+                                  {currentEvidence && (
+                                    <>
+                                      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2">
+                                        "{currentEvidence.text}"
+                                      </p>
+                                      <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
+                                        <span>👤 {currentEvidence.primary_speaker}</span>
+                                        <span>•</span>
+                                        <span>{new Date(currentEvidence.timestamp).toLocaleTimeString()}</span>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                                No evidence found yet
+                              </p>
+                            )}
+                          </div>
+                        </details>
+                      );
+                    })
+                  ) : (
+                    /* Before/After Meeting: Show Static List */
+                    staticTrackedTasks.map((task) => (
+                      <div
+                        key={task.task_key}
+                        className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg group hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <span className="text-xs font-mono text-blue-500">{task.task_key}</span>
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-600">
+                                {task.status}
+                              </span>
+                            </div>
+                            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                              {task.title}
+                            </h4>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              {task.project_name}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => removeTrackedTask(task.task_key)}
+                            className="ml-2 p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all"
+                          >
+                            <X className="w-4 h-4 text-red-600 dark:text-red-400" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Sync Button */}
+                {botId && (
+                  <button
+                    onClick={syncProgressToJira}
+                    disabled={syncing}
+                    className="w-full mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
+                  >
+                    {syncing ? (
+                      <>
+                        <Loader className="w-4 h-4 animate-spin" />
+                        <span>Syncing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4" />
+                        <span>Sync Progress to Jira</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* ADD THIS SETTINGS MODAL */}
             {showGoalSettingsModal && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -5841,7 +6224,11 @@ useEffect(() => {
 
               {/*Integrations*/}
               <button
-                onClick={() => navigate("/integrations")}
+                onClick={() => {
+                  navigate("/integrations/jira");
+                  // Refresh tasks when user returns
+                  setTimeout(() => fetchSelectedJiraTasks(), 500);
+                }}
                 className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
                   isDarkMode
                     ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"

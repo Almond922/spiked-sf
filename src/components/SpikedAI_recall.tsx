@@ -744,6 +744,10 @@ const SpikedAI = () => {
 const [staticTrackedTasks, setStaticTrackedTasks] = useState<any[]>([]);
 const [syncing, setSyncing] = useState(false);
 const [syncResults, setSyncResults] = useState<any>(null);
+// Add these state declarations with other useState hooks
+const [trackedTaskAnalyses, setTrackedTaskAnalyses] = useState<Record<string, string>>({});
+const [loadingTrackedTasks, setLoadingTrackedTasks] = useState<Set<string>>(new Set());
+const [trackedTaskGenerationTimes, setTrackedTaskGenerationTimes] = useState<Record<string, number>>({});
 
 // Add fetch function with other functions
 const fetchTrackedTasks = async () => {
@@ -1924,6 +1928,74 @@ Your output MUST follow this format:
   }
 };
 
+const analyzeTrackedTask = async (taskKey: string, task: any) => {
+  if (!session || loadingTrackedTasks.has(taskKey) || isTyping) return;
+  
+  // Check 1-minute cooldown
+  const lastGenerated = trackedTaskGenerationTimes[taskKey];
+  if (lastGenerated && (Date.now() - lastGenerated) < 60000) {
+    const remainingTime = Math.ceil((60000 - (Date.now() - lastGenerated)) / 60000);
+    alert(`Please wait ${remainingTime} more minute(s) before regenerating this analysis.`);
+    return;
+  }
+  
+  setLoadingTrackedTasks(prev => new Set([...prev, taskKey]));
+  setTrackedTaskAnalyses(prev => ({ ...prev, [taskKey]: 'Generating analysis...' }));
+
+  const transcriptText = transcript
+    .map(seg => `[${Math.floor(seg.start)}s] ${seg.speaker || 'Unknown'}: ${seg.text}`)
+    .join('\n');
+
+  const prompt = `Based on the transcript, analyze progress on this Jira task:
+
+Task: ${task.title} (${taskKey})
+${task.description ? `Description: ${task.description}` : ''}
+Status: ${task.status}
+Project: ${task.project_name}
+
+Your output MUST follow this format:
+**Status:** [Discussed/In Progress/Not Mentioned]
+**Analysis:** [Concise analysis in 150 words max]
+
+Analyze if and how this task was discussed in the meeting. Include:
+- Was the task mentioned or discussed?
+- Key points or decisions made
+- Any blockers or concerns raised
+- Next steps or action items
+
+---
+TRANSCRIPT:
+${transcriptText}`;
+
+  try {
+    const response = await fetch(`${service_url_recall}/api/process-template`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ prompt }),
+    });
+
+    if (!response.ok) throw new Error('Task analysis failed');
+    
+    const data = await response.json();
+    const rawResponse = data.response as string;
+    
+    setTrackedTaskAnalyses(prev => ({ ...prev, [taskKey]: rawResponse }));
+    setTrackedTaskGenerationTimes(prev => ({ ...prev, [taskKey]: Date.now() }));
+    
+  } catch (error) {
+    console.error("Error analyzing task:", error);
+    setTrackedTaskAnalyses(prev => ({ ...prev, [taskKey]: 'Error generating analysis. Please try again.' }));
+  } finally {
+    setLoadingTrackedTasks(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(taskKey);
+      return newSet;
+    });
+  }
+};
   const analyzeBuyingSignals = async () => {
   if (!session || isAnalyzingSignals || isTyping) return;
   
@@ -5440,12 +5512,12 @@ const refreshAllMedpicSummaries = async () => {
               </div>
             )}
             
-            {/* Tracked Tasks */}
+            {/* Tracked Tasks - ENHANCED WITH AI SUMMARY */}
             {(staticTrackedTasks.length > 0 || (sentimentData.tracked_tasks_progress && sentimentData.tracked_tasks_progress.length > 0)) && (
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
-                    <span>📋 Tracked Tasks</span>
+                    <span>📋 Jira Tasks</span>
                   </span>
                   <div className="flex items-center space-x-2">
                     <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
@@ -5460,45 +5532,32 @@ const refreshAllMedpicSummaries = async () => {
                   </div>
                 </div>
 
-                {/* Sync Results Toast */}
-                {syncResults && (
-                  <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <div className="space-y-1">
-                      {syncResults.map((result: any) => (
-                        <div key={result.task_key} className="flex items-center justify-between text-xs">
-                          <span className="font-mono text-gray-700 dark:text-gray-300">{result.task_key}</span>
-                          {result.status === 'success' && (
-                            <span className="text-green-600 dark:text-green-400">{result.achievement}</span>
-                          )}
-                          {result.status === 'failed' && (
-                            <span className="text-red-600 dark:text-red-400">Failed</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 <div className="space-y-3">
-                  {/* During Meeting: Show Progress */}
+                  {/* During Meeting: Show Progress with AI Analysis */}
                   {sentimentData.tracked_tasks_progress && sentimentData.tracked_tasks_progress.length > 0 ? (
                     sentimentData.tracked_tasks_progress.map((progress, idx) => {
-                      const currentEvidence = progress.evidences?.[progress.current_evidence_index || 0];
+                      const analysis = trackedTaskAnalyses[progress.task.task_key];
+                      const hasAnalysis = analysis && analysis !== 'Generating analysis...' && !analysis.startsWith('Error');
+                      const isLoading = loadingTrackedTasks.has(progress.task.task_key);
+                      const lastGenerated = trackedTaskGenerationTimes[progress.task.task_key];
+                      const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 60000;
                       
+                      
+
                       return (
                         <details key={progress.task.task_key} className="group">
                           <summary className={`p-4 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between ${
-                            progress.is_achieved
+                            hasAnalysis
                               ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50"
-                              : progress.achievement_percentage > 0
+                              : analysis
                               ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50"
-                              : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50"
+                              : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
                           }`}>
                             <div className="flex items-center space-x-3 flex-1">
                               <div className={`flex items-center justify-center p-2 rounded-lg flex-shrink-0 w-8 h-8 ${
-                                progress.is_achieved ? "bg-green-100 dark:bg-green-800/50" : "bg-gray-100 dark:bg-gray-800/50"
+                                hasAnalysis ? "bg-green-100 dark:bg-green-800/50" : "bg-gray-100 dark:bg-gray-800/50"
                               }`}>
-                                {progress.is_achieved ? (
+                                {hasAnalysis ? (
                                   <span className="text-green-600 dark:text-green-400">✓</span>
                                 ) : (
                                   <span className="font-bold text-gray-600 dark:text-gray-400">{idx + 1}</span>
@@ -5507,9 +5566,7 @@ const refreshAllMedpicSummaries = async () => {
                               
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center space-x-2 mb-1">
-                                  <span className="text-xs font-mono text-blue-500">
-                                    {progress.task.task_key}
-                                  </span>
+                                  <span className="text-xs font-mono text-blue-500">{progress.task.task_key}</span>
                                   <span className={`text-xs px-2 py-0.5 rounded-full ${
                                     isDarkMode ? "bg-slate-600" : "bg-gray-200"
                                   }`}>
@@ -5521,66 +5578,80 @@ const refreshAllMedpicSummaries = async () => {
                                   {progress.task.title}
                                 </h4>
                                 
-                                <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
-                                  <span>{progress.achievement_percentage.toFixed(0)}% complete</span>
-                                  <span>•</span>
-                                  <span>{progress.total_evidence_count} evidence(s)</span>
+                                <div className="flex items-center space-x-2">
+                                  {hasAnalysis && (
+                                    <span className="text-xs bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300 px-2 py-0.5 rounded-full">
+                                      Analysis Ready
+                                    </span>
+                                  )}
+                                  {isLoading && (
+                                    <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                                      Analyzing...
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </div>
                             
-                            <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  analyzeTrackedTask(progress.task.task_key, progress.task);
+                                }}
+                                disabled={isLoading || !canRegenerate}
+                                className={`p-1.5 rounded-full transition-all ${
+                                  isLoading
+                                    ? "bg-blue-100 dark:bg-blue-900/50 cursor-wait"
+                                    : !canRegenerate
+                                    ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50"
+                                    : "bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-800/50"
+                                }`}
+                                title={
+                                  isLoading 
+                                    ? "Generating analysis..." 
+                                    : !canRegenerate
+                                    ? "Wait 1 minute before regenerating"
+                                    : hasAnalysis 
+                                    ? "Regenerate analysis" 
+                                    : "Generate analysis"
+                                }
+                              >
+                                {isLoading ? (
+                                  <Loader className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
+                                ) : (
+                                  <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                )}
+                              </button>
+                              <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
+                            </div>
                           </summary>
                           
                           <div className="p-3 mt-2 border-t border-gray-200 dark:border-gray-700">
-                            {progress.evidences && progress.evidences.length > 0 ? (
+                            {hasAnalysis ? (
                               <div className="space-y-2">
                                 <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                                      Evidence {(progress.current_evidence_index || 0) + 1} of {progress.evidences.length}
-                                    </span>
-                                    <div className="flex items-center space-x-1">
-                                      <button
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          navigateTrackedTaskEvidence(progress.task.task_key, "prev");
-                                        }}
-                                        disabled={progress.current_evidence_index === 0}
-                                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"
-                                      >
-                                        <ChevronRight className="w-3 h-3 rotate-180" />
-                                      </button>
-                                      <button
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          navigateTrackedTaskEvidence(progress.task.task_key, "next");
-                                        }}
-                                        disabled={progress.current_evidence_index >= progress.evidences.length - 1}
-                                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"
-                                      >
-                                        <ChevronRight className="w-3 h-3" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                  
-                                  {currentEvidence && (
-                                    <>
-                                      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2">
-                                        "{currentEvidence.text}"
-                                      </p>
-                                      <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
-                                        <span>👤 {currentEvidence.primary_speaker}</span>
-                                        <span>•</span>
-                                        <span>{new Date(currentEvidence.timestamp).toLocaleTimeString()}</span>
-                                      </div>
-                                    </>
-                                  )}
+                                  <div 
+                                    className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+                                    dangerouslySetInnerHTML={{ 
+                                      __html: analysis
+                                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                        .replace(/\n/g, '<br/>')
+                                    }}
+                                  />
                                 </div>
+                                {lastGenerated && (
+                                  <p className="text-xs text-gray-400">
+                                    Generated {new Date(lastGenerated).toLocaleTimeString()}
+                                  </p>
+                                )}
                               </div>
                             ) : (
                               <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                                No evidence found yet
+                                {analysis === 'Generating analysis...' 
+                                  ? 'AI is analyzing this task...' 
+                                  : 'Click the ✨ icon to generate AI analysis'}
                               </p>
                             )}
                           </div>
@@ -5588,32 +5659,27 @@ const refreshAllMedpicSummaries = async () => {
                       );
                     })
                   ) : (
-                    /* Before/After Meeting: Show Static List */
+                    /* Static list when no meeting active */
                     staticTrackedTasks.map((task) => (
-                      <div
-                        key={task.task_key}
-                        className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg group hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
-                      >
-                        <div className="flex items-start justify-between">
+                      <div key={task.task_key} className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2 mb-1">
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                              {task.title}
+                            </p>
+                            <div className="flex items-center space-x-2 mt-1">
                               <span className="text-xs font-mono text-blue-500">{task.task_key}</span>
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-600">
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${isDarkMode ? "bg-slate-700" : "bg-gray-200"}`}>
                                 {task.status}
                               </span>
                             </div>
-                            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                              {task.title}
-                            </h4>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                              {task.project_name}
-                            </p>
                           </div>
                           <button
                             onClick={() => removeTrackedTask(task.task_key)}
-                            className="ml-2 p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all"
+                            className="ml-2 p-1.5 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-900/50 transition-colors"
+                            title="Stop tracking this task"
                           >
-                            <X className="w-4 h-4 text-red-600 dark:text-red-400" />
+                            <X className="w-4 h-4" />
                           </button>
                         </div>
                       </div>

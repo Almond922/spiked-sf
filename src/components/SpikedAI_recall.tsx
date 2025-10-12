@@ -346,20 +346,10 @@ interface MeetingGoalUpdate {
   evaluation_strictness?: string;
   emoji_icon?: string;
 }
-// ADD THIS INTERFACE
-interface AnalysisSettings {
-    format: 'summary' | 'detailed' | 'speakers_only';
-    wordLimit: number;
-    includeTimestamps: boolean;
-    includeSpeakers: boolean;
-    includeInstances: boolean;
-    pollInterval: number; // Stored in milliseconds
-    promptExtension: string;
-}
 
 // IndexedDB utilities
 const DB_NAME = "SpikedAI_Cache";
-const DB_VERSION = 3;
+const DB_VERSION = 2;
 const TRANSCRIPTS_STORE = "transcripts";
 const QA_HISTORY_STORE = "qa_history";
 
@@ -970,126 +960,6 @@ useEffect(() => {
   }
 };
 
-
-// Inside SpikedAI functional component:
-
-// Existing goalSettings state (MODIFIED: Renamed to customGoalSettings for clarity)
-// FIX 1: Custom Goal Settings Default
-
-// MODIFIED STATE INITIALIZATION (approx. line 440)
-
-const [customGoalSettings, setCustomGoalSettings] = useState<AnalysisSettings>(() => {
-    const savedSettings = loadFromSessionStorage("spikedai_custom_goal_settings", {
-        format: 'summary' as 'summary' | 'detailed' | 'speakers_only',
-        wordLimit: 150,
-        includeTimestamps: true,
-        includeSpeakers: true,
-        includeInstances: false,
-        pollInterval: 90000, // CORRECTED to 90000ms
-        promptExtension: '',
-    }) as AnalysisSettings; // Cast the loaded object
-    
-    savedSettings.pollInterval = savedSettings.pollInterval || 90000;
-    return savedSettings;
-});
-
-const [medpicSettings, setMedpicSettings] = useState<AnalysisSettings>(() => { // ADDED TYPE
-    const savedSettings = loadFromSessionStorage("spikedai_medpic_settings", {
-        format: 'summary' as 'summary' | 'detailed' | 'speakers_only',
-        wordLimit: 150,
-        includeTimestamps: true,
-        includeSpeakers: true,
-        includeInstances: true, // Note: Setting true as default for MEDPIC to include all info
-        pollInterval: 90000,
-        promptExtension: '',
-    }) as AnalysisSettings; // Cast the loaded object
-    
-    savedSettings.pollInterval = savedSettings.pollInterval || 90000;
-    return savedSettings;
-});
-
-// MODIFIED: Replace unifiedPollingInterval with separate intervals
-const [goalPollingInterval, setGoalPollingInterval] = useState<NodeJS.Timeout | null>(null);
-const [medpicPollingInterval, setMedpicPollingInterval] = useState<NodeJS.Timeout | null>(null);
-
-// NOTE: Your existing top-level sentiment polling logic (fetchSentimentDataStaggered)
-// will handle the base polling for alerts, participants, etc.
-
-// Inside SpikedAI functional component:
-
-useEffect(() => {
-    if (goalPollingInterval) {
-        clearInterval(goalPollingInterval);
-    }
-
-    if (!isBotRunning || !session || !botId || customGoals.length === 0) {
-        return;
-    }
-
-    const intervalDuration = customGoalSettings.pollInterval;
-
-    const customGoalRefreshRoutine = () => {
-        customGoals.forEach(goal => {
-            // Note: The analyzeCustomGoal logic below handles the 1-minute cooldown check
-            // and uses the internal timer state.
-            analyzeCustomGoal(goal.id, true); 
-        });
-    };
-
-    console.log(`Starting Custom Goal polling interval: ${intervalDuration / 1000}s`);
-
-    // Start immediately after a delay, then repeat
-    const initialTimeout = setTimeout(customGoalRefreshRoutine, 5000); 
-    const intervalId = setInterval(customGoalRefreshRoutine, intervalDuration);
-    setGoalPollingInterval(intervalId);
-
-    return () => {
-        clearTimeout(initialTimeout);
-        if (intervalId) {
-            clearInterval(intervalId);
-        }
-    };
-}, [isBotRunning, session, botId, customGoalSettings.pollInterval, customGoals]);
-// Inside SpikedAI functional component, add this:
-const [showMedpicSettingsModal, setShowMedpicSettingsModal] = useState(false);
-// Inside SpikedAI functional component:
-
-
-
-useEffect(() => {
-    if (medpicPollingInterval) {
-        clearInterval(medpicPollingInterval);
-    }
-
-    if (!isBotRunning || !session || !botId) {
-        return;
-    }
-
-    const intervalDuration = medpicSettings.pollInterval;
-
-    const medpicRefreshRoutine = () => {
-        Object.keys(MEDPIC_CATEGORIES).forEach(category => {
-            // The existing loadMedpicCategorySummary handles the cooldown and logic.
-            // We pass a flag to tell it not to show an alert on cooldown during auto-refresh.
-            loadMedpicCategorySummary(category, true); // Pass true for auto mode
-        });
-    };
-
-    console.log(`Starting MEDPIC polling interval: ${intervalDuration / 1000}s`);
-
-    // Start immediately after a delay, then repeat
-    const initialTimeout = setTimeout(medpicRefreshRoutine, 5000);
-    const intervalId = setInterval(medpicRefreshRoutine, intervalDuration);
-    setMedpicPollingInterval(intervalId);
-
-    return () => {
-        clearTimeout(initialTimeout);
-        if (intervalId) {
-            clearInterval(intervalId);
-        }
-    };
-}, [isBotRunning, session, botId, medpicSettings.pollInterval]);
-
 useEffect(() => {
         if (botId) {
             establishSseConnections(botId);
@@ -1236,14 +1106,12 @@ useEffect(() => {
   }
 };
 
-  
-const loadMedpicCategorySummary = async (category: string, isAuto = false) => {
+  const loadMedpicCategorySummary = async (category: string) => {
   if (!session || loadingMedpicCategories.has(category)) return;
   
   // Check cooldown (1 minute = 60000ms)
   const lastGenerated = medpicGenerationTimes[category];
-  // MODIFIED CHECK: Only alert if it's NOT an auto-refresh and the cooldown is active.
-  if (!isAuto && lastGenerated && (Date.now() - lastGenerated) < 60000) { 
+  if (lastGenerated && (Date.now() - lastGenerated) < 60000) {
     const remainingTime = Math.ceil((60000 - (Date.now() - lastGenerated)) / 60000);
     alert(`Please wait ${remainingTime} more minute(s) before regenerating this summary.`);
     return;
@@ -1273,8 +1141,7 @@ const loadMedpicCategorySummary = async (category: string, isAuto = false) => {
       [category]: {
         summary: result.summary,
         discussed: result.discussed,
-        analyzed_at: result.analyzed_at,
-        last_generated_at: Date.now(),
+        analyzed_at: result.analyzed_at
       }
     }));
     setMedpicGenerationTimes(prev => ({ ...prev, [category]: Date.now() }));
@@ -1838,13 +1705,12 @@ const handleAskTranscript = async (segmentText: string) => {
     }
   };
 
-const analyzeCustomGoal = async (goalId: string, isAuto = false) => { // MODIFIED: ADD isAuto parameter
+const analyzeCustomGoal = async (goalId: string) => {
   if (!session || loadingCustomGoals.has(goalId) || isTyping) return;
   
   // Check 1-minute cooldown
   const lastGenerated = customGoalGenerationTimes[goalId];
-  // MODIFIED CHECK: Only alert if it's NOT an auto-refresh and the cooldown is active.
-  if (!isAuto && lastGenerated && (Date.now() - lastGenerated) < 60000) { 
+  if (lastGenerated && (Date.now() - lastGenerated) < 60000) {
     const remainingTime = Math.ceil((60000 - (Date.now() - lastGenerated)) / 60000);
     alert(`Please wait ${remainingTime} more minute(s) before regenerating this analysis.`);
     return;
@@ -1854,7 +1720,7 @@ const analyzeCustomGoal = async (goalId: string, isAuto = false) => { // MODIFIE
   if (!goal) return;
   
   setLoadingCustomGoals(prev => new Set([...prev, goalId]));
-  setGoalAnalysis(prev => ({ ...prev, [goalId]: 'Generating analysis...' }));setCustomGoalGenerationTimes(prev => ({ ...prev, [goalId]: Date.now() })); 
+  setGoalAnalysis(prev => ({ ...prev, [goalId]: 'Generating analysis...' }));
 
   const transcriptText = transcript
     .map(seg => `[${Math.floor(seg.start)}s] ${seg.speaker || 'Unknown'}: ${seg.text}`)
@@ -5238,18 +5104,9 @@ const refreshAllMedpicSummaries = async () => {
                     <RefreshCw className="w-4 h-4" />
                 )}
             </button>
-            {/* ADDED: MEDPIC settings button */}
-    <button
-      onClick={() => setShowMedpicSettingsModal(true)}
-      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-      title="Analysis Settings"
-    >
-      <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-    </button>
-    {/* MODIFIED: Show MEDPIC interval */}
-    <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
-      Auto: {medpicSettings.pollInterval / 1000}s
-    </span>
+            <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
+                Sales Framework
+            </span>
         </div>
     </div>
 
@@ -5397,16 +5254,15 @@ const refreshAllMedpicSummaries = async () => {
                       )}
                     </button>
                     <button
-    onClick={() => setShowGoalSettingsModal(true)} // MODIFIED: New toggle function
-    className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-    title="Analysis Settings"
-  >
-    <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-  </button>
-  {/* MODIFIED: Show Custom Goal interval */}
-  <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
-    {customGoals.length} active (Auto: {customGoalSettings.pollInterval / 1000}s)
-  </span>
+                      onClick={() => setShowGoalSettingsModal(true)}
+                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                      title="Analysis Settings"
+                    >
+                      <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </button>
+                    <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
+                      {customGoals.length} active
+                    </span>
                   </div>
                 </div>
 
@@ -5743,23 +5599,18 @@ const refreshAllMedpicSummaries = async () => {
                   
                   <div className="p-6 space-y-6">
                     <div>
-    <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
-        Auto-Update Interval (seconds)
-    </label>
-    <input
-        // FIX: Added type="number"
-        type="number" 
-        min="90"
-        max="300"
-        // FIX: Use customGoalSettings
-        value={customGoalSettings.pollInterval / 1000} 
-        onChange={(e) => {
-            // FIX: Explicitly type the previous state in the setter call
-            setCustomGoalSettings((prev: AnalysisSettings) => { 
-                const val = Math.max(90, Math.min(300, parseInt(e.target.value))) * 1000;
-                return { ...prev, pollInterval: val };
-            });
-        }}
+                      <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
+                        Auto-Update Interval (seconds)
+                      </label>
+                      <input
+                        type="number"
+                        min="30"
+                        max="300"
+                        value={goalSettings.pollInterval / 1000}
+                        onChange={(e) => {
+                          const val = Math.max(30, Math.min(300, parseInt(e.target.value))) * 1000;
+                          setGoalSettings(prev => ({ ...prev, pollInterval: val }));
+                        }}
                         className={`w-full px-4 py-3 border rounded-xl ${
                           isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
                         }`}
@@ -5953,27 +5804,6 @@ const refreshAllMedpicSummaries = async () => {
                                   {card.role}
                                 </span>
                               </div>
-
-                              {/* ADDED: Mute/Unmute Button Next to Speaker Name */}
-                    <button
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            toggleMuteParticipant(card.speaker);
-                        }}
-                        className={`p-1.5 rounded-full transition-all ${
-                            mutedSpeakers.includes(card.speaker)
-                                ? "bg-red-500/20 text-red-500 hover:bg-red-500/30"
-                                : "text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700/50"
-                        }`}
-                        title={mutedSpeakers.includes(card.speaker) ? "Unmute Transcript" : "Mute Transcript"}
-                    >
-                        {mutedSpeakers.includes(card.speaker) ? (
-                            <Volume2 className="w-4 h-4" />
-                        ) : (
-                            <Volume2 className="w-4 h-4" />
-                        )}
-                    </button>
 
                               <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400 mb-2">
                                 <span>
@@ -8164,124 +7994,6 @@ const refreshAllMedpicSummaries = async () => {
       </div>
 
       {/* ADD THIS MEDPIC Summary Modal at the end of the JSX (just before the last closing </div>) */}
-
-{/* MEDPIC Analysis Settings Modal - FIXES APPLIED */}
-{showMedpicSettingsModal && (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className={`w-full max-w-2xl rounded-2xl shadow-2xl ${
-            isDarkMode ? 'bg-gray-800' : 'bg-white'
-        } max-h-[90vh] overflow-y-auto`}>
-            <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
-                {/* ... Header remains the same ... */}
-            </div>
-            
-            <div className="p-6 space-y-6">
-                
-                {/* Auto-Refresh Interval */}
-                <div>
-                    <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
-                        Auto-Refresh Interval (seconds) 🔄
-                    </label>
-                    <input
-                        // FIX 1: Added type="number"
-                        type="number" 
-                        min="90" // Enforce the minimum 90 seconds
-                        max="300"
-                        value={medpicSettings.pollInterval / 1000}
-                        onChange={(e) => {
-                            // FIX 2: Explicitly type 'prev' in the setter function
-                            setMedpicSettings((prev: AnalysisSettings) => { 
-                                const val = Math.max(90, Math.min(300, parseInt(e.target.value))) * 1000;
-                                return { ...prev, pollInterval: val };
-                            });
-                        }}
-                        className={`w-full px-4 py-3 border rounded-xl ${
-                            isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
-                        }`}
-                    />
-                    <p className="text-xs mt-1 text-gray-500 dark:text-gray-400">
-                        The auto-refresh timer will trigger every **{medpicSettings.pollInterval / 1000} seconds** when the bot is running.
-                    </p>
-                </div>
-
-                {/* Output Display Options */}
-                <div>
-                    <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
-                        Output Display Options 👁️
-                    </label>
-                    <div className="space-y-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
-                        {/* Option 1: Hide Summary */}
-                        <label className="flex items-center space-x-3">
-                            <input
-                                type="checkbox"
-                                checked={medpicSettings.format === 'speakers_only'} // Re-use a format option for simplicity
-                                onChange={(e) => setMedpicSettings((prev: AnalysisSettings) => ({ // FIX: Type 'prev'
-                                    ...prev, 
-                                    format: e.target.checked ? 'speakers_only' : 'summary' 
-                                }))}
-                                className="form-checkbox h-4 w-4 text-purple-600 rounded"
-                            />
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Hide AI-Generated Category Summaries
-                            </span>
-                        </label>
-                        {/* Option 2: Hide Q&A */}
-                        <label className="flex items-center space-x-3">
-                            <input
-                                type="checkbox"
-                                checked={!medpicSettings.includeInstances} // Re-use an include option for simplicity
-                                onChange={(e) => setMedpicSettings((prev: AnalysisSettings) => ({ // FIX: Type 'prev'
-                                    ...prev, 
-                                    includeInstances: !e.target.checked 
-                                }))}
-                                className="form-checkbox h-4 w-4 text-purple-600 rounded"
-                            />
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Hide Found Q&A/Evidence Sections
-                            </span>
-                        </label>
-                    </div>
-                </div>
-
-                {/* Additional Instructions */}
-                <div>
-                    <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
-                        Custom LLM Instructions 💡
-                    </label>
-                    <textarea
-                        value={medpicSettings.promptExtension}
-                        // FIX: Type 'prev'
-                        onChange={(e) => setMedpicSettings((prev: AnalysisSettings) => ({ 
-                            ...prev, 
-                            promptExtension: e.target.value 
-                        }))}
-                        placeholder="e.g., Only focus on customer statements. Respond in French."
-                        rows={3}
-                        className={`w-full px-4 py-3 border rounded-xl ${
-                            isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
-                        }`}
-                    />
-                    <p className="text-xs mt-1 text-gray-500 dark:text-gray-400">
-                        These instructions will be added to the prompt when generating summaries.
-                    </p>
-                </div>
-                
-            </div>
-
-            <div className={`p-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                <button
-                    onClick={() => {
-                        saveToSessionStorage("spikedai_medpic_settings", medpicSettings);
-                        setShowMedpicSettingsModal(false);
-                    }}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-700 text-white rounded-xl hover:from-purple-700 hover:to-indigo-800"
-                >
-                    Save Settings
-                </button>
-            </div>
-        </div>
-    </div>
-)}
 
       {/* MEDPIC Summary Modal */}
       {showMedpicModal && medpicSummaryData && (

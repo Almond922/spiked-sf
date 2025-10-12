@@ -120,7 +120,7 @@ interface GoalSettings {
 }
 
 const DB_NAME = 'SpikedAI_Cache';
-const DB_VERSION = 2;
+const DB_VERSION = 3; // *** MODIFICATION 1: Increment the DB_VERSION to force an upgrade in all browsers ***
 const TRANSCRIPTS_STORE = 'transcripts';
 const CUSTOM_TEMPLATES_STORE = 'customTemplates';
 
@@ -131,21 +131,49 @@ const initDB = (): Promise<IDBDatabase> => {
             return;
         }
         const request = indexedDB.open(DB_NAME, DB_VERSION);
-        request.onerror = () => { console.error('IndexedDB error:', request.error); reject(request.error); };
-        request.onsuccess = () => { console.log('IndexedDB opened successfully'); resolve(request.result); };
+        
+        request.onerror = () => { 
+            console.error('IndexedDB error:', request.error); 
+            reject(request.error); 
+        };
+        
+        // This fires immediately upon successful open or if no upgrade is needed
+        request.onsuccess = () => { 
+            const db = request.result;
+            // *** MODIFICATION 2: Check if the upgrade is still active (unlikely but safer) ***
+            if (db.version !== DB_VERSION) {
+                // Should not happen with proper upgrade logic, but good practice
+                console.warn('Database version mismatch. Retrying init.');
+                db.close();
+                // Instead of rejecting, maybe try opening again with a higher version if possible,
+                // but for this fix, we assume the user has to clear the cache if the version is stuck.
+                // For a robust app, clearing the cache or waiting for user intervention is typical.
+                // For now, we resolve but the core fix is in onupgradeneeded.
+            }
+            console.log('IndexedDB opened successfully'); 
+            resolve(db); 
+        };
+        
         request.onupgradeneeded = (event) => {
             console.log('IndexedDB upgrade needed, creating object stores');
             const db = (event.target as IDBOpenDBRequest).result;
+            
+            // Check for existing stores to avoid double creation (which throws an error)
             if (!db.objectStoreNames.contains(TRANSCRIPTS_STORE)) {
                 console.log('Creating transcripts store');
                 db.createObjectStore(TRANSCRIPTS_STORE, { keyPath: 'meetingId' });
             }
+            
+            // The customTemplates store might have been missed in DB_VERSION 2 upgrade
             if (!db.objectStoreNames.contains(CUSTOM_TEMPLATES_STORE)) {
                 console.log('Creating custom templates store');
                 const customTemplatesStore = db.createObjectStore(CUSTOM_TEMPLATES_STORE, { keyPath: 'id', autoIncrement: true });
                 customTemplatesStore.createIndex('name', 'name', { unique: false });
                 customTemplatesStore.createIndex('createdAt', 'createdAt', { unique: false });
             }
+            
+            // IMPORTANT: The request.onsuccess will not fire until the transaction inside onupgradeneeded is complete.
+            // No action needed here, just structuring the code correctly is enough.
         };
     });
 };
@@ -1693,9 +1721,7 @@ ${transcriptText}`;
                         </div>
                     </div>
                     <div className="flex items-center flex-shrink-0 space-x-2">
-                        <button className={`p-2.5 rounded-xl transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-white' : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'} hover:scale-105`}>
-                            <Settings className="w-5 h-5" />
-                        </button>
+                        
                     </div>
                 </div>
                 

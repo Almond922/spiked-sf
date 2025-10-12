@@ -346,6 +346,16 @@ interface MeetingGoalUpdate {
   evaluation_strictness?: string;
   emoji_icon?: string;
 }
+// ADD THIS INTERFACE
+interface AnalysisSettings {
+    format: 'summary' | 'detailed' | 'speakers_only';
+    wordLimit: number;
+    includeTimestamps: boolean;
+    includeSpeakers: boolean;
+    includeInstances: boolean;
+    pollInterval: number; // Stored in milliseconds
+    promptExtension: string;
+}
 
 // IndexedDB utilities
 const DB_NAME = "SpikedAI_Cache";
@@ -964,33 +974,36 @@ useEffect(() => {
 // Inside SpikedAI functional component:
 
 // Existing goalSettings state (MODIFIED: Renamed to customGoalSettings for clarity)
-const [customGoalSettings, setCustomGoalSettings] = useState(() => {
+// FIX 1: Custom Goal Settings Default
+
+// MODIFIED STATE INITIALIZATION (approx. line 440)
+
+const [customGoalSettings, setCustomGoalSettings] = useState<AnalysisSettings>(() => {
     const savedSettings = loadFromSessionStorage("spikedai_custom_goal_settings", {
         format: 'summary' as 'summary' | 'detailed' | 'speakers_only',
         wordLimit: 150,
         includeTimestamps: true,
         includeSpeakers: true,
         includeInstances: false,
-        pollInterval: 90000, // MODIFIED DEFAULT: 90 seconds (90000ms)
+        pollInterval: 90000, // CORRECTED to 90000ms
         promptExtension: '',
-    });
-    // Ensure default pollInterval is set correctly
+    }) as AnalysisSettings; // Cast the loaded object
+    
     savedSettings.pollInterval = savedSettings.pollInterval || 90000;
     return savedSettings;
 });
 
-// ADD THIS NEW STATE for MEDPIC settings
-const [medpicSettings, setMedpicSettings] = useState(() => {
+const [medpicSettings, setMedpicSettings] = useState<AnalysisSettings>(() => { // ADDED TYPE
     const savedSettings = loadFromSessionStorage("spikedai_medpic_settings", {
         format: 'summary' as 'summary' | 'detailed' | 'speakers_only',
         wordLimit: 150,
         includeTimestamps: true,
         includeSpeakers: true,
-        includeInstances: false,
-        pollInterval: 90000, // NEW DEFAULT: 90 seconds (90000ms)
+        includeInstances: true, // Note: Setting true as default for MEDPIC to include all info
+        pollInterval: 90000,
         promptExtension: '',
-    });
-    // Ensure default pollInterval is set correctly
+    }) as AnalysisSettings; // Cast the loaded object
+    
     savedSettings.pollInterval = savedSettings.pollInterval || 90000;
     return savedSettings;
 });
@@ -5730,18 +5743,23 @@ const refreshAllMedpicSummaries = async () => {
                   
                   <div className="p-6 space-y-6">
                     <div>
-                      <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
-                        Auto-Update Interval (seconds)
-                      </label>
-                      <input
-                        type="number"
-                        min="30"
-                        max="300"
-                        value={goalSettings.pollInterval / 1000}
-                        onChange={(e) => {
-                          const val = Math.max(30, Math.min(300, parseInt(e.target.value))) * 1000;
-                          setGoalSettings(prev => ({ ...prev, pollInterval: val }));
-                        }}
+    <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
+        Auto-Update Interval (seconds)
+    </label>
+    <input
+        // FIX: Added type="number"
+        type="number" 
+        min="90"
+        max="300"
+        // FIX: Use customGoalSettings
+        value={customGoalSettings.pollInterval / 1000} 
+        onChange={(e) => {
+            // FIX: Explicitly type the previous state in the setter call
+            setCustomGoalSettings((prev: AnalysisSettings) => { 
+                const val = Math.max(90, Math.min(300, parseInt(e.target.value))) * 1000;
+                return { ...prev, pollInterval: val };
+            });
+        }}
                         className={`w-full px-4 py-3 border rounded-xl ${
                           isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
                         }`}
@@ -8147,32 +8165,14 @@ const refreshAllMedpicSummaries = async () => {
 
       {/* ADD THIS MEDPIC Summary Modal at the end of the JSX (just before the last closing </div>) */}
 
-      // ... (After the existing Custom Goal Settings Modal)
-
-// ADDED: MEDPIC Analysis Settings Modal
-
-// NOTE: You may need to update the import statement for customGoalSettings to customGoalSettings in the existing modal
-// and ensure the prop names are correct for the new medpicSettings state.
-
-// ... (Existing custom goal settings modal JSX, ensuring variables use customGoalSettings)
-// ...
-
-{/* MEDPIC Analysis Settings Modal - ADD THIS NEW BLOCK */}
+{/* MEDPIC Analysis Settings Modal - FIXES APPLIED */}
 {showMedpicSettingsModal && (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div className={`w-full max-w-2xl rounded-2xl shadow-2xl ${
             isDarkMode ? 'bg-gray-800' : 'bg-white'
         } max-h-[90vh] overflow-y-auto`}>
             <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    Playbook (MEDPIC) Settings
-                </h2>
-                <button
-                    onClick={() => setShowMedpicSettingsModal(false)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                    <X className="w-5 h-5" />
-                </button>
+                {/* ... Header remains the same ... */}
             </div>
             
             <div className="p-6 space-y-6">
@@ -8183,13 +8183,17 @@ const refreshAllMedpicSummaries = async () => {
                         Auto-Refresh Interval (seconds) 🔄
                     </label>
                     <input
-                        type="number"
+                        // FIX 1: Added type="number"
+                        type="number" 
                         min="90" // Enforce the minimum 90 seconds
                         max="300"
                         value={medpicSettings.pollInterval / 1000}
                         onChange={(e) => {
-                            const val = Math.max(90, Math.min(300, parseInt(e.target.value))) * 1000;
-                            setMedpicSettings(prev => ({ ...prev, pollInterval: val }));
+                            // FIX 2: Explicitly type 'prev' in the setter function
+                            setMedpicSettings((prev: AnalysisSettings) => { 
+                                const val = Math.max(90, Math.min(300, parseInt(e.target.value))) * 1000;
+                                return { ...prev, pollInterval: val };
+                            });
                         }}
                         className={`w-full px-4 py-3 border rounded-xl ${
                             isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
@@ -8211,7 +8215,7 @@ const refreshAllMedpicSummaries = async () => {
                             <input
                                 type="checkbox"
                                 checked={medpicSettings.format === 'speakers_only'} // Re-use a format option for simplicity
-                                onChange={(e) => setMedpicSettings(prev => ({ 
+                                onChange={(e) => setMedpicSettings((prev: AnalysisSettings) => ({ // FIX: Type 'prev'
                                     ...prev, 
                                     format: e.target.checked ? 'speakers_only' : 'summary' 
                                 }))}
@@ -8226,7 +8230,7 @@ const refreshAllMedpicSummaries = async () => {
                             <input
                                 type="checkbox"
                                 checked={!medpicSettings.includeInstances} // Re-use an include option for simplicity
-                                onChange={(e) => setMedpicSettings(prev => ({ 
+                                onChange={(e) => setMedpicSettings((prev: AnalysisSettings) => ({ // FIX: Type 'prev'
                                     ...prev, 
                                     includeInstances: !e.target.checked 
                                 }))}
@@ -8246,7 +8250,8 @@ const refreshAllMedpicSummaries = async () => {
                     </label>
                     <textarea
                         value={medpicSettings.promptExtension}
-                        onChange={(e) => setMedpicSettings(prev => ({ 
+                        // FIX: Type 'prev'
+                        onChange={(e) => setMedpicSettings((prev: AnalysisSettings) => ({ 
                             ...prev, 
                             promptExtension: e.target.value 
                         }))}

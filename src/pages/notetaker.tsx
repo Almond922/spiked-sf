@@ -6,6 +6,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import EmailDialog from '../components/EmailDialog';
+import PdfTemplateDialog from '../components/PdfTemplateDialog';
 import { useBotId } from '../BotIdContext';
 import { useAuth } from '../AuthContext';
 import { useTheme } from '../ThemeContext'; // Import the universal theme hook
@@ -21,7 +22,7 @@ import {
     Heart,
     MessageSquare,
     ChevronRight,
-    Moon,
+    
     FileText as Document,
     Headphones,
     Settings,
@@ -382,7 +383,7 @@ const saveToSessionStorage = (key: string, value: any) => {
 export default function Notetaker() {
     const { botId, setBotId } = useBotId();
     const { session } = useAuth();
-    const { isDarkMode, toggleDarkMode } = useTheme(); // Use universal theme context
+    const { isDarkMode } = useTheme(); // Use universal theme context
     const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
     
     const [customTemplates, setCustomTemplates] = useState<Template[]>([]);
@@ -409,6 +410,7 @@ export default function Notetaker() {
     const [additionalQuestions, setAdditionalQuestions] = useState<string[]>([]);    
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
     const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+    const [isPdfDialogOpen, setIsPdfDialogOpen] = useState(false);
 
     // CUSTOM GOALS STATE
     const [customGoals, setCustomGoals] = useState<CustomGoal[]>([]);
@@ -1364,6 +1366,16 @@ ${transcriptText}`;
         }
     };
 
+    // Make generatePDF available on window for backwards compatibility (and to avoid unused-local warnings)
+    useEffect(() => {
+        try {
+            (window as any).generatePDF = generatePDF;
+        } catch (e) {
+            // ignore
+        }
+        return () => { try { delete (window as any).generatePDF; } catch (e) {} };
+    }, [generatePDF, chatMessages]);
+
     const handleShareClick = () => {
         setIsEmailDialogOpen(true);
     };
@@ -1806,7 +1818,7 @@ ${transcriptText}`;
                     </div>
                     <div className="flex items-center space-x-2">
                         <button
-                            onClick={generatePDF}
+                            onClick={() => setIsPdfDialogOpen(true)}
                             disabled={isGeneratingPDF || chatMessages.length === 0}
                             className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${
                                 isDarkMode
@@ -1847,6 +1859,15 @@ ${transcriptText}`;
                             defaultSubject={`SpikedAI Meeting Summary - ${new Date().toLocaleDateString()}`}
                             defaultBody={generateEmailContent()}
                             isDarkMode={isDarkMode}
+                        />
+                        <PdfTemplateDialog
+                            isOpen={isPdfDialogOpen}
+                            onClose={() => setIsPdfDialogOpen(false)}
+                            templates={allTemplates}
+                            transcriptText={groupTranscriptBySpeaker(transcript).map(group => `${group.speaker || 'Unknown'}: ${group.text}`).join('\n\n')}
+                            sessionToken={session?.access_token}
+                            isDarkMode={isDarkMode}
+                            backendUrl={SALES_ASSISTANT_BASE_URL}
                         />
                     </div>
                 </div>

@@ -158,8 +158,7 @@ const initDB = (): Promise<IDBDatabase> => {
         request.onupgradeneeded = (event) => {
             console.log('IndexedDB upgrade needed, creating object stores');
             const db = (event.target as IDBOpenDBRequest).result;
-            
-            // Check for existing stores to avoid double creation (which throws an error)
+
             if (!db.objectStoreNames.contains(TRANSCRIPTS_STORE)) {
                 console.log('Creating transcripts store');
                 db.createObjectStore(TRANSCRIPTS_STORE, { keyPath: 'meetingId' });
@@ -190,9 +189,15 @@ const saveToIndexedDB = async (storeName: string, data: any): Promise<boolean> =
             request.onerror = () => resolve(false);
         });
     } catch (error) {
-        console.error('Error in saveToIndexedDB:', error);
-        return false;
+    console.error('Error in saveToIndexedDB:', error);
+    // Specifically handle the NotFoundError, which usually means the DB needs an upgrade/refresh
+    if (error instanceof DOMException && error.name === 'NotFoundError') {
+        console.error(`Object store ${storeName} not found. DB schema mismatch.`);
+        // You may choose to alert the user here: 
+        // alert("Database structure is out of date. Please refresh the page to apply the latest updates.");
     }
+    return false;
+}
 };
 
 const updateInIndexedDB = async (storeName: string, data: any): Promise<boolean> => {
@@ -231,7 +236,7 @@ const loadFromIndexedDB = async (storeName: string, key?: string): Promise<any> 
     try {
         const db = await initDB();
         
-        // Check if the object store exists
+        // This is the correct, proactive check to prevent the NotFoundError on the transaction line
         if (!db.objectStoreNames.contains(storeName)) {
             console.log(`Object store '${storeName}' does not exist yet`);
             return key ? null : [];

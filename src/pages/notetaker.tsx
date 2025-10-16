@@ -9,7 +9,7 @@ import EmailDialog from '../components/EmailDialog';
 import PdfTemplateDialog from '../components/PdfTemplateDialog';
 import { useBotId } from '../BotIdContext';
 import { useAuth } from '../AuthContext';
-import { useTheme } from '../ThemeContext'; // Import the universal theme hook
+import { useTheme } from '../ThemeContext';
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import {
     Send,
@@ -43,6 +43,7 @@ const BASE_URL = 'https://recall-backend-production-409019309412.us-central1.run
 const SALES_ASSISTANT_BASE_URL = 'https://spikedai-old-backend-409019309412.us-central1.run.app';
 const service_url_recall = "https://spikedai-production-application-409019309412.us-central1.run.app";
 
+// --- INTERFACES (UNCHANGED) ---
 
 interface Template {
     id: number;
@@ -106,7 +107,7 @@ interface CustomGoalProgress {
     total_evidence_count: number;
     achievement_percentage: number;
     confidence_score?: number;
-    summary?: string; // Add summary here
+    summary?: string;
 }
 
 
@@ -117,39 +118,40 @@ interface GoalSettings {
     includeSpeakers: boolean;
     includeInstances: boolean;
     pollInterval: number;
-    promptExtension: string; // NEW: Additional prompt clause
+    promptExtension: string;
 }
 
+// --- INDEXEDDB SETUP AND GLOBAL PROMISE ---
+
 const DB_NAME = 'SpikedAI_Cache';
-const DB_VERSION = 3; // *** MODIFICATION 1: Increment the DB_VERSION to force an upgrade in all browsers ***
+const DB_VERSION = 3;
 const TRANSCRIPTS_STORE = 'transcripts';
 const CUSTOM_TEMPLATES_STORE = 'customTemplates';
 
+// Global reference for the database promise to ensure single, synchronized open call
+let dbPromise: Promise<IDBDatabase> | null = null; 
+
 const initDB = (): Promise<IDBDatabase> => {
-    return new Promise((resolve, reject) => {
+    if (dbPromise) return dbPromise; // Return the existing promise if initialization is underway or complete
+
+    dbPromise = new Promise((resolve, reject) => {
         if (!window.indexedDB) {
             reject(new Error('IndexedDB is not supported in this browser'));
+            dbPromise = null; // Clear the promise on rejection for retries
             return;
         }
         const request = indexedDB.open(DB_NAME, DB_VERSION);
         
         request.onerror = () => { 
             console.error('IndexedDB error:', request.error); 
+            dbPromise = null;
             reject(request.error); 
         };
         
-        // This fires immediately upon successful open or if no upgrade is needed
         request.onsuccess = () => { 
             const db = request.result;
-            // *** MODIFICATION 2: Check if the upgrade is still active (unlikely but safer) ***
             if (db.version !== DB_VERSION) {
-                // Should not happen with proper upgrade logic, but good practice
-                console.warn('Database version mismatch. Retrying init.');
-                db.close();
-                // Instead of rejecting, maybe try opening again with a higher version if possible,
-                // but for this fix, we assume the user has to clear the cache if the version is stuck.
-                // For a robust app, clearing the cache or waiting for user intervention is typical.
-                // For now, we resolve but the core fix is in onupgradeneeded.
+                console.warn('Database version mismatch. Retrying init is typically done by incrementing DB_VERSION.');
             }
             console.log('IndexedDB opened successfully'); 
             resolve(db); 
@@ -158,61 +160,58 @@ const initDB = (): Promise<IDBDatabase> => {
         request.onupgradeneeded = (event) => {
             console.log('IndexedDB upgrade needed, creating object stores');
             const db = (event.target as IDBOpenDBRequest).result;
-
+            
+            // 1. Transcripts Store
             if (!db.objectStoreNames.contains(TRANSCRIPTS_STORE)) {
                 console.log('Creating transcripts store');
                 db.createObjectStore(TRANSCRIPTS_STORE, { keyPath: 'meetingId' });
             }
             
-            // The customTemplates store might have been missed in DB_VERSION 2 upgrade
+            // 2. Custom Templates Store (The one that was causing issues)
             if (!db.objectStoreNames.contains(CUSTOM_TEMPLATES_STORE)) {
                 console.log('Creating custom templates store');
                 const customTemplatesStore = db.createObjectStore(CUSTOM_TEMPLATES_STORE, { keyPath: 'id', autoIncrement: true });
                 customTemplatesStore.createIndex('name', 'name', { unique: false });
                 customTemplatesStore.createIndex('createdAt', 'createdAt', { unique: false });
             }
-            
-            // IMPORTANT: The request.onsuccess will not fire until the transaction inside onupgradeneeded is complete.
-            // No action needed here, just structuring the code correctly is enough.
         };
     });
+    return dbPromise;
 };
 
 const saveToIndexedDB = async (storeName: string, data: any): Promise<boolean> => {
     try {
         const db = await initDB();
         
-        // 🛑 ADD THIS CRITICAL DEFENSE CHECK
+        // 🛑 CRITICAL DEFENSE CHECK: Ensure the store exists before trying a transaction
         if (!db.objectStoreNames.contains(storeName)) {
             console.error(`Object store '${storeName}' does not exist, cannot save.`);
-            return false; // Fail gracefully if the store isn't there
+            return false;
         }
         
-        // This transaction will now only be called if the store exists
         const transaction = db.transaction([storeName], 'readwrite');
         const store = transaction.objectStore(storeName);
         const request = store.add(data);
         return new Promise((resolve) => {
             request.onsuccess = () => resolve(true);
-            request.onerror = () => resolve(false);
+            request.onerror = () => {
+                 // Log specific error during transaction/add
+                console.error(`Error adding data to store ${storeName}:`, request.error);
+                resolve(false);
+            }
         });
     } catch (error) {
-    console.error('Error in saveToIndexedDB:', error);
-    // Specifically handle the NotFoundError, which usually means the DB needs an upgrade/refresh
-    if (error instanceof DOMException && error.name === 'NotFoundError') {
-        console.error(`Object store ${storeName} not found. DB schema mismatch.`);
-        // You may choose to alert the user here: 
-        // alert("Database structure is out of date. Please refresh the page to apply the latest updates.");
+        console.error('Error in saveToIndexedDB:', error);
+        // This catch handles errors from initDB (like unsupported browser) or transaction creation failures
+        return false;
     }
-    return false;
-}
 };
 
 const updateInIndexedDB = async (storeName: string, data: any): Promise<boolean> => {
     try {
         const db = await initDB();
 
-        // 🛑 ADD THIS CRITICAL DEFENSE CHECK
+        // 🛑 CRITICAL DEFENSE CHECK
         if (!db.objectStoreNames.contains(storeName)) {
             console.error(`Object store '${storeName}' does not exist, cannot update.`);
             return false;
@@ -223,7 +222,10 @@ const updateInIndexedDB = async (storeName: string, data: any): Promise<boolean>
         const request = store.put(data);
         return new Promise((resolve) => {
             request.onsuccess = () => resolve(true);
-            request.onerror = () => resolve(false);
+            request.onerror = () => {
+                console.error(`Error updating data in store ${storeName}:`, request.error);
+                resolve(false);
+            }
         });
     } catch (error) {
         console.error('Error updating in IndexedDB:', error);
@@ -234,12 +236,21 @@ const updateInIndexedDB = async (storeName: string, data: any): Promise<boolean>
 const deleteFromIndexedDB = async (storeName: string, key: any): Promise<boolean> => {
     try {
         const db = await initDB();
+        // NOTE: While usually okay, adding the defense check here for consistency
+        if (!db.objectStoreNames.contains(storeName)) {
+            console.error(`Object store '${storeName}' does not exist, cannot delete.`);
+            return false;
+        }
+
         const transaction = db.transaction([storeName], 'readwrite');
         const store = transaction.objectStore(storeName);
         const request = store.delete(key);
         return new Promise((resolve) => {
             request.onsuccess = () => resolve(true);
-            request.onerror = () => resolve(false);
+            request.onerror = () => {
+                console.error(`Error deleting data from store ${storeName}:`, request.error);
+                resolve(false);
+            }
         });
     } catch (error) {
         console.error('Error deleting from IndexedDB:', error);
@@ -251,7 +262,7 @@ const loadFromIndexedDB = async (storeName: string, key?: string): Promise<any> 
     try {
         const db = await initDB();
         
-        // This is the correct, proactive check to prevent the NotFoundError on the transaction line
+        // This is the intended and correct check
         if (!db.objectStoreNames.contains(storeName)) {
             console.log(`Object store '${storeName}' does not exist yet`);
             return key ? null : [];
@@ -278,7 +289,10 @@ const loadFromIndexedDB = async (storeName: string, key?: string): Promise<any> 
     }
 };
 
+// --- REACT COMPONENT CODE (Unchanged functional parts for brevity, only keeping the main component) ---
+
 const EnhancedMarkdown = ({ children, isDarkMode }: { children: string; isDarkMode: boolean }) => {
+    // ... (unchanged)
     return (
         <ReactMarkdown
             remarkPlugins={[remarkGfm]}
@@ -329,6 +343,7 @@ const EnhancedMarkdown = ({ children, isDarkMode }: { children: string; isDarkMo
 };
 
 const GoalAnalysisDisplay: React.FC<{ analysis: string; isDarkMode: boolean }> = ({ analysis, isDarkMode }) => {
+    // ... (unchanged)
     if (analysis.startsWith('Generating analysis...') || analysis.startsWith('Error')) {
         return <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{analysis}</p>;
     }
@@ -403,7 +418,7 @@ const saveToSessionStorage = (key: string, value: any) => {
 export default function Notetaker() {
     const { botId, setBotId } = useBotId();
     const { session } = useAuth();
-    const { isDarkMode } = useTheme(); // Use universal theme context
+    const { isDarkMode } = useTheme();
     const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
     
     const [customTemplates, setCustomTemplates] = useState<Template[]>([]);
@@ -436,7 +451,7 @@ export default function Notetaker() {
     const [customGoals, setCustomGoals] = useState<CustomGoal[]>([]);
     const [customGoalsProgress, setCustomGoalsProgress] = useState<CustomGoalProgress[]>([]);
     const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
-    const [goalAnalysis, setGoalAnalysis] = useState<Record<string, string>>({}); // Stores the detailed AI analysis
+    const [goalAnalysis, setGoalAnalysis] = useState<Record<string, string>>({});
 
     // NEW STATE FOR COLLAPSIBLE SECTIONS AND POLLING
     const [isCollapsibleOpen, setIsCollapsibleOpen] = useState({
@@ -453,30 +468,27 @@ export default function Notetaker() {
         includeSpeakers: true,
         includeInstances: false,
         pollInterval: 30000,
-        promptExtension: '', // NEW: Default to empty
+        promptExtension: '',
     }));
     const [retryCount, setRetryCount] = useState(0);
     const [maxRetries] = useState(3);
     const [lastFetchTime, setLastFetchTime] = useState(0);
-    const [fetchCooldown] = useState(5000); // 5 seconds cooldown between fetches
+    const [fetchCooldown] = useState(5000);
 
     const transcriptEndRef = useRef<HTMLDivElement>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const sseRefs = useRef<{ transcript: AbortController | null; }>({ transcript: null });
 
-    // Ref to hold the most current transcript array for use in callbacks that shouldn't re-run the polling loop
     const transcriptRef = useRef(transcript);
     useEffect(() => {
         transcriptRef.current = transcript;
     }, [transcript]);
 
-    // Helper to group transcript for API calls
     const groupTranscriptBySpeaker = useCallback((segments: TranscriptSegment[]) => {
         if (!segments || segments.length === 0) return [];
         const groups: { speaker: string | null, text: string, id: number, start: number }[] = [];
         let currentGroup: { speaker: string | null, text: string, id: number, start: number } | null = null;
         segments.forEach((segment, index) => {
-            // Use segment.start for logging consistency
             const startTimeInSeconds = segment.start;    
             if (currentGroup && currentGroup.speaker === segment.speaker) {
                 currentGroup.text += ' ' + segment.text;
@@ -489,14 +501,12 @@ export default function Notetaker() {
         return groups;
     }, []);
 
-    // API calls for Custom Goals (Metadata fetching)
     const fetchCustomGoals = useCallback(async () => {
         if (!session) {
             console.log('No session, skipping goals fetch');
             return;
         }
         
-        // Check cooldown to prevent too many API calls
         const now = Date.now();
         if (now - lastFetchTime < fetchCooldown) {
             console.log('Goals fetch in cooldown, skipping...');
@@ -523,18 +533,15 @@ export default function Notetaker() {
         }
     }, [session, lastFetchTime, fetchCooldown]);
 
-    // Lightweight fetch for real-time progress bar/evidence tracking
     const fetchCustomGoalsProgress = useCallback(async () => {
-        // Use ref for transcript to avoid constantly re-running this useCallback
         const currentTranscript = transcriptRef.current;
         if (!session || !customGoals.length || currentTranscript.length === 0) return;
 
-        // Check cooldown to prevent too many API calls
         const now = Date.now();
         if (now - lastFetchTime < fetchCooldown) {
             return;
         }
-        setLastFetchTime(now); // Set time before the API call
+        setLastFetchTime(now);
 
         try {
             const response = await fetch(`${service_url_recall}/sentiment/custom-goals`, {
@@ -545,7 +552,7 @@ export default function Notetaker() {
                 },
                 body: JSON.stringify({
                     goals: customGoals.map(g => ({ id: g.id, description: g.goal_description, criteria: g.evaluation_criteria })),
-                    transcript_segments: currentTranscript, // Use the data from the ref
+                    transcript_segments: currentTranscript,
                 }),
             });
             if (response.ok) {
@@ -556,7 +563,7 @@ export default function Notetaker() {
                     console.error('Invalid data format for custom goals progress:', data);
                 }
             } else if (response.status === 404) {
-                // Silently handle 404 - this endpoint might not be implemented yet
+                // Silently handle 404
             } else {
                 console.error("Failed to fetch custom goals progress:", response.status, response.statusText);
             }
@@ -565,7 +572,6 @@ export default function Notetaker() {
         }
     }, [session, customGoals, lastFetchTime, fetchCooldown]);
 
-    // Core function to fetch and parse the consolidated AI analysis
     const fetchCustomGoalUpdates = useCallback(async () => {
         const currentTranscript = transcriptRef.current;
         if (!session || isAITyping || isProcessingTemplate || !customGoals.length || currentTranscript.length === 0) {
@@ -573,26 +579,22 @@ export default function Notetaker() {
             return;
         }
         
-        // This is the heavy lifting, prevent overlap
         if (isPollingGoals) {
             console.log("Goal update skipped: analysis already running.");
             return;
         }
 
         setIsPollingGoals(true);
-        // Display a temporary loading state for the analysis panel
         const loadingAnalysis = customGoals.reduce((acc, goal) => ({ ...acc, [goal.id]: 'Generating analysis...' }), {});
         setGoalAnalysis(loadingAnalysis);
 
         console.log("Fetching consolidated goal updates silently...");
 
         const goalsText = customGoals.map(goal => `Goal: ${goal.goal_description}${goal.evaluation_criteria ? ` (Criteria: ${goal.evaluation_criteria})` : ''}`).join('\n- ');
-        // Prepare transcript text with timestamps in seconds
         const transcriptText = groupTranscriptBySpeaker(currentTranscript).map(group => `[${group.start}s] ${group.speaker || 'Unknown'}: ${group.text}`).join('\n');
         
         let promptParts: string[] = [];
 
-        // 1. Core Instruction (Requesting the output structure to be parseable)
         promptParts.push(`Based on the full transcript provided below, analyze each of the custom goals and provide a consolidated update.
         
 Your output MUST adhere to the following strict format for *each* goal, starting with the exact "Goal:" line. Do NOT include any conversational filler before the first "Goal:" line.
@@ -605,7 +607,6 @@ Goals to analyze:
 - ${goalsText}
 `);
 
-        // 2. Formatting Instructions
         let formatInstruction: string = `Your response MUST be a **single, raw text response** containing only the analysis for all goals, separated by the "Goal:" marker. For each goal:
 1. State the **Goal:** exactly as listed above.
 2. State its current **Status:** (Achieved/In Progress/Not Started).
@@ -624,7 +625,6 @@ Goals to analyze:
 3. **Summary/Analysis:** List only the names of the speakers who contributed evidence towards this goal.`;
         }
 
-        // 3. Inclusion Options
         let inclusionInstruction: string = '';
         if (goalSettings.includeSpeakers) {
             inclusionInstruction += 'Ensure you explicitly mention the speaker(s) associated with key evidence in your summary/analysis.';
@@ -648,8 +648,6 @@ Goals to analyze:
 FULL TRANSCRIPT:
 ${transcriptText}`;
 
-        // DO NOT log request to chat
-
         try {
             const response = await fetch(`${SALES_ASSISTANT_BASE_URL}/api/process-template`, {
                 method: 'POST',
@@ -666,19 +664,14 @@ ${transcriptText}`;
             const rawResponse = data.response as string;
             const parsedAnalysis: Record<string, string> = {};
 
-            // Split by the main goal separator, ensuring we handle the first entry correctly
             const goalSections = rawResponse.split(/Goal: /g).filter(s => s.trim().length > 0);
 
             for (const section of goalSections) {
-                // Prepend 'Goal: ' to the section content to ensure it starts cleanly for parsing/display
                 const fullSection = `Goal: ${section.trim()}`;
                 
-                // Extract the goal description from the first non-header line for matching
                 const lines = fullSection.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-                // Regex to strip "Goal:" and everything after the first header (Status: or Summary/Analysis:)
                 const goalDescriptionLine = lines[0].replace(/^Goal:\s*/i, '').replace(/Status:.*$/i, '').replace(/Summary\/Analysis:.*$/i, '').trim();
 
-                // Find the matching goal ID
                 const matchingGoal = customGoals.find(g => 
                     goalDescriptionLine.toLowerCase().includes(g.goal_description.toLowerCase().trim())
                 );
@@ -693,26 +686,14 @@ ${transcriptText}`;
             setGoalAnalysis(parsedAnalysis);
             console.log("✅ Goal analysis updated successfully (silently).");
             
-            // DO NOT log success message to chat
-
         } catch (error) {
             console.error("💥 Error fetching custom goal updates:", error);
-            // Revert loading state on error
             setGoalAnalysis({});
-            
-            // Optionally, log only the error to the chat for debugging
-            // const errorResponse: ChatMessage = {
-            //     id: Date.now() + 1,
-            //     text: `**❌ Goal Analysis Error**\n*An error occurred during automated goal analysis. Check console for details. Re-running in ${goalSettings.pollInterval / 1000}s.*`,
-            //     isUser: false,
-            //     timestamp: new Date(),
-            // };
-            // setChatMessages((prev) => [...prev, errorResponse]); 
         } finally {
             setIsAITyping(false);
             setIsPollingGoals(false);
         }
-    }, [session, customGoals, isAITyping, isProcessingTemplate, goalSettings, groupTranscriptBySpeaker]); // Added groupTranscriptBySpeaker as dependency for completeness
+    }, [session, customGoals, isAITyping, isProcessingTemplate, goalSettings, groupTranscriptBySpeaker]);
 
     const navigateCustomGoalEvidence = async (goalId: string, direction: "next" | "prev") => {
         if (!session) return;
@@ -740,7 +721,6 @@ ${transcriptText}`;
         });
     };
     
-    // Initial load and settings save
     useEffect(() => {
         saveToSessionStorage('spikedai_goal_settings', goalSettings);
     }, [goalSettings]);
@@ -748,6 +728,7 @@ ${transcriptText}`;
     const fetchTemplatesAndGoals = useCallback(() => {
         const loadCustomTemplates = async () => {
             try {
+                // This call awaits the globally synchronized initDB promise
                 const customTemplatesData = await loadFromIndexedDB(CUSTOM_TEMPLATES_STORE);
                 if (customTemplatesData && customTemplatesData.length > 0) {
                     const formattedTemplates = customTemplatesData.map((template: any) => ({
@@ -773,27 +754,21 @@ ${transcriptText}`;
         fetchTemplatesAndGoals();
     }, [fetchTemplatesAndGoals]);
 
-    // MODIFIED: Automatic polling for progress and detailed updates
     useEffect(() => {
         let intervalId: NodeJS.Timeout | null = null;
         
-        // This effect DEPENDS ONLY on state changes that should logically restart the polling timer.
-        // We remove 'transcript', 'isAITyping', and 'isProcessingTemplate' to prevent rapid restarts.
         if (isConnected && session && customGoals.length > 0) {
             console.log(`Starting/Restarting Goal Polling Interval: ${goalSettings.pollInterval / 1000}s`);
 
-            // Run initial update immediately
             fetchCustomGoalsProgress();    
             fetchCustomGoalUpdates();    
             
-            // Start the periodic polling loop for both types of updates
             intervalId = setInterval(() => {
                 console.log('Goal Polling triggered by interval.');
-                fetchCustomGoalsProgress(); // Lightweight progress
-                fetchCustomGoalUpdates();  // Heavy AI analysis (now runs silently)
-            }, goalSettings.pollInterval); // Use the user-configured interval
+                fetchCustomGoalsProgress();
+                fetchCustomGoalUpdates();
+            }, goalSettings.pollInterval);
 
-            // Cleanup function
             return () => {
                 if (intervalId) {
                     console.log('Clearing old Goal Polling Interval.');
@@ -807,9 +782,7 @@ ${transcriptText}`;
                 clearInterval(intervalId);
             }
         };
-    // FIX: Removed `transcript` dependency. Removed `isAITyping` and `isProcessingTemplate` which shouldn't reset the timer.
-    // The calls inside the interval will check those flags internally.
-    }, [isConnected, session, customGoals.length, goalSettings.pollInterval, fetchCustomGoalsProgress, fetchCustomGoalUpdates]); 
+    }, [isConnected, session, customGoals.length, goalSettings.pollInterval, fetchCustomGoalsProgress, fetchCustomGoalUpdates]);    
 
 
     useEffect(() => {
@@ -896,7 +869,6 @@ ${transcriptText}`;
                             saveToSessionStorage('spikedai_transcript', newTranscripts);
                             return newTranscripts;
                         });
-                        // Reset retry count on successful message
                         setRetryCount(0);
                     } catch (e) {
                         console.error("Error parsing new transcript message:", e);
@@ -905,10 +877,8 @@ ${transcriptText}`;
                 onerror(err) {
                     console.error('Transcript Stream Error:', err);
                     
-                    // Increment retry count
                     setRetryCount(prev => prev + 1);
                     
-                    // Stop retrying after max attempts
                     if (retryCount >= maxRetries) {
                         console.log('Max retry attempts reached, stopping transcript stream');
                         if (err.message && err.message.includes('403')) {
@@ -923,7 +893,6 @@ ${transcriptText}`;
                         return;
                     }
                     
-                    // For 403 errors, stop immediately
                     if (err.message && err.message.includes('403')) {
                         setError('Access denied to transcript stream. Please check your permissions.');
                         setIsConnected(false);
@@ -931,7 +900,6 @@ ${transcriptText}`;
                         return;
                     }
                     
-                    // For other errors, allow limited retries
                     console.log(`Transcript stream error, retry ${retryCount + 1}/${maxRetries}`);
                 },
             });
@@ -942,10 +910,7 @@ ${transcriptText}`;
             setError('No active meeting bot found. Please start a session in the main interface.');
             cleanup();
         }
-
-        // Added fetchCustomGoals and fetchCustomGoalsProgress to the dependency array, 
-        // but since they are wrapped in useCallback, they only change if their internal dependencies change.
-    }, [botId, session, fetchCustomGoals, fetchCustomGoalsProgress]); 
+    }, [botId, session, fetchCustomGoals, fetchCustomGoalsProgress]);    
 
     useEffect(() => {
         const handleStorageChange = (e: StorageEvent) => {
@@ -1009,7 +974,6 @@ ${transcriptText}`;
         const newUserMessage: ChatMessage = { id: Date.now(), text: userQuestion, isUser: true, timestamp: new Date() };
         setChatMessages((prev) => [...prev, newUserMessage]);
         setChatInput('');
-        // No follow-up questions
         setAdditionalQuestions([]);
         setIsAITyping(true);
         const transcriptText = groupTranscriptBySpeaker(transcript).map(group => `${group.speaker || 'Unknown'}: ${group.text}`).join('\n\n');
@@ -1019,8 +983,6 @@ ${transcriptText}`;
             const data = await response.json();
             const botResponse: ChatMessage = { id: Date.now() + 1, text: data.response, isUser: false, timestamp: new Date() };
             setChatMessages((prev) => [...prev, botResponse]);
-            // No follow-up questions
-            // setAdditionalQuestions(data.additional_questions || []);    
         } catch (error) {
             console.error('Error handling chat message:', error);
             const errorResponse: ChatMessage = { id: Date.now() + 1, text: "Sorry, I'm having trouble connecting. Please try again.", isUser: false, timestamp: new Date() };
@@ -1044,8 +1006,6 @@ ${transcriptText}`;
             const data = await response.json();
             const botResponse: ChatMessage = { id: Date.now() + 1, text: data.response, isUser: false, timestamp: new Date() };
             setChatMessages((prev) => [...prev, botResponse]);
-            // No follow-up questions
-            // setAdditionalQuestions(data.additional_questions || []);
         } catch (error) {
             console.error('Error processing template:', error);
             const errorResponse: ChatMessage = { id: Date.now() + 1, text: `Sorry, an error occurred while processing ${template.name}.`, isUser: false, timestamp: new Date() };
@@ -1386,7 +1346,6 @@ ${transcriptText}`;
         }
     };
 
-    // Make generatePDF available on window for backwards compatibility (and to avoid unused-local warnings)
     useEffect(() => {
         try {
             (window as any).generatePDF = generatePDF;
@@ -1400,7 +1359,6 @@ ${transcriptText}`;
         setIsEmailDialogOpen(true);
     };
 
-    // Generate comprehensive email content
     const generateEmailContent = () => {
         const date = new Date().toLocaleDateString('en-US', {
             year: 'numeric',
@@ -1410,12 +1368,10 @@ ${transcriptText}`;
 
         let content = `Meeting Summary - ${date}\n\n`;
         
-        // Add meeting URL if available
         if (meetingUrl) {
             content += `Meeting URL: ${meetingUrl}\n\n`;
         }
 
-        // Add transcript if available
         if (transcript.length > 0) {
             content += `=== MEETING TRANSCRIPT ===\n\n`;
             const transcriptText = groupTranscriptBySpeaker(transcript)
@@ -1424,7 +1380,6 @@ ${transcriptText}`;
             content += transcriptText + '\n\n';
         }
 
-        // Add AI conversation
         if (chatMessages.length > 0) {
             content += `=== AI ASSISTANT CONVERSATION ===\n\n`;
             chatMessages.forEach(msg => {
@@ -1433,7 +1388,6 @@ ${transcriptText}`;
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                // Remove markdown formatting for plain text email
                 const cleanText = msg.text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/### /g, '').replace(/## /g, '').replace(/# /g, '');
 
                 content += `${sender} (${time}):\n${cleanText}\n\n`;
@@ -1486,7 +1440,7 @@ ${transcriptText}`;
                                     Custom Goals ({customGoals.length})
                                 </h4>
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); fetchCustomGoalsProgress(); fetchCustomGoalUpdates(); }} // Refresh triggers both simple progress and full analysis
+                                    onClick={(e) => { e.stopPropagation(); fetchCustomGoalsProgress(); fetchCustomGoalUpdates(); }}
                                     disabled={isPollingGoals || isAITyping}
                                     title="Refresh Goals Status and Run AI Analysis"
                                     className={`p-1.5 rounded-full transition-all duration-200 hover:scale-105 disabled:opacity-50 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
@@ -1514,7 +1468,6 @@ ${transcriptText}`;
                                         const theme = isAchieved ? 'green' : 'blue';
                                         const currentTheme = themeClasses[theme];
                                         
-                                        // Determine status text for the summary card
                                         let statusText = 'No analysis yet';
                                         let analysisTime = '';
                                         
@@ -1542,8 +1495,8 @@ ${transcriptText}`;
                                                 <div
                                                     onClick={() => toggleGoalExpansion(goal.id)}
                                                     className={`group p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg
-                                                        ${currentTheme.hoverBorder} ${currentTheme.hoverBg}
-                                                        ${expandedGoals.has(goal.id) ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`
+                                                         ${currentTheme.hoverBorder} ${currentTheme.hoverBg}
+                                                         ${expandedGoals.has(goal.id) ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`
                                                     }
                                                 >
                                                     <div className="flex items-center space-x-3">
@@ -1658,8 +1611,8 @@ ${transcriptText}`;
                                             <div key={template.id} className="relative group">
                                                 <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)}
                                                     className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg
-                                                         ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
-                                                         ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
+                                                        ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
+                                                        ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
                                                     <div className="flex items-start space-x-3">
                                                         <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
                                                             {isProcessingTemplate && selectedTemplate?.id === template.id ?
@@ -1714,8 +1667,8 @@ ${transcriptText}`;
                                         <div key={template.id} className="relative group">
                                             <div onClick={() => !isProcessingTemplate && handleTemplateClick(template)}
                                                 className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg
-                                                     ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
-                                                     ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
+                                                    ${isProcessingTemplate ? 'opacity-60 cursor-not-allowed' : `${currentTheme.hoverBorder} ${currentTheme.hoverBg}`}
+                                                    ${selectedTemplate?.id === template.id ? `${currentTheme.border} ring-2 ring-offset-2 ${currentTheme.ring} ${isDarkMode ? 'ring-offset-gray-800' : 'ring-offset-white'}` : 'border-gray-200 dark:border-gray-700'}`}>
                                                 <div className="flex items-start space-x-3">
                                                     <div className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${currentTheme.iconBg}`}>
                                                         {isProcessingTemplate && selectedTemplate?.id === template.id ?
@@ -1776,7 +1729,7 @@ ${transcriptText}`;
                         ) : (
                             <div className={`py-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                 <div className="text-center mb-3">
-                                    <div className={`p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                                    <div className={`p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
                                         <Headphones className="w-12 h-12 text-gray-400" />
                                     </div>
                                     <h3 className="mb-2 text-lg font-bold text-black-600 dark:text-red-400">No Transcription Data</h3>
@@ -1895,10 +1848,10 @@ ${transcriptText}`;
                     {chatMessages.map((msg) => (
                         <div key={msg.id} className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-[85%] p-4 rounded-xl shadow-sm transition-all duration-200 hover:shadow-md ${
-                                        msg.isUser
-                                            ? 'bg-gradient-to-r from-red-600 to-red-700 text-white'
-                                            : (isDarkMode ? 'bg-gray-700 hover:bg-gray-650' : 'bg-gray-100 hover:bg-gray-200')
-                                    }`}>
+                                    msg.isUser
+                                        ? 'bg-gradient-to-r from-red-600 to-red-700 text-white'
+                                        : (isDarkMode ? 'bg-gray-700 hover:bg-gray-650' : 'bg-gray-100 hover:bg-gray-200')
+                                }`}>
                                 <EnhancedMarkdown isDarkMode={isDarkMode || msg.isUser}>{msg.text}</EnhancedMarkdown>
                                 <div className={`text-xs mt-2 text-right ${msg.isUser ? 'text-red-200' : (isDarkMode ? 'text-gray-400' : 'text-gray-500')}`}>
                                     {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -2116,7 +2069,7 @@ ${transcriptText}`;
                                 <input
                                     type="number"
                                     min="30"
-                                    max="300" // 5 minutes (300 seconds)
+                                    max="300"
                                     value={goalSettings.pollInterval / 1000}
                                     onChange={(e) => {
                                         const value = parseInt(e.target.value);
@@ -2175,7 +2128,7 @@ ${transcriptText}`;
                                 </p>
                             </div>
 
-                            {/* Inclusion Options Checkboxes (Removed markdown asterisks) */}
+                            {/* Inclusion Options Checkboxes */}
                             <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
                                 <label className={`block text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                                     Details to Include

@@ -2078,34 +2078,13 @@ ${transcriptText}`;
     });
   }
 };
-// You must define goalId before using it, for example:
-const goalId = customGoals.length > 0 ? customGoals[0].id : ""; // Example: use first goal's id or set appropriately
-
-const analysis = goalAnalysis[goalId];
-const hasAnalysis = analysis && analysis !== 'Generating analysis...' && !analysis.startsWith('Error');
-const isLoading = loadingCustomGoals.has(goalId);
-
-// NEW LOGIC: Determine the status based on the analysis text
-let statusText = 'Analysis Ready';
-let statusColor = 'bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300';
-
-if (!hasAnalysis) {
-    statusText = isLoading ? 'Analyzing...' : 'Generate Analysis';
-    statusColor = isLoading ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-700/50 dark:text-gray-400';
-} 
-// CHECK FOR "NOT STARTED" STATUS specifically
-else if (analysis.toLowerCase().includes('status: not started')) {
-    statusText = 'Not Started';
-    statusColor = 'bg-gray-200 text-gray-600 dark:bg-gray-600/50 dark:text-gray-300';
-}
-
   const analyzeBuyingSignals = async () => {
   if (!session || isAnalyzingSignals || isTyping) return;
   
   // Check 1-minute cooldown
   if (signalsGenerationTime && (Date.now() - signalsGenerationTime) < 60000) {
     const remainingTime = Math.ceil((60000 - (Date.now() - signalsGenerationTime)) / 60000);
-   
+    
     return;
   }
   
@@ -2232,8 +2211,6 @@ else if (analysis.toLowerCase().includes('status: not started')) {
       }
     }
   };
-
-
 
   const toggleBuyingSignals = async (speaker: string) => {
     const isExpanded = expandedBuyingSignals.has(speaker);
@@ -5556,20 +5533,17 @@ const refreshAllMedpicSummaries = async () => {
                                 {goal.goal_description}
                               </h4>
                               <div className="flex items-center space-x-2">
-                    {/* MODIFIED BADGE DISPLAY */}
-                    {hasAnalysis && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${statusColor}`}>
-                            {statusText}
-                        </span>
-                    )}
-                    {/* END MODIFIED BADGE DISPLAY */}
-                    
-                    {isLoading && (
-                        <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                            Analyzing...
-                        </span>
-                    )}
-                </div>
+                                {hasAnalysis && (
+                                  <span className="text-xs bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300 px-2 py-0.5 rounded-full">
+                                    Analysis Ready
+                                  </span>
+                                )}
+                                {isLoading && (
+                                  <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                                    Analyzing...
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                           

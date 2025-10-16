@@ -181,6 +181,14 @@ const initDB = (): Promise<IDBDatabase> => {
 const saveToIndexedDB = async (storeName: string, data: any): Promise<boolean> => {
     try {
         const db = await initDB();
+        
+        // 🛑 ADD THIS CRITICAL DEFENSE CHECK
+        if (!db.objectStoreNames.contains(storeName)) {
+            console.error(`Object store '${storeName}' does not exist, cannot save.`);
+            return false; // Fail gracefully if the store isn't there
+        }
+        
+        // This transaction will now only be called if the store exists
         const transaction = db.transaction([storeName], 'readwrite');
         const store = transaction.objectStore(storeName);
         const request = store.add(data);
@@ -203,6 +211,13 @@ const saveToIndexedDB = async (storeName: string, data: any): Promise<boolean> =
 const updateInIndexedDB = async (storeName: string, data: any): Promise<boolean> => {
     try {
         const db = await initDB();
+
+        // 🛑 ADD THIS CRITICAL DEFENSE CHECK
+        if (!db.objectStoreNames.contains(storeName)) {
+            console.error(`Object store '${storeName}' does not exist, cannot update.`);
+            return false;
+        }
+
         const transaction = db.transaction([storeName], 'readwrite');
         const store = transaction.objectStore(storeName);
         const request = store.put(data);

@@ -5869,138 +5869,140 @@ const refreshAllMedpicSummaries = async () => {
             )}
 
             {/* ADD THIS SETTINGS MODAL */}
-            {showGoalSettingsModal && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                <div className={`w-full max-w-2xl rounded-2xl shadow-2xl ${
-                  isDarkMode ? 'bg-gray-800' : 'bg-white'
-                } max-h-[90vh] overflow-y-auto`}>
-                  <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                      Goal Analysis Settings
-                    </h2>
-                    <button
-                      onClick={() => setShowGoalSettingsModal(false)}
-                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                  
-                  <div className="p-6 space-y-6">
-                    <div>
-                      <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
+{showGoalSettingsModal && (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className={`w-full max-w-2xl rounded-2xl shadow-2xl ${
+            isDarkMode ? 'bg-gray-800' : 'bg-white'
+        } max-h-[90vh] overflow-y-auto`}>
+            <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                    Goal Analysis Settings
+                </h2>
+                <button
+                    onClick={() => setShowGoalSettingsModal(false)}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                    <X className="w-5 h-5 text-gray-900 dark:text-white" />
+                </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+                <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
                         Auto-Update Interval (seconds)
-                      </label>
-                      <input
+                    </label>
+                    <input
                         type="number"
                         min="30"
                         max="300"
                         value={goalSettings.pollInterval / 1000}
                         onChange={(e) => {
-                          const val = Math.max(30, Math.min(300, parseInt(e.target.value))) * 1000;
-                          setGoalSettings(prev => ({ ...prev, pollInterval: val }));
+                            const val = Math.max(30, Math.min(300, parseInt(e.target.value))) * 1000;
+                            setGoalSettings(prev => ({ ...prev, pollInterval: val }));
                         }}
                         className={`w-full px-4 py-3 border rounded-xl ${
-                          isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
+                            isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
                         }`}
-                      />
-                    </div>
+                    />
+                </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
+                <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
                         Output Format
-                      </label>
-                      <div className="flex gap-4">
+                    </label>
+                    <div className="flex gap-4">
                         {['summary', 'detailed', 'speakers_only'].map((fmt) => (
-                          <label key={fmt} className="flex items-center space-x-2">
-                            <input
-                              type="radio"
-                              value={fmt}
-                              checked={goalSettings.format === fmt}
-                              onChange={(e) => setGoalSettings(prev => ({ 
-                                ...prev, 
-                                format: e.target.value as any 
-                              }))}
-                              className="form-radio"
-                            />
-                            <span className="text-sm capitalize">{fmt.replace('_', ' ')}</span>
-                          </label>
+                            <label key={fmt} className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    value={fmt}
+                                    checked={goalSettings.format === fmt}
+                                    onChange={(e) => setGoalSettings(prev => ({ 
+                                        ...prev, 
+                                        format: e.target.value as any 
+                                    }))}
+                                    className="form-radio"
+                                />
+                                {/* MODIFIED: Added text contrast classes */}
+                                <span className="text-sm capitalize text-gray-900 dark:text-white">{fmt.replace('_', ' ')}</span>
+                            </label>
                         ))}
-                      </div>
                     </div>
+                </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
+                <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
                         Word Limit: {goalSettings.wordLimit}
-                      </label>
-                      <input
+                    </label>
+                    <input
                         type="range"
                         min="50"
                         max="500"
                         step="50"
                         value={goalSettings.wordLimit}
                         onChange={(e) => setGoalSettings(prev => ({ 
-                          ...prev, 
-                          wordLimit: parseInt(e.target.value) 
+                            ...prev, 
+                            wordLimit: parseInt(e.target.value) 
                         }))}
                         className="w-full"
-                      />
-                    </div>
+                    />
+                </div>
 
-                    <div className="space-y-3">
-                      <label className="block text-sm font-semibold text-gray-900 dark:text-white">
+                <div className="space-y-3">
+                    <label className="block text-sm font-semibold text-gray-900 dark:text-white">
                         Include in Analysis
-                      </label>
-                      {[
+                    </label>
+                    {[
                         { key: 'includeTimestamps', label: 'Timestamps' },
                         { key: 'includeSpeakers', label: 'Speaker Names' },
                         { key: 'includeInstances', label: 'Exact Quotes' },
-                      ].map(({ key, label }) => (
+                    ].map(({ key, label }) => (
                         <label key={key} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={goalSettings[key as keyof typeof goalSettings] as boolean}
-                            onChange={(e) => setGoalSettings(prev => ({ 
-                              ...prev, 
-                              [key]: e.target.checked 
-                            }))}
-                            className="form-checkbox"
-                          />
-                          <span className="text-sm">{label}</span>
+                            <input
+                                type="checkbox"
+                                checked={goalSettings[key as keyof typeof goalSettings] as boolean}
+                                onChange={(e) => setGoalSettings(prev => ({ 
+                                    ...prev, 
+                                    [key]: e.target.checked 
+                                }))}
+                                className="form-checkbox"
+                            />
+                            {/* MODIFIED: Added text contrast classes */}
+                            <span className="text-sm text-gray-900 dark:text-white">{label}</span>
                         </label>
-                      ))}
-                    </div>
+                    ))}
+                </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
+                <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
                         Additional Instructions (Optional)
-                      </label>
-                      <textarea
+                    </label>
+                    <textarea
                         value={goalSettings.promptExtension}
                         onChange={(e) => setGoalSettings(prev => ({ 
-                          ...prev, 
-                          promptExtension: e.target.value 
+                            ...prev, 
+                            promptExtension: e.target.value 
                         }))}
                         placeholder="e.g., Focus on buyer commitments only"
                         rows={3}
                         className={`w-full px-4 py-3 border rounded-xl ${
-                          isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
+                            isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
                         }`}
-                      />
-                    </div>
-                  </div>
-
-                  <div className={`p-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                    <button
-                      onClick={() => setShowGoalSettingsModal(false)}
-                      className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800"
-                    >
-                      Save Settings
-                    </button>
-                  </div>
+                    />
                 </div>
-              </div>
-            )}
+            </div>
+
+            <div className={`p-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                <button
+                    onClick={() => setShowGoalSettingsModal(false)}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800"
+                >
+                    Save Settings
+                </button>
+            </div>
+        </div>
+    </div>
+)}
 
             
 

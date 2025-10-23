@@ -141,6 +141,197 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 						doc.text('Confidential & Proprietary. All right reserved to SpikedAI', margin, 290);
 					};
 
+					// Helper function to parse and render markdown
+					const renderMarkdown = (text: string, leftMargin: number = margin): void => {
+						const lines = text.split('\n');
+						let inList = false;
+
+						for (let line of lines) {
+							const trimmedLine = line.trim();
+							
+							// Skip empty lines
+							if (!trimmedLine) {
+								yPosition += 3;
+								continue;
+							}
+
+							checkPageBreak(15);
+
+							// Heading levels (##, ###, ####)
+							const h1Match = line.match(/^#\s+(.+)$/);
+							const h2Match = line.match(/^##\s+(.+)$/);
+							const h3Match = line.match(/^###\s+(.+)$/);
+							const h4Match = line.match(/^####\s+(.+)$/);
+
+							if (h2Match) {
+								checkPageBreak(15);
+								if (inList) { yPosition += 3; inList = false; }
+								doc.setFont('helvetica', 'bold');
+								doc.setFontSize(14);
+								doc.setTextColor(textPrimary);
+								doc.text(h2Match[1], leftMargin, yPosition);
+								yPosition += 10;
+								continue;
+							} else if (h3Match) {
+								checkPageBreak(12);
+								if (inList) { yPosition += 2; inList = false; }
+								doc.setFont('helvetica', 'bold');
+								doc.setFontSize(12);
+								doc.setTextColor(textPrimary);
+								doc.text(h3Match[1], leftMargin, yPosition);
+								yPosition += 8;
+								continue;
+							} else if (h4Match) {
+								checkPageBreak(10);
+								if (inList) { yPosition += 2; inList = false; }
+								doc.setFont('helvetica', 'bold');
+								doc.setFontSize(11);
+								doc.setTextColor(textPrimary);
+								doc.text(h4Match[1], leftMargin, yPosition);
+								yPosition += 7;
+								continue;
+							} else if (h1Match) {
+								checkPageBreak(18);
+								if (inList) { yPosition += 3; inList = false; }
+								doc.setFont('helvetica', 'bold');
+								doc.setFontSize(16);
+								doc.setTextColor(textPrimary);
+								doc.text(h1Match[1], leftMargin, yPosition);
+								yPosition += 12;
+								continue;
+							}
+
+							// Bullet points (* or -)
+							const bulletMatch = line.match(/^(\s*)([\*\-])\s+(.+)$/);
+							if (bulletMatch) {
+								const indent = bulletMatch[1].length;
+								const content = bulletMatch[3];
+								const bulletX = leftMargin + (indent * 2);
+								
+								if (!inList) {
+									yPosition += 2;
+									inList = true;
+								}
+								
+								checkPageBreak(10);
+								
+								// Render bullet
+								doc.setFont('helvetica', 'normal');
+								doc.setFontSize(10);
+								doc.setTextColor(textPrimary);
+								doc.text('•', bulletX, yPosition);
+								
+								// Render content with bold/italic support
+								const processedContent = renderInlineFormatting(content, bulletX + 5, yPosition, contentWidth - (bulletX - margin) - 5);
+								yPosition += processedContent.height;
+								continue;
+							}
+
+							// Numbered lists
+							const numberedMatch = line.match(/^(\s*)(\d+)\.\s+(.+)$/);
+							if (numberedMatch) {
+								const indent = numberedMatch[1].length;
+								const number = numberedMatch[2];
+								const content = numberedMatch[3];
+								const numberX = leftMargin + (indent * 2);
+								
+								if (!inList) {
+									yPosition += 2;
+									inList = true;
+								}
+								
+								checkPageBreak(10);
+								
+								doc.setFont('helvetica', 'normal');
+								doc.setFontSize(10);
+								doc.setTextColor(textPrimary);
+								doc.text(`${number}.`, numberX, yPosition);
+								
+								const processedContent = renderInlineFormatting(content, numberX + 8, yPosition, contentWidth - (numberX - margin) - 8);
+								yPosition += processedContent.height;
+								continue;
+							}
+
+							// Regular paragraph
+							if (inList) {
+								yPosition += 3;
+								inList = false;
+							}
+							
+							checkPageBreak(10);
+							const processedParagraph = renderInlineFormatting(trimmedLine, leftMargin, yPosition, contentWidth);
+							yPosition += processedParagraph.height + 3;
+						}
+					};
+
+					// Helper to handle bold (**text**) and italic (*text*)
+					const renderInlineFormatting = (text: string, x: number, y: number, maxWidth: number): { height: number } => {
+						doc.setFontSize(10);
+						
+						// Split text by bold and italic markers
+						const segments: Array<{ text: string; bold: boolean; italic: boolean }> = [];
+						let remaining = text;
+
+						// Simple parser for **bold** and *italic*
+						while (remaining.length > 0) {
+							// Check for bold
+							const boldMatch = remaining.match(/^\*\*([^*]+)\*\*/);
+							if (boldMatch) {
+								segments.push({ text: boldMatch[1], bold: true, italic: false });
+								remaining = remaining.slice(boldMatch[0].length);
+								continue;
+							}
+
+							// Check for italic
+							const italicMatch = remaining.match(/^\*([^*]+)\*/);
+							if (italicMatch) {
+								segments.push({ text: italicMatch[1], bold: false, italic: true });
+								remaining = remaining.slice(italicMatch[0].length);
+								continue;
+							}
+
+							// Regular text until next marker
+							const nextMarker = remaining.search(/\*+/);
+							if (nextMarker === -1) {
+								segments.push({ text: remaining, bold: false, italic: false });
+								remaining = '';
+							} else {
+								segments.push({ text: remaining.slice(0, nextMarker), bold: false, italic: false });
+								remaining = remaining.slice(nextMarker);
+							}
+						}
+
+						// Render segments with word wrapping
+						let currentX = x;
+						let currentY = y;
+						let lineHeight = 5;
+						let totalHeight = lineHeight;
+
+						for (const segment of segments) {
+							if (!segment.text) continue;
+
+							doc.setFont('helvetica', segment.bold ? 'bold' : segment.italic ? 'italic' : 'normal');
+							
+							const words = segment.text.split(' ');
+							for (let i = 0; i < words.length; i++) {
+								const word = words[i] + (i < words.length - 1 ? ' ' : '');
+								const wordWidth = doc.getTextWidth(word);
+								
+								if (currentX + wordWidth > x + maxWidth && currentX > x) {
+									currentY += lineHeight;
+									currentX = x;
+									totalHeight += lineHeight;
+									checkPageBreak(10);
+								}
+								
+								doc.text(word, currentX, currentY);
+								currentX += wordWidth;
+							}
+						}
+
+						return { height: totalHeight };
+					};
+
 					addHeader();
 					yPosition = 40;
 
@@ -168,11 +359,9 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 						doc.text(item.template.name, margin, yPosition);
 						yPosition += 8;
 
-						doc.setFont('helvetica', 'normal');
-						doc.setFontSize(10);
-						const lines = doc.splitTextToSize(item.response, contentWidth);
-						doc.text(lines, margin, yPosition);
-						yPosition += lines.length * 5 + 8;
+						// Render markdown content
+						renderMarkdown(item.response, margin);
+						yPosition += 8;
 					}
 
 					// Transcript section (optional)
@@ -180,13 +369,21 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 						checkPageBreak(30);
 						doc.setFont('helvetica', 'bold');
 						doc.setFontSize(12);
+						doc.setTextColor(textPrimary);
 						doc.text('Transcript', margin, yPosition);
 						yPosition += 8;
+						
+						// Render transcript as plain text with better formatting
 						doc.setFont('helvetica', 'normal');
 						doc.setFontSize(9);
+						doc.setTextColor(textPrimary);
 						const transcriptLines = doc.splitTextToSize(transcriptText, contentWidth);
-						doc.text(transcriptLines, margin, yPosition);
-						yPosition += transcriptLines.length * 4.5 + 8;
+						for (let line of transcriptLines) {
+							checkPageBreak(10);
+							doc.text(line, margin, yPosition);
+							yPosition += 4;
+						}
+						yPosition += 4;
 					}
 
 					addFooter();

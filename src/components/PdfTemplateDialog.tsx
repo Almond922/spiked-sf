@@ -213,69 +213,215 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center">
-			<div className="absolute inset-0 bg-black/40" onClick={() => { if (!isRunning) onClose(); }} />
-			<div className={`relative w-[min(760px,95%)] max-h-[85vh] overflow-y-auto rounded-lg p-4 ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
-				<div className="flex items-center justify-between mb-3">
-					<h3 className="text-lg font-semibold">Save PDF — Select Templates</h3>
-					<div className="flex items-center space-x-2">
-						{isRunning && <div className="text-sm opacity-80">{progressText}</div>}
-						<button onClick={() => { if (!isRunning) onClose(); }} className="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 text-sm">Close</button>
+			<div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { if (!isRunning) onClose(); }} />
+			<div className={`relative w-[min(800px,95%)] max-h-[90vh] rounded-xl shadow-2xl overflow-hidden ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
+				
+				{/* Header */}
+				<div className={`px-6 py-4 border-b ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+					<div className="flex items-center justify-between">
+						<div>
+							<h3 className="text-xl font-bold">Save PDF — Select Templates</h3>
+							<p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+								Choose templates to include in your report
+							</p>
+						</div>
+						<button 
+							onClick={() => { if (!isRunning) onClose(); }} 
+							disabled={isRunning}
+							className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+							aria-label="Close"
+						>
+							<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+							</svg>
+						</button>
 					</div>
 				</div>
 
-				<div className="grid grid-cols-2 gap-4">
-					<div>
-						<h4 className="text-sm font-medium mb-2">Prebuilt Templates</h4>
-						<div className="space-y-2">
+				{/* Content */}
+				<div className="px-6 py-4 max-h-[calc(90vh-240px)] overflow-y-auto">
+					
+					{/* Prebuilt Templates */}
+					<div className="mb-6">
+						<div className="flex items-center justify-between mb-3">
+							<h4 className={`text-sm font-semibold uppercase tracking-wide ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+								Prebuilt Templates
+							</h4>
+							<span className={`text-xs px-2 py-1 rounded-full ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>
+								{grouped.prebuilt.filter(t => selectedIds.has(t.id)).length}/{grouped.prebuilt.length} selected
+							</span>
+						</div>
+						<div className="grid gap-2">
 							{grouped.prebuilt.map(t => (
-								<label key={t.id} className="flex items-start space-x-2 cursor-pointer">
-									<input type="checkbox" checked={selectedIds.has(t.id)} onChange={() => toggle(t.id)} disabled={isRunning} />
-									<div className="text-sm">
-										<div className="font-semibold">{t.name}</div>
-										<div className="text-xs text-gray-500">{t.description}</div>
+								<label 
+									key={t.id} 
+									className={`flex items-start p-3 rounded-lg cursor-pointer transition-all border ${
+										selectedIds.has(t.id) 
+											? isDarkMode 
+												? 'bg-red-900/20 border-red-500/50 shadow-sm' 
+												: 'bg-red-50 border-red-300 shadow-sm'
+											: isDarkMode 
+												? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
+												: 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
+									} ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
+								>
+									<input 
+										type="checkbox" 
+										checked={selectedIds.has(t.id)} 
+										onChange={() => toggle(t.id)} 
+										disabled={isRunning}
+										className="mt-0.5 w-4 h-4 rounded accent-red-600 cursor-pointer"
+									/>
+									<div className="ml-3 flex-1">
+										<div className="font-semibold text-sm">{t.name}</div>
+										{t.description && (
+											<div className={`text-xs mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+												{t.description}
+											</div>
+										)}
 									</div>
 								</label>
 							))}
 						</div>
 					</div>
+
+					{/* Custom Templates */}
 					<div>
-						<h4 className="text-sm font-medium mb-2">Custom Templates</h4>
-						<div className="space-y-2">
-							{grouped.custom.length === 0 && <div className="text-xs text-gray-500">No custom templates</div>}
-							{grouped.custom.map(t => (
-								<label key={t.id} className="flex items-start space-x-2 cursor-pointer">
-									<input type="checkbox" checked={selectedIds.has(t.id)} onChange={() => toggle(t.id)} disabled={isRunning} />
-									<div className="text-sm">
-										<div className="font-semibold">{t.name}</div>
-										<div className="text-xs text-gray-500">{t.description}</div>
-									</div>
-								</label>
-							))}
+						<div className="flex items-center justify-between mb-3">
+							<h4 className={`text-sm font-semibold uppercase tracking-wide ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+								Custom Templates
+							</h4>
+							{grouped.custom.length > 0 && (
+								<span className={`text-xs px-2 py-1 rounded-full ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>
+									{grouped.custom.filter(t => selectedIds.has(t.id)).length}/{grouped.custom.length} selected
+								</span>
+							)}
+						</div>
+						{grouped.custom.length === 0 ? (
+							<div className={`text-center py-8 rounded-lg border-2 border-dashed ${isDarkMode ? 'border-gray-700 text-gray-500' : 'border-gray-300 text-gray-400'}`}>
+								<svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+								</svg>
+								<p className="text-sm">No custom templates available</p>
+							</div>
+						) : (
+							<div className="grid gap-2">
+								{grouped.custom.map(t => (
+									<label 
+										key={t.id} 
+										className={`flex items-start p-3 rounded-lg cursor-pointer transition-all border ${
+											selectedIds.has(t.id) 
+												? isDarkMode 
+													? 'bg-blue-900/20 border-blue-500/50 shadow-sm' 
+													: 'bg-blue-50 border-blue-300 shadow-sm'
+												: isDarkMode 
+													? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
+													: 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
+										} ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
+									>
+										<input 
+											type="checkbox" 
+											checked={selectedIds.has(t.id)} 
+											onChange={() => toggle(t.id)} 
+											disabled={isRunning}
+											className="mt-0.5 w-4 h-4 rounded accent-blue-600 cursor-pointer"
+										/>
+										<div className="ml-3 flex-1">
+											<div className="font-semibold text-sm">{t.name}</div>
+											{t.description && (
+												<div className={`text-xs mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+													{t.description}
+												</div>
+											)}
+										</div>
+									</label>
+								))}
+							</div>
+						)}
+					</div>
+				</div>
+
+				{/* Footer */}
+				<div className={`px-6 py-4 border-t ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+					{/* Progress indicator */}
+					{isRunning && (
+						<div className="mb-3 flex items-center space-x-2">
+							<div className="animate-spin rounded-full h-4 w-4 border-2 border-red-600 border-t-transparent"></div>
+							<span className="text-sm">{progressText}</span>
+						</div>
+					)}
+
+					{/* PDF Ready download */}
+					{pdfUrl && (
+						<div className={`mb-3 p-3 rounded-lg flex items-center justify-between ${isDarkMode ? 'bg-green-900/20 border border-green-500/50' : 'bg-green-50 border border-green-300'}`}>
+							<div className="flex items-center space-x-2">
+								<svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+								</svg>
+								<span className="text-sm font-medium">PDF ready to download</span>
+							</div>
+							<a 
+								href={pdfUrl} 
+								download={`SpikedAI_Selected_Templates_${new Date().toISOString().split('T')[0]}.pdf`} 
+								className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors text-sm font-medium"
+							>
+								Download PDF
+							</a>
+						</div>
+					)}
+
+					<div className="flex items-center justify-between">
+						{/* Left side - Include Transcript */}
+						<label className={`flex items-center space-x-2 cursor-pointer ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}>
+							<input 
+								type="checkbox" 
+								checked={includeTranscript} 
+								onChange={(e) => setIncludeTranscript(e.target.checked)} 
+								disabled={isRunning}
+								className="w-4 h-4 rounded accent-red-600 cursor-pointer"
+							/>
+							<span className="text-sm font-medium">Include Transcript</span>
+						</label>
+
+						{/* Right side - Action buttons */}
+						<div className="flex items-center space-x-2">
+							<button 
+								onClick={() => { setSelectedIds(new Set(templates.map(t => t.id))); }} 
+								disabled={isRunning}
+								className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+									isDarkMode 
+										? 'bg-gray-700 hover:bg-gray-600 text-gray-200' 
+										: 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+								} ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
+							>
+								Select All
+							</button>
+							<button 
+								onClick={() => { setSelectedIds(new Set()); }} 
+								disabled={isRunning}
+								className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+									isDarkMode 
+										? 'bg-gray-700 hover:bg-gray-600 text-gray-200' 
+										: 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+								} ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
+							>
+								Clear
+							</button>
+							<button 
+								onClick={runAndGenerate} 
+								disabled={isRunning || ((selectedIds.size === 0) && !includeTranscript)}
+								className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all shadow-md ${
+									isRunning || ((selectedIds.size === 0) && !includeTranscript)
+										? 'bg-gray-400 cursor-not-allowed text-gray-700'
+										: 'bg-red-600 hover:bg-red-700 text-white hover:shadow-lg'
+								}`}
+							>
+								Run & Generate PDF
+							</button>
 						</div>
 					</div>
 				</div>
 
-				<div className="mt-4 flex items-center justify-between">
-					<div className="flex items-center space-x-3">
-						<label className="flex items-center space-x-2">
-							<input type="checkbox" checked={includeTranscript} onChange={(e) => setIncludeTranscript(e.target.checked)} disabled={isRunning} />
-							<span className="text-sm text-gray-500">Include Transcript</span>
-						</label>
-					</div>
-					<div className="flex items-center justify-end space-x-2">
-					<button onClick={() => { setSelectedIds(new Set(templates.map(t => t.id))); }} disabled={isRunning} className="px-3 py-2 rounded-md text-sm bg-gray-100 hover:bg-gray-200">Select All</button>
-					<button onClick={() => { setSelectedIds(new Set()); }} disabled={isRunning} className="px-3 py-2 rounded-md text-sm bg-gray-100 hover:bg-gray-200">Clear</button>
-					<button onClick={runAndGenerate} disabled={isRunning || ((selectedIds.size === 0) && !includeTranscript)} className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700">Run & Generate PDF</button>
-					</div>
-				</div>
-
-				{pdfUrl && (
-					<div className="mt-4 flex items-center justify-between">
-						<div className="text-sm text-gray-500">PDF ready</div>
-						<a href={pdfUrl} download={`SpikedAI_Selected_Templates_${new Date().toISOString().split('T')[0]}.pdf`} className="px-4 py-2 rounded-md bg-green-600 text-white hover:bg-green-700">Download PDF</a>
-					</div>
-				)}
-				{progressText && !isRunning && <div className="mt-3 text-sm text-gray-500">{progressText}</div>}
 			</div>
 		</div>
 	);

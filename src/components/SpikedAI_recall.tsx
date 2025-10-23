@@ -2382,6 +2382,40 @@ const updateCustomGoal = async (goalId: string, updates: MeetingGoalUpdate) => {
   }
 };
 
+// Add this function near other utility functions like formatSummary
+const extractGoalStatus = (analysisText: string | undefined): 'Achieved' | 'In Progress' | 'Not Started' | 'Generating' | 'Error' | 'N/A' => {
+  if (!analysisText) {
+    return 'N/A';
+  }
+  
+  if (analysisText.startsWith('Error') || analysisText === 'Error generating analysis. Please try again.') {
+    return 'Error';
+  }
+  
+  if (analysisText === 'Generating analysis...') {
+    return 'Generating';
+  }
+  
+  // More flexible regex pattern to catch various status formats
+  const statusMatch = analysisText.match(/\*\*Status:\*\*\s*\[?\s*(.*?)\s*\]?(?:\n|<br|$)/i);
+  if (statusMatch && statusMatch[1]) {
+    const status = statusMatch[1].trim().toLowerCase();
+    
+    if (status.includes('achieved') || status.includes('completed') || status.includes('yes')) {
+      return 'Achieved';
+    }
+    if (status.includes('progress') || status.includes('pending') || status.includes('partially')) {
+      return 'In Progress';
+    }
+    if (status.includes('not started') || status.includes('not met') || status.includes('no') || status.includes('empty')) {
+      return 'Not Started';
+    }
+  }
+  
+  // If we have analysis text but couldn't parse a status, return N/A
+  return 'N/A';
+};
+
 // Enhanced deleteCustomGoal function:
 const deleteCustomGoal = async (goalId: string) => {
   if (!session) return;
@@ -5499,27 +5533,44 @@ const refreshAllMedpicSummaries = async () => {
                 <div className="space-y-3">
                   {customGoals.map((goal, goalIndex) => {
                     const analysis = goalAnalysis[goal.id];
-                    const hasAnalysis = analysis && analysis !== 'Generating analysis...' && !analysis.startsWith('Error');
+                    const status = extractGoalStatus(analysis); // <--- NEW: Extract Status
+                    const hasAnalysis = status !== 'N/A' && status !== 'Generating' && status !== 'Error';
                     const isLoading = loadingCustomGoals.has(goal.id);
                     
+                    // Determine colors based on extracted status
+                    let statusColor = 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50';
+                    let statusText = 'Not Analyzed';
+                    
+                    if (status === 'Achieved') {
+                        statusColor = 'bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50';
+                        statusText = 'Achieved';
+                    } else if (status === 'In Progress') {
+                        statusColor = 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50';
+                        statusText = 'In Progress';
+                    } else if (status === 'Not Started') {
+                        statusColor = 'bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-700/50';
+                        statusText = 'Not Started';
+                    } else if (status === 'Error') {
+                        statusColor = 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700/50';
+                        statusText = 'Error';
+                    } else if (status === 'Generating' || isLoading) {
+                        statusText = 'Analyzing...';
+                        statusColor = 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50';
+                    }
+
+
                     // Define cooldown check INSIDE the map
                     const lastGenerated = customGoalGenerationTimes[goal.id];
                     const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 60000;
                     
                     return (
                       <details key={goal.id} className="group">
-                        <summary className={`p-4 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between ${
-                          hasAnalysis
-                            ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50" 
-                            : analysis
-                            ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50"
-                            : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                        }`}>
+                        <summary className={`p-4 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-800/50 ${statusColor}`}>
                           <div className="flex items-center space-x-3 flex-1">
                             <div className={`flex items-center justify-center p-2 rounded-lg flex-shrink-0 w-8 h-8 ${
-                              hasAnalysis ? "bg-green-100 dark:bg-green-800/50" : "bg-gray-100 dark:bg-gray-800/50"
+                              status === 'Achieved' ? "bg-green-100 dark:bg-green-800/50" : "bg-gray-100 dark:bg-gray-800/50"
                             }`}>
-                              {hasAnalysis ? (
+                              {status === 'Achieved' ? (
                                 <span className="text-green-600 dark:text-green-400">✓</span>
                               ) : (
                                 <span className="font-bold text-gray-600 dark:text-gray-400">
@@ -5533,16 +5584,20 @@ const refreshAllMedpicSummaries = async () => {
                                 {goal.goal_description}
                               </h4>
                               <div className="flex items-center space-x-2">
-                                {hasAnalysis && (
-                                  <span className="text-xs bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300 px-2 py-0.5 rounded-full">
-                                    Analysis Ready
-                                  </span>
-                                )}
-                                {isLoading && (
-                                  <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                                    Analyzing...
-                                  </span>
-                                )}
+                                {/* MODIFIED: Use extracted status for the badge */}
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                    status === 'Achieved' 
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300'
+                                        : status === 'In Progress' 
+                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
+                                        : status === 'Not Started' 
+                                        ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
+                                        : status === 'Error'
+                                        ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300'
+                                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300'
+                                }`}>
+                                  {statusText}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -5583,8 +5638,13 @@ const refreshAllMedpicSummaries = async () => {
                         </summary>
                         
                         <div className="p-3 mt-2 border-t border-gray-200 dark:border-gray-700">
-                          {hasAnalysis ? (
+                          {status !== 'N/A' && status !== 'Generating' ? ( // Show analysis if it has been generated or errored
                             <div className="space-y-2">
+                              {status === 'Error' && (
+                                <p className="text-sm text-red-500 dark:text-red-400">
+                                  Error generating analysis. Please try again.
+                                </p>
+                              )}
                               <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
                                 <div 
                                   className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
@@ -5598,7 +5658,7 @@ const refreshAllMedpicSummaries = async () => {
                             </div>
                           ) : (
                             <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                              {analysis === 'Generating analysis...' 
+                              {status === 'Generating' || isLoading
                                 ? 'AI is analyzing this goal...' 
                                 : 'Click the ✨ icon to generate AI analysis'}
                             </p>

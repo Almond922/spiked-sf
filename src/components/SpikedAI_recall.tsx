@@ -701,6 +701,7 @@ const SpikedAI = () => {
   const [goalAnalysis, setGoalAnalysis] = useState<Record<string, string>>({});
   const [isAnalyzingGoals, setIsAnalyzingGoals] = useState(false);
   const [showGoalSettingsModal, setShowGoalSettingsModal] = useState(false);
+  
   const [goalSettings, setGoalSettings] = useState({
     format: 'summary' as 'summary' | 'detailed' | 'speakers_only',
     wordLimit: 150,
@@ -766,6 +767,9 @@ const fetchTrackedTasks = async () => {
 // Inside SpikedAI functional component:
 
 // Existing goalSettings state (MODIFIED: Renamed to customGoalSettings for clarity)
+// Find this section near the top of the SpikedAI component:
+
+// Existing goalSettings state (MODIFIED: Renamed to customGoalSettings for clarity)
 const [customGoalSettings, setCustomGoalSettings] = useState(() => {
     const savedSettings = loadFromSessionStorage("spikedai_custom_goal_settings", {
         format: 'summary' as 'summary' | 'detailed' | 'speakers_only',
@@ -773,11 +777,12 @@ const [customGoalSettings, setCustomGoalSettings] = useState(() => {
         includeTimestamps: true,
         includeSpeakers: true,
         includeInstances: false,
-        pollInterval: 90000, // MODIFIED DEFAULT: 90 seconds (90000ms)
+        // *** CHANGE 1: Update default pollInterval to 30000ms (30s) ***
+        pollInterval: 30000, 
         promptExtension: '',
     });
-    // Ensure default pollInterval is set correctly
-    savedSettings.pollInterval = savedSettings.pollInterval || 90000;
+    // Ensure default pollInterval is set correctly (now uses 30000 as fallback)
+    savedSettings.pollInterval = savedSettings.pollInterval || 30000;
     return savedSettings;
 });
 
@@ -789,11 +794,12 @@ const [medpicSettings, setMedpicSettings] = useState(() => {
         includeTimestamps: true,
         includeSpeakers: true,
         includeInstances: false,
-        pollInterval: 90000, // NEW DEFAULT: 90 seconds (90000ms)
+        // *** CHANGE 2: Update default pollInterval to 30000ms (30s) ***
+        pollInterval: 30000, 
         promptExtension: '',
     });
-    // Ensure default pollInterval is set correctly
-    savedSettings.pollInterval = savedSettings.pollInterval || 90000;
+    // Ensure default pollInterval is set correctly (now uses 30000 as fallback)
+    savedSettings.pollInterval = savedSettings.pollInterval || 30000;
     return savedSettings;
 });
 
@@ -817,33 +823,37 @@ useEffect(() => {
         clearInterval(goalPollingInterval);
     }
 
-    if (!isBotRunning || !session || !botId || customGoals.length === 0) {
-        return;
-    }
+    if (!isBotRunning || !session || !botId) {
+    return;
+  }
+  
+  // *** CHANGE 5: Use customGoalSettings.pollInterval (since it was the primary reference before) ***
+  const intervalDuration = customGoalSettings.pollInterval; 
 
-    const intervalDuration = customGoalSettings.pollInterval;
+  const autoRefreshRoutine = () => {
+    // 1. Run the base sentiment cycle
+    fetchSentimentDataStaggered();
 
-    const customGoalRefreshRoutine = () => {
-        customGoals.forEach(goal => {
-            // Note: The analyzeCustomGoal logic below handles the 1-minute cooldown check
-            // and uses the internal timer state.
-            analyzeCustomGoal(goal.id); 
-        });
-    };
+    // 2. Auto-refresh Custom Goals
+    customGoals.forEach(goal => {
+      // Cooldown check
+      const lastGenerated = customGoalGenerationTimes[goal.id];
+      // *** CHANGE 6: Use customGoalSettings.pollInterval for auto-refresh cooldown ***
+      if (!lastGenerated || (Date.now() - lastGenerated) >= customGoalSettings.pollInterval) { 
+        analyzeCustomGoal(goal.id); 
+      }
+    });
 
-    console.log(`Starting Custom Goal polling interval: ${intervalDuration / 1000}s`);
-
-    // Start immediately after a delay, then repeat
-    const initialTimeout = setTimeout(customGoalRefreshRoutine, 5000); 
-    const intervalId = setInterval(customGoalRefreshRoutine, intervalDuration);
-    setGoalPollingInterval(intervalId);
-
-    return () => {
-        clearTimeout(initialTimeout);
-        if (intervalId) {
-            clearInterval(intervalId);
+    // 3. Auto-refresh MEDPIC Categories
+    Object.keys(MEDPIC_CATEGORIES).forEach(category => {
+        const catSummary = medpicSummaries[category];
+        const lastGenerated = catSummary?.last_generated_at || 0;
+        // *** CHANGE 7: Use medpicSettings.pollInterval for auto-refresh cooldown ***
+        if (!lastGenerated || (Date.now() - lastGenerated) >= medpicSettings.pollInterval) { 
+          loadMedpicCategorySummary(category);
         }
-    };
+    });
+  };
 }, [isBotRunning, session, botId, customGoalSettings.pollInterval, customGoals]);
 
 // Inside SpikedAI functional component:
@@ -1235,8 +1245,8 @@ useEffect(() => {
 
   // Check cooldown (1 minute = 60000ms) - KEEP EXISTING CHECK
   const lastGenerated = medpicGenerationTimes[category];
-  if (lastGenerated && (Date.now() - lastGenerated) < 60000) {
-    const remainingTime = Math.ceil((60000 - (Date.now() - lastGenerated)) / 60000);
+  if (lastGenerated && (Date.now() - lastGenerated) < 30000) {
+    const remainingTime = Math.ceil((30000 - (Date.now() - lastGenerated)) / 1000);
     // Only alert if manually triggered. The auto-refresh logic will handle silently.
     // We assume the caller (manual click or auto-refresh) handles if it's too soon.
     if (Date.now() - lastGenerated < 1000) { // Simple heuristic for manual click vs. auto-poll
@@ -1912,8 +1922,8 @@ const analyzeCustomGoal = async (goalId: string) => {
 
   // Check 1-minute cooldown
   const lastGenerated = customGoalGenerationTimes[goalId];
-  if (!isAutoMode && lastGenerated && (Date.now() - lastGenerated) < 60000) { // Use isAutoMode flag
-    const remainingTime = Math.ceil((60000 - (Date.now() - lastGenerated)) / 60000);
+  if (!isAutoMode && lastGenerated && (Date.now() - lastGenerated) < 30000) { // Use isAutoMode flag
+    const remainingTime = Math.ceil((30000 - (Date.now() - lastGenerated)) / 1000);
     
     return;
   }
@@ -2015,8 +2025,8 @@ const analyzeTrackedTask = async (taskKey: string, task: any) => {
   
   // Check 1-minute cooldown
   const lastGenerated = trackedTaskGenerationTimes[taskKey];
-  if (lastGenerated && (Date.now() - lastGenerated) < 60000) {
-    const remainingTime = Math.ceil((60000 - (Date.now() - lastGenerated)) / 60000);
+  if (lastGenerated && (Date.now() - lastGenerated) < 30000) {
+    const remainingTime = Math.ceil((30000 - (Date.now() - lastGenerated)) / 1000);
    
     return;
   }
@@ -2082,8 +2092,8 @@ ${transcriptText}`;
   if (!session || isAnalyzingSignals || isTyping) return;
   
   // Check 1-minute cooldown
-  if (signalsGenerationTime && (Date.now() - signalsGenerationTime) < 60000) {
-    const remainingTime = Math.ceil((60000 - (Date.now() - signalsGenerationTime)) / 60000);
+  if (signalsGenerationTime && (Date.now() - signalsGenerationTime) < 30000) {
+    const remainingTime = Math.ceil((30000 - (Date.now() - signalsGenerationTime)) / 1000);
     
     return;
   }
@@ -5370,37 +5380,69 @@ const refreshAllMedpicSummaries = async () => {
 
     <div className="space-y-3">
         {Object.entries(MEDPIC_CATEGORIES).map(([categoryName, label]) => {
-            const isLoading = loadingMedpicCategories.has(categoryName);
-            const summary = medpicSummaries[categoryName];
-            const error = medpicErrors[categoryName];
-            const lastGenerated = medpicGenerationTimes[categoryName];
-            const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 60000;
-            
-            return (
-                <details key={categoryName} className="group">
-                    <summary 
-                        className={`p-3 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between ${
-                            summary?.discussed 
-                                ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50" 
-                                : summary
-                                ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50"
-                                : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                        }`}
-                    >
+    const isLoading = loadingMedpicCategories.has(categoryName);
+    const summary = medpicSummaries[categoryName];
+    const error = medpicErrors[categoryName];
+    const lastGenerated = medpicGenerationTimes[categoryName];
+    const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 30000;
+    const analysisText = summary?.summary?.toLowerCase() || "";
+const analysisIsNegative = summary && 
+                           (analysisText.includes("unfortunately no") || 
+                            analysisText.includes("was not discussed") ||
+                            analysisText.includes("was not addressed") ||
+                            analysisText.includes("no mention") ||
+                            analysisText.includes("not yet discussed")); 
+
+// CONFIRMED: This logic ensures 'Not Started' is true initially OR if the analysis is explicitly negative.
+const statusNotStarted = (!summary && !isLoading && !error) || analysisIsNegative;
+
+return (
+    <details key={categoryName} className="group">
+        <summary 
+    className={`p-3 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between ${
+        // 1. Green: If explicitly discussed/achieved
+        summary?.discussed 
+            ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50" 
+        // 2. Red: If 'Not Started' (initial load) OR if analysis is explicitly negative
+        : statusNotStarted 
+            ? "bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-700/50 hover:bg-red-100/50 dark:hover:bg-red-800/50"
+        // 3. Blue: Default 'Analyzed' (summary exists, but not discussed/negative)
+        : summary 
+            ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50"
+        // 4. Gray: Default if loading or erroring
+        : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+    }`}
+>
                         {/* ADDED: dark:text-gray-100 for the category label */}
                         <div className="flex items-center space-x-2 flex-1 text-gray-700 dark:text-gray-100">
-                            <span>{label}</span>
-                            {summary?.discussed && (
-                                <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 px-2 py-0.5 rounded-full">
-                                    Discussed
-                                </span>
-                            )}
-                            {summary && !summary.discussed && (
-                                <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                                    Analyzed
-                                </span>
-                            )}
-                        </div>
+    <span>{label}</span>
+    {summary?.discussed && (
+        <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 px-2 py-0.5 rounded-full">
+            Discussed
+        </span>
+    )}
+    
+    {/* Use analysisIsNegative for precise red status text */}
+    {analysisIsNegative && (
+        <span className="text-xs bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 px-2 py-0.5 rounded-full">
+            Not Addressed
+        </span>
+    )}
+
+    {/* Display 'Not Started' if it hasn't run at all (initial state) */}
+    {(!summary && statusNotStarted) && (
+        <span className="text-xs bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 px-2 py-0.5 rounded-full">
+            Not Started
+        </span>
+    )}
+
+    {/* Default 'Analyzed' badge if analysis ran but wasn't discussed NOR negative */}
+    {summary && !summary.discussed && !analysisIsNegative && (
+        <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
+        Analyzed
+        </span>
+    )}
+</div>
                         <div className="flex items-center space-x-2">
                             <button
                                 onClick={(e) => {
@@ -5561,7 +5603,7 @@ const refreshAllMedpicSummaries = async () => {
 
                     // Define cooldown check INSIDE the map
                     const lastGenerated = customGoalGenerationTimes[goal.id];
-                    const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 60000;
+                    const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 30000;
                     
                     return (
                       <details key={goal.id} className="group">
@@ -5758,7 +5800,7 @@ const refreshAllMedpicSummaries = async () => {
                       const hasAnalysis = analysis && analysis !== 'Generating analysis...' && !analysis.startsWith('Error');
                       const isLoading = loadingTrackedTasks.has(progress.task.task_key);
                       const lastGenerated = trackedTaskGenerationTimes[progress.task.task_key];
-                      const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 60000;
+                      const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 30000;
                       
                       
 
@@ -5948,23 +5990,25 @@ const refreshAllMedpicSummaries = async () => {
             
             <div className="p-6 space-y-6">
                 <div>
-                    <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
-                        Auto-Update Interval (seconds)
-                    </label>
-                    <input
-                        type="number"
-                        min="30"
-                        max="300"
-                        value={goalSettings.pollInterval / 1000}
-                        onChange={(e) => {
-                            const val = Math.max(30, Math.min(300, parseInt(e.target.value))) * 1000;
-                            setGoalSettings(prev => ({ ...prev, pollInterval: val }));
-                        }}
-                        className={`w-full px-4 py-3 border rounded-xl ${
-                            isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
-                        }`}
-                    />
-                </div>
+    <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
+        Auto-Update Interval (seconds)
+    </label>
+    <input
+        type="number"
+        min="30" // Min is correctly 30
+        max="300"
+        // *** CHANGE 12: Use customGoalSettings variable ***
+        value={customGoalSettings.pollInterval / 1000} 
+        onChange={(e) => {
+            const val = Math.max(30, Math.min(300, parseInt(e.target.value))) * 1000;
+            // Use typed prev to avoid implicit any
+            setCustomGoalSettings((prev: typeof customGoalSettings) => ({ ...prev, pollInterval: val })); 
+        }}
+        className={`w-full px-4 py-3 border rounded-xl ${
+            isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
+        }`}
+    />
+</div>
 
                 <div>
                     <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
@@ -6495,7 +6539,7 @@ const refreshAllMedpicSummaries = async () => {
                 >
                   Conversational AI Platform{" "}
                   <span className="ml-2 px-2 py-0.5 rounded bg-cerulean/10 text-cerulean text-xs">
-                    v1.7
+                    v2.1
                   </span>
                 </p>
               </div>

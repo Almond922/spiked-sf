@@ -1,10 +1,13 @@
 import React from "react";
+
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../AuthContext";
 import ReactMarkdown from "react-markdown";
 import { useForm, ValidationError } from "@formspree/react";
 import { useTheme } from "../ThemeContext";
+import TutorialsHub from "./TutorialsHub";
+
 import {
   ArrowLeft,
   Settings,
@@ -2240,6 +2243,7 @@ const AdminDashboard: React.FC = () => {
         return <MeetingLogsPage onViewDetails={handleViewDetails} />;
       case "settings":
         return <SettingsPage />;
+      
       case "profile":
         return (
           <ProfilePage
@@ -2249,6 +2253,11 @@ const AdminDashboard: React.FC = () => {
             userFullName={userFullName}
           />
         );
+        case "tutorial":
+  navigate("/tutorial"); 
+  return null;
+
+
       case "support":
         return (
           <SupportPage
@@ -2258,6 +2267,7 @@ const AdminDashboard: React.FC = () => {
         );
       case "meeting_simulator":
         return <SimulatorPage />;
+      
       default:
         const link = sidebarLinks.find((l) => l.id === activePage);
         return <PlaceholderPage title={link?.label || "Page"} />;

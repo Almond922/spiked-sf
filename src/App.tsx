@@ -14,6 +14,8 @@ import AdminPage from "./pages/admin";
 import SpikedAIvexa from "./pages/SpikedAI_vexa";
 import ProtectedRoute from "./ProtectedRoute";
 import Integrations from './pages/Integrations';
+import TutorialsHub from "./pages/TutorialsHub";
+
 import JiraDashboard from './pages/JiraDashboard';
 
 const MainLayout = () => {  
@@ -53,6 +55,8 @@ function App() {
             <Route path="/vexa" element={<SpikedAIvexa />} />
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/integrations/jira" element={<JiraDashboard />} />
+            <Route path="/tutorial" element={<TutorialsHub />} />
+
           </Route>
         </Route>
 

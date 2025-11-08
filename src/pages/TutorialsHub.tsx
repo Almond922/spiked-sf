@@ -130,7 +130,7 @@ const TutorialsHub: React.FC = () => {
                       <p style="margin-bottom:24px;">After verification, you can immediately log in to your <strong>spikedAI workspace</strong> and start using all features.</p>
                       
                        <img 
-    src="/signup.png" 
+    src="/tutorial/signup.png" 
     alt="Sign Up Screenshot" 
     style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
   />
@@ -158,7 +158,7 @@ const TutorialsHub: React.FC = () => {
                       </p>
 
                        <img 
-    src="/verificationmail.png" 
+    src="/tutorial/verificationmail.png" 
     alt="Email Verification Screenshot" 
     style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
   />
@@ -264,7 +264,7 @@ const TutorialsHub: React.FC = () => {
                       </p>
 
                        <img 
-    src="/sign in.png" 
+    src="/tutorial/sign in.png" 
     alt="Sign In Screenshot" 
     style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
   />
@@ -314,7 +314,7 @@ const TutorialsHub: React.FC = () => {
 
                      
   <img 
-    src="/passwordreset.png" 
+    src="/tutorial/passwordreset.png" 
     alt="Password Reset Screenshot" 
     style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
   />
@@ -400,7 +400,7 @@ const TutorialsHub: React.FC = () => {
                       <p style="margin-bottom:24px;">Your updated name will be reflected immediately across your spikedAI workspace and in all future meetings.</p>
 
                       <img 
-    src="/editprofile.png" 
+    src="/tutorial/editprofile.png" 
     alt="Edit Profile Screenshot" 
     style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
   />
@@ -455,7 +455,7 @@ const TutorialsHub: React.FC = () => {
                       </ol>
 
                       <img 
-    src="/changepassword.png" 
+    src="/tutorial/changepassword.png" 
     alt="Password change Screenshot" 
     style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
   />
@@ -537,7 +537,7 @@ const TutorialsHub: React.FC = () => {
                   </ol>
 
                  <img 
-  src="/personalizationlocation.png" 
+  src="/tutorial/personalizationlocation.png" 
   alt="Personalization Screenshot" 
   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
 />
@@ -603,7 +603,7 @@ const TutorialsHub: React.FC = () => {
                   </ol>
 
                  <img 
-  src="/customerpersona.png" 
+  src="/tutorial/customerpersona.png" 
   alt="CustomerPersona Screenshot" 
   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
 />
@@ -641,7 +641,7 @@ const TutorialsHub: React.FC = () => {
                   </ol>
 
                   <img 
-  src="/meetingfocus.png" 
+  src="/tutorial/meetingfocus.png" 
   alt="Meeting Focus Screenshot" 
   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
 />
@@ -751,7 +751,7 @@ const TutorialsHub: React.FC = () => {
                   </ol>
 
                   <img 
-  src="/answerstyles.png" 
+  src="/tutorial/answerstyles.png" 
   alt="Answering Styles Screenshot" 
   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
 />
@@ -910,7 +910,7 @@ const TutorialsHub: React.FC = () => {
                       <strong>Use this when:</strong> You need to quickly upload a document right before a meeting.
                     </p>
                     <img 
-  src="/doc-location2.png" 
+  src="/tutorial/doc-location2.png" 
   alt="Document Location 2 Screenshot" 
   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;margin-top:12px;"
 />
@@ -931,7 +931,7 @@ const TutorialsHub: React.FC = () => {
                   </div>
 
                   <img 
-  src="/doc-location.png" 
+  src="/tutorial/doc-location.png" 
   alt="Document Location Screenshot" 
   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;margin-top:12px;"
 />
@@ -1025,7 +1025,7 @@ const TutorialsHub: React.FC = () => {
                   </div>
 
                  <img 
-  src="/doocumments.png" 
+  src="/tutorial/doocumments.png" 
   alt="Documents Screenshot" 
   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;margin-top:12px;"
 />
@@ -1157,7 +1157,7 @@ const TutorialsHub: React.FC = () => {
               </ol>
 
               <img 
-  src="/theme loc.png" 
+  src="/tutorial/theme loc.png" 
   alt="Theme location Screenshot" 
   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;margin-top:12px;"
 />
@@ -1191,7 +1191,7 @@ const TutorialsHub: React.FC = () => {
                 <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:13px;">Dark mode can help reduce eye fatigue during long meetings or late-night work sessions.</p>
               </div>
 <img 
-  src="/theme toggle.png" 
+  src="/tutorial/theme toggle.png" 
   alt="Theme Toggle Screenshot" 
   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;margin-top:12px;"
 />
@@ -1226,7 +1226,7 @@ const TutorialsHub: React.FC = () => {
                 <li style="margin-bottom:0;padding-left:8px;">Settings pages</li>
               </ul>
 <img
-    src="/theme comparision.png"
+    src="/tutorial/theme comparision.png"
     alt="Theme Comparison Screenshot"
     style="
       width:100%;
@@ -2238,7 +2238,7 @@ console: {
               </ul>
 
               <img 
-  src="/layout.png" 
+  src="/tutorial/layout.png" 
   alt="Layout Options Screenshot" 
   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;margin-top:12px;"
 />
@@ -2272,7 +2272,7 @@ console: {
               </ul>
 
               <img 
-  src="/fullview.png" 
+  src="/tutorial/fullview.png" 
   alt="Full View Screenshot" 
   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;margin-top:12px;"
 />
@@ -2311,7 +2311,7 @@ console: {
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Easy Switching:</strong> Quickly glance at suggestions and insights</li>
               </ul>
 <img 
-  src="/focused.png" 
+  src="/tutorial/focused.png" 
   alt="Focused View Screenshot" 
   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;margin-top:12px;"
 />
@@ -2356,7 +2356,7 @@ console: {
               </ul>
 
              <img 
-  src="/convo ai.png" 
+  src="/tutorial/convo ai.png" 
   alt="Convo Plus AI Screenshot" 
   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;margin-top:12px;"
 />
@@ -2402,7 +2402,7 @@ console: {
               </ul>
 
               <img 
-  src="/chat only.png" 
+  src="/tutorial/chat only.png" 
   alt="Chat Only Screenshot" 
   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;margin-top:12px;"
 />

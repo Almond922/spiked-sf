@@ -5469,7 +5469,7 @@ return (
                                 }
                             >
                                 {isLoading ? (
-                                    <Loader className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
+                                    <Loader className="w-4 h-4 animate-spin  text-blue-600 dark:text-blue-400" />
                                 ) : (
                                     <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                 )}
@@ -7176,28 +7176,13 @@ return (
                       </div>
                     ) : (
                       <div className="flex items-center space-x-1 text-gray-500">
-                        <MicOff className="w-4 h-4" />
-                        <span className="text-sm font-medium">Hot Mic Off</span>
+                       
+                        
                       </div>
                     )}
 
                     {/* Sliding Toggle Switch */}
-                    <button
-                      onClick={toggleListening}
-                      disabled={!isSupported}
-                      className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                        isListening
-                          ? "bg-blue-600"
-                          : "bg-gray-200 dark:bg-gray-700"
-                      }`}
-                    >
-                      <span className="sr-only">Toggle Mic</span>
-                      <span
-                        className={`inline-block w-4 h-4 transform rounded-full bg-white transition-transform ${
-                          isListening ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
+                   
                   </div>
 
                   {/* Bottom: Discrete "Powered by" and Switch Button */}
@@ -7430,91 +7415,37 @@ return (
                 {/* Auto-Mode Toggle and Manual Trigger */}
                 <div className="flex items-center space-x-2">
                   {/* Auto/Manual Mode Toggle */}
-                  <button
-                    onClick={() => setIsAutoMode(!isAutoMode)}
-                    className={`px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-200 ease-in-out hover:shadow-sm ${
-                      isAutoMode
-                        ? "bg-green-500 text-white hover:bg-green-600"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                    }`}
-                  >
-                    {isAutoMode ? "Auto Mode ON" : "Manual Mode ON"}
-                  </button>
+                  
 
                   {/* Manual Question Trigger */}
-                  <button
-                    onClick={handleManualQuestionDetection}
-                    disabled={
-                      isTyping || isAutoMode || suggestedQuestions.length === 0
-                    }
-                    title={
-                      isAutoMode
-                        ? "Disable Auto-Mode to trigger manually"
-                        : "Generate question from recent transcript"
-                    }
-                    className={`relative px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-200 ease-in-out hover:shadow-sm ${
-                      isTyping || isAutoMode || suggestedQuestions.length === 0
-                        ? "bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-not-allowed"
-                        : "bg-blue-500 text-white hover:bg-blue-600"
-                    }`}
-                  >
-                    {suggestedQuestions.length > 0 &&
-                      !isAutoMode &&
-                      !isTyping && (
-                        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full animate-pulse border-2 border-white dark:border-blue-500"></span>
-                      )}
-                    <RefreshCw
-                      className={`w-3.5 h-3.5 ${
-                        isTyping ? "animate-spin" : ""
-                      }`}
-                    />
-                    <span>
-                      {isTyping ? "Answering..." : "Generate Question"}
-                    </span>
-                  </button>
+                  
+                 
                 </div>
 
-                <button
-                  onClick={() => setAutoAnswerEnabled(!autoAnswerEnabled)}
-                  className={`px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-300 transform hover:scale-105 ${
-                    autoAnswerEnabled
-                      ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 shadow-lg"
-                      : "bg-gradient-to-r from-slate-400 to-slate-500 text-white hover:from-slate-500 hover:to-slate-600 shadow-lg"
-                  }`}
-                  title={
-                    autoAnswerEnabled ? "Auto-Answer: ON" : "Auto-Answer: OFF"
-                  }
-                >
-                  <span>
-                    {autoAnswerEnabled ? "Auto-Answer ON" : "Auto-Answer OFF"}
-                  </span>
-                </button>
+                
 
                 <button
-                  onClick={() => setShowHistory(!showHistory)}
-                  className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
-                    showHistory
-                      ? "bg-gradient-to-r from-cerulean to-berkeley-blue text-white shadow-lg"
-                      : isDarkMode
-                      ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
-                      : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900"
-                  }`}
-                  title="Toggle History"
-                >
-                  <History className="w-5 h-5" />
-                </button>
+    onClick={() => setShowHistory(!showHistory)}
+    className={`
+        p-3 rounded-xl transition-all duration-300 hover:scale-105 
+        **flex items-center justify-center gap-2** // <-- ADD THESE FLEX CLASSES
+        ${
+            showHistory
+                ? "bg-gradient-to-r from-cerulean to-berkeley-blue text-white shadow-lg"
+                : isDarkMode
+                ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
+                : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900"
+        }
+    `}
+    title="Toggle History"
+>
+    <span className="inline-flex items-center **gap-2**">
+        History  
+        <History className="w-5 h-5" />
+    </span>
+</button>
 
-                <button
-                  onClick={clearChatHistory}
-                  className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
-                    isDarkMode
-                      ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
-                      : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900"
-                  }`}
-                  title="Clear Chat"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
+               
               </div>
             </div>
           </div>

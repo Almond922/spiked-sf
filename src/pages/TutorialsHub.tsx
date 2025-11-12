@@ -836,138 +836,334 @@ const TutorialsHub: React.FC = () => {
               Back to Tutorials Hub
             </button>
           </div>
+<div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 40px 60px 40px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
+        <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#111827', marginBottom: '12px', textAlign: 'center', letterSpacing: '-0.5px' }}>
+            ✅ Best Practices
+        </h1>
+        <p style={{ fontSize: '16px', color: '#6b7280', marginBottom: '20px', lineHeight: '1.6', textAlign: 'center' }}>
+            Follow these essential steps before your first meeting to ensure SpikedAI delivers the highest quality, most personalized insights.
+        </p>
+        
+        
 
-          {/* Content */}
-          <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 40px 60px 40px' }}>
-            <h1 style={{ fontSize: '36px', fontWeight: 700, color: '#111827', marginBottom: '15px' }}>
-              📋 Best Practices
-            </h1>
-            <p style={{ fontSize: '17px', color: '#6b7280', marginBottom: '40px', lineHeight: '1.6' }}>
-              Follow these essential guidelines to get the most out of SpikedAI and ensure optimal performance.
-            </p>
+        {/* Workflow Container (Step Cards) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}>
+            
+            {/* 1. Sign Up / Account Setup */}
+            <section 
+                style={{ 
+                    padding: '24px 30px', 
+                    backgroundColor: '#ffffff', 
+                    borderRadius: '10px', 
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #e5e7eb'
+                }}
+            >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <h2 style={{ fontSize: '19px', fontWeight: 600, color: '#111827', margin: 0 }}>Account Access & SSO</h2>
+                </div>
+                <p style={{ fontSize: '15px', color: '#4b5563', lineHeight: '1.6', marginBottom: '18px' }}>
+                    For a streamlined onboarding, always use Single Sign-On (SSO) with your Google account. This ensures faster access, better security, and seamless calendar integration for future use. Your account will be synced across all devices and sessions.
+                </p>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
+                    <button 
+                        style={{ 
+                            display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: '#4285F4', color: '#ffffff', border: 'none', borderRadius: '6px', padding: '9px 18px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s'
+                        }}
+                        onClick={() => window.location.href = '/'} // Placeholder action, assuming root is login
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#357ae8'}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#4285F4'}
+                    >
+                        🔐 Login with Google
+                    </button>
+                    <button 
+                        style={{ 
+                            display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', borderRadius: '6px', padding: '9px 18px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s'
+                        }}
+                        onClick={() => window.location.href = '/'} // Placeholder action
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#e5e7eb'}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                    >
+                        📧 Manual Sign In
+                    </button>
+                </div>
+            </section>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-              <section>
-                <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#111827', marginBottom: '12px' }}>
-                  1. Sign Up with Single Sign-On
-                </h2>
-                <p style={{ fontSize: '16px', color: '#4b5563', lineHeight: '1.7' }}>
-                  For the smoothest experience, we recommend signing up using Single Sign-On (SSO) with your Google account. 
-                  While you can also sign up manually by entering your name and email address, using SSO provides faster access 
-                  and eliminates potential sign-in issues.
+            {/* 2. Complete Personalization (Settings Route) */}
+            <section 
+                style={{ 
+                    padding: '24px 30px', 
+                    backgroundColor: '#ffffff', 
+                    borderRadius: '10px', 
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #e5e7eb'
+                }}
+            >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <h2 style={{ fontSize: '19px', fontWeight: 600, color: '#111827', margin: 0 }}>Customize AI Personalization (Crucial)</h2>
+                </div>
+                <p style={{ fontSize: '15px', color: '#4b5563', lineHeight: '1.6', marginBottom: '18px' }}>
+                    This is the most crucial step for success. Configure your Custom Answer Styles, Customer Goals, Meeting Focus, and System Prompt in the Settings panel before joining any meeting. This defines the AI's persona, tone, and output structure to match your exact workflow and communication style. Without proper personalization, the AI will provide generic responses that may not align with your business objectives.
                 </p>
-              </section>
+                {/* Icon Grid (Representing Personalization Categories) */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', margin: '18px 0' }}>
+                    <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                        <div style={{ fontSize: '28px', marginBottom: '6px' }}>📝</div>
+                        <span style={{ fontWeight: 500, color: '#111827', fontSize: '13px' }}>Answer Styles</span>
+                    </div>
+                    <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                        <div style={{ fontSize: '28px', marginBottom: '6px' }}>🎯</div>
+                        <span style={{ fontWeight: 500, color: '#111827', fontSize: '13px' }}>Goals</span>
+                    </div>
+                    <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                        <div style={{ fontSize: '28px', marginBottom: '6px' }}>💡</div>
+                        <span style={{ fontWeight: 500, color: '#111827', fontSize: '13px' }}>Focus</span>
+                    </div>
+                    <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                        <div style={{ fontSize: '28px', marginBottom: '6px' }}>🤖</div>
+                        <span style={{ fontWeight: 500, color: '#111827', fontSize: '13px' }}>System Prompt</span>
+                    </div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <button
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            backgroundColor: '#2563EB',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '9px 16px',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            marginTop: '8px' 
+                        }}
+                        onClick={() => window.location.href = '/settings'} // ROUTE: /settings
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2563EB'}
+                    >
+                        ⚙️ Go to Personalization Settings
+                    </button>
+                    <button
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            backgroundColor: '#f3f4f6',
+                            color: '#4b5563',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            padding: '9px 16px',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            marginTop: '8px'
+                        }}
+                        onClick={() => window.location.href = '/tutorial'} // ROUTE: /tutorial
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#e5e7eb'}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                    >
+                        📚 View Setup Tutorial
+                    </button>
+                </div>
+            </section>
 
-              <section>
-                <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#111827', marginBottom: '12px' }}>
-                  2. Complete Personalization Before Joining Meetings
-                </h2>
-                <p style={{ fontSize: '16px', color: '#4b5563', lineHeight: '1.7', marginBottom: '12px' }}>
-                  <strong>This is crucial!</strong> Before you join the bot to any meeting, always set up your personalization settings first. 
-                  This ensures you get the exact experience and outputs you need. Configure:
+            {/* 3. Set Your Preferred Layout */}
+            <section 
+                style={{ 
+                    padding: '24px 30px', 
+                    backgroundColor: '#ffffff', 
+                    borderRadius: '10px', 
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #e5e7eb'
+                }}
+            >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <h2 style={{ fontSize: '19px', fontWeight: 600, color: '#111827', margin: 0 }}>Configure Workflow Layout</h2>
+                </div>
+                <p style={{ fontSize: '15px', color: '#4b5563', lineHeight: '1.6', marginBottom: '18px' }}>
+                    Select your viewing preference (Full View, Focus View, Convo + AI, or Chat Only) within the Meeting Preparation screen. Choosing the right layout minimizes distractions and optimizes your interaction with the bot in real-time. Each layout is designed for specific meeting scenarios: Full View for comprehensive monitoring, Focus View for presenter-centric calls, Convo + AI for balanced interaction, and Chat Only for distraction-free messaging.
                 </p>
-                <ul style={{ fontSize: '16px', color: '#4b5563', lineHeight: '1.7', marginLeft: '20px', marginBottom: '12px' }}>
-                  <li style={{ marginBottom: '8px' }}><strong>Custom Answer Styles:</strong> Define how you want responses formatted</li>
-                  <li style={{ marginBottom: '8px' }}><strong>Customer Goals:</strong> Set your specific objectives for each meeting</li>
-                  <li style={{ marginBottom: '8px' }}><strong>Meeting Focus:</strong> Specify what aspects should be prioritized</li>
-                  <li style={{ marginBottom: '8px' }}><strong>System Prompt:</strong> Customize AI behavior to match your needs</li>
-                </ul>
-                <p style={{ fontSize: '16px', color: '#4b5563', lineHeight: '1.7', marginBottom: '12px' }}>
-                  After configuring these settings, remember to <strong>save them</strong> so your changes take effect.
+                {/* Visual Layout Selector (Clickable areas, no actual navigation here) */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', margin: '18px 0' }}>
+                    <div style={{ padding: '14px', border: '1px solid #e5e7eb', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center', backgroundColor: '#f9fafb' }}>
+                        <div style={{ fontSize: '22px', marginBottom: '6px' }}>🖥️</div>
+                        <span style={{ fontWeight: 500, color: '#111827', fontSize: '13px' }}>Full View</span>
+                    </div>
+                    <div style={{ padding: '14px', border: '1px solid #e5e7eb', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center', backgroundColor: '#f9fafb' }}>
+                        <div style={{ fontSize: '22px', marginBottom: '6px' }}>👤</div>
+                        <span style={{ fontWeight: 500, color: '#111827', fontSize: '13px' }}>Focus View</span>
+                    </div>
+                    <div style={{ padding: '14px', border: '1px solid #e5e7eb', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center', backgroundColor: '#f9fafb' }}>
+                        <div style={{ fontSize: '22px', marginBottom: '6px' }}>💬🧠</div>
+                        <span style={{ fontWeight: 500, color: '#111827', fontSize: '13px' }}>Convo + AI</span>
+                    </div>
+                    <div style={{ padding: '14px', border: '1px solid #e5e7eb', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center', backgroundColor: '#f9fafb' }}>
+                        <div style={{ fontSize: '22px', marginBottom: '6px' }}>🗨️</div>
+                        <span style={{ fontWeight: 500, color: '#111827', fontSize: '13px' }}>Chat Only</span>
+                    </div>
+                </div>
+            </section>
+
+            {/* 4. Upload Documents Before Connecting the Bot */}
+            <section 
+                style={{ 
+                    padding: '24px 30px', 
+                    backgroundColor: '#ffffff', 
+                    borderRadius: '10px', 
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #e5e7eb'
+                }}
+            >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <h2 style={{ fontSize: '19px', fontWeight: 600, color: '#111827', margin: 0 }}>Provide Context via Documents</h2>
+                </div>
+                <p style={{ fontSize: '15px', color: '#4b5563', lineHeight: '1.6', marginBottom: '16px' }}>
+                    Upload any relevant documents, briefing materials, case studies, product specs, or reference files via the Documents page before connecting the bot. This crucial step provides the AI with deep context from the very start, enabling highly relevant and accurate in-meeting assistance. The AI can reference these documents instantly during conversations, answer questions based on your materials, and provide insights grounded in your specific business context.
                 </p>
-                <button
-                  onClick={() => {
-                    setSelectedPage(null);
-                    setSelectedTopic('gettingStarted');
-                    setSelectedArticle('personalization-before-meeting');
-                    setTimeout(() => {
-                      const element = document.getElementById('personalization-before-meeting');
-                      if (element) {
-                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }
-                    }, 100);
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    backgroundColor: '#2563EB',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '10px 18px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.2)'
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = '#1D4ED8';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.3)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = '#2563EB';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(37, 99, 235, 0.2)';
-                  }}
+                <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', padding: '14px 16px', margin: '14px 0' }}>
+                    <p style={{ fontSize: '14px', color: '#1e40af', margin: 0, lineHeight: '1.6' }}>
+                        <strong>💡 Pro Tip:</strong> Upload competitor analysis, product roadmaps, customer profiles, and previous meeting notes for maximum AI performance. The more context you provide, the more valuable the insights.
+                    </p>
+                </div>
+                <button 
+                    style={{ 
+                        display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: '#2563EB', color: '#ffffff', border: 'none', borderRadius: '6px', padding: '9px 16px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s', marginTop: '8px' 
+                    }}
+                    onClick={() => window.location.href = '/documents'} // ROUTE: /documents
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2563EB'}
                 >
-                  → Go to Personalization Guide
+                    📂 Go to Document Management
                 </button>
-              </section>
+            </section>
 
-              <section>
-                <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#111827', marginBottom: '12px' }}>
-                  3. Set Your Preferred Layout
-                </h2>
-                <p style={{ fontSize: '16px', color: '#4b5563', lineHeight: '1.7' }}>
-                  Choose the layout that works best for your workflow. You can select from multiple view options:
+            {/* 5. Open the Note-Taker Tab */}
+            <section 
+                style={{ 
+                    padding: '24px 30px', 
+                    backgroundColor: '#ffffff', 
+                    borderRadius: '10px', 
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #e5e7eb'
+                }}
+            >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <h2 style={{ fontSize: '19px', fontWeight: 600, color: '#111827', margin: 0 }}>Activate Transcript Recording</h2>
+                </div>
+                <p style={{ fontSize: '15px', color: '#4b5563', lineHeight: '1.6', marginBottom: '18px' }}>
+                    The Note-Taker tab must be active when you initiate the connection. This ensures the full, uncorrupted transcript is captured for post-meeting analysis, summaries, action item generation, and compliance records. All conversations are timestamped, searchable, and can be exported for team sharing or CRM integration.
                 </p>
-                <ul style={{ fontSize: '16px', color: '#4b5563', lineHeight: '1.7', marginLeft: '20px', marginTop: '10px' }}>
-                  <li style={{ marginBottom: '8px' }}><strong>Full View:</strong> See all meeting components at once</li>
-                  <li style={{ marginBottom: '8px' }}><strong>Focus View:</strong> Minimize distractions for concentrated work</li>
-                  <li style={{ marginBottom: '8px' }}><strong>Convo + AI:</strong> Balance between conversation and AI assistance</li>
-                  <li style={{ marginBottom: '8px' }}><strong>Chat Only:</strong> Simple chat interface for quick interactions</li>
-                </ul>
-              </section>
+                <button 
+                    style={{ 
+                        display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: '#6b7280', color: '#ffffff', border: 'none', borderRadius: '6px', padding: '9px 16px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s', marginTop: '8px' 
+                    }}
+                    onClick={() => window.location.href = '/note-taker'} // ROUTE: /note-taker
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#4b5563'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#6b7280'}
+                >
+                    📝 Access Note-Taker
+                </button>
+            </section>
 
-              <section>
-                <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#111827', marginBottom: '12px' }}>
-                  4. Upload Documents Before Connecting the Bot
-                </h2>
-                <p style={{ fontSize: '16px', color: '#4b5563', lineHeight: '1.7' }}>
-                  Always upload any relevant documents, briefing materials, or reference files <strong>before</strong> you connect 
-                  the bot to your meeting. This ensures the AI has full context from the start and can provide more accurate and 
-                  relevant assistance during the meeting.
+            {/* 6. Connect Your Meeting Bot (The Final Launch Card) */}
+            <section 
+                style={{ 
+                    padding: '24px 30px', 
+                    backgroundColor: '#ffffff', 
+                    borderRadius: '10px', 
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #2563EB' // Final step accent border
+                }}
+            >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <h2 style={{ fontSize: '19px', fontWeight: 600, color: '#2563EB', margin: 0 }}>Initiate Meeting & Connect Bot</h2>
+                </div>
+                <p style={{ fontSize: '15px', color: '#4b5563', lineHeight: '1.6', marginBottom: '18px' }}>
+                    Once you've completed all preparation steps (Personalization, Layout, Documents, and Note-Taker), you are ready to enter the Meeting Preparation flow and seamlessly connect the SpikedAI bot to your call. The bot will join as a participant, listen actively, and provide real-time assistance based on your customized settings and uploaded context.
                 </p>
-              </section>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <button 
+                        style={{ 
+                            display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: '#2563EB', color: '#ffffff', border: 'none', borderRadius: '6px', padding: '10px 20px', fontSize: '15px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s'
+                        }}
+                        onClick={() => window.location.href = '/meeting-prep'} // ROUTE: /meeting-prep
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2563EB'}
+                    >
+                        🚀 Start Meeting Preparation
+                    </button>
+                    <button 
+                        style={{ 
+                            display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', borderRadius: '6px', padding: '10px 20px', fontSize: '15px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s'
+                        }}
+                        onClick={() => window.location.href = '/integrations'} // ROUTE: /integrations
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#e5e7eb'}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                    >
+                        🔗 Setup Integrations
+                    </button>
+                </div>
+            </section>
 
-              <section>
-                <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#111827', marginBottom: '12px' }}>
-                  5. Open the Note-Taker Tab
-                </h2>
-                <p style={{ fontSize: '16px', color: '#4b5563', lineHeight: '1.7' }}>
-                  Before connecting your bot to the meeting, make sure to open the note-taker tab. This is essential to ensure 
-                  that full transcripts are recorded properly. If you skip this step, you might experience issues with incomplete 
-                  transcript recordings later.
-                </p>
-              </section>
+            {/* Additional Resources Section */}
+            <section 
+                style={{ 
+                    padding: '20px 30px', 
+                    backgroundColor: '#f9fafb', 
+                    borderRadius: '10px', 
+                    border: '1px solid #e5e7eb'
+                }}
+            >
+                <h3 style={{ fontSize: '17px', fontWeight: 600, color: '#111827', marginBottom: '16px', textAlign: 'center' }}>
+                    📚 Need More Help?
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                    <button 
+                        style={{ 
+                            padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '6px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s'
+                        }}
+                        onClick={() => window.location.href = '/tutorial'} // ROUTE: /tutorial
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.borderColor = '#2563EB';
+                            e.currentTarget.style.boxShadow = '0 1px 3px rgba(37, 99, 235, 0.1)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.borderColor = '#e5e7eb';
+                            e.currentTarget.style.boxShadow = 'none';
+                        }}
+                    >
+                        <div style={{ fontSize: '26px', marginBottom: '8px' }}>🎓</div>
+                        <div style={{ fontWeight: 500, color: '#111827', fontSize: '14px' }}>View Tutorials</div>
+                    </button>
+                    <button 
+                        style={{ 
+                            padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '6px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s'
+                        }}
+                        onClick={() => window.location.href = '/admin'} // ROUTE: /admin
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.borderColor = '#2563EB';
+                            e.currentTarget.style.boxShadow = '0 1px 3px rgba(37, 99, 235, 0.1)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.borderColor = '#e5e7eb';
+                            e.currentTarget.style.boxShadow = 'none';
+                        }}
+                    >
+                        <div style={{ fontSize: '26px', marginBottom: '8px' }}>⚙️</div>
+                        <div style={{ fontWeight: 500, color: '#111827', fontSize: '14px' }}>Admin Settings</div>
+                    </button>
+                </div>
+            </section>
 
-              <section>
-                <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#111827', marginBottom: '12px' }}>
-                  6. Connect Your Meeting Bot
-                </h2>
-                <p style={{ fontSize: '16px', color: '#4b5563', lineHeight: '1.7' }}>
-                  Once you've completed all the steps above (personalization, layout setup, document upload, and note-taker tab), 
-                  you're ready to paste your meeting link and connect the bot. Following this order ensures everything works smoothly 
-                  and you get the best results from your AI meeting assistant.
-                </p>
-              </section>
-            </div>
-          </div>
         </div>
-      );
+    </div>
+ </div>
+      )
     }
 
     if (selectedPage === 'troubleshooting') {

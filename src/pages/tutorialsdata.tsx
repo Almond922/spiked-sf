@@ -78,7 +78,7 @@ export const topics: Topics = {
               
               <div style="display:flex;justify-content:center;align-items:start;">
                 <img 
-                  src="/signup.png" 
+                  src="/tutorial/signup.png" 
                   alt="Sign Up Screenshot" 
                   style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
                 />
@@ -107,7 +107,7 @@ export const topics: Topics = {
               
               <div style="display:flex;justify-content:center;align-items:start;">
                 <img 
-                  src="/verificationmail.png" 
+                  src="/tutorial/verificationmail.png" 
                   alt="Email Verification Screenshot" 
                   style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
                 />
@@ -207,18 +207,18 @@ export const topics: Topics = {
                 <ol style="margin:0 0 20px 0;padding-left:20px;">
                   <li style="margin:0 0 12px 0;">Navigate to the <strong>Sign In</strong> page</li>
                   <li style="margin:0 0 12px 0;">Enter your <strong>Email Address</strong> and <strong>Password</strong></li>
-                  <li style="margin:0 0 12px 0;">(Optional) Enable <strong>Remember Me</strong> for this device</li>
+                
                   <li style="margin:0;">Click <strong>Sign In</strong></li>
                 </ol>
 
                 <p style="margin:0;padding:12px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                  <strong>Security Tip:</strong> Only use <strong>Remember Me</strong> on personal devices.
-                </p>
+  <strong>Security Tip:</strong> Use the <strong>"Keep me signed in"</strong> option only on your personal or trusted devices to protect your account from unauthorized access.
+</p>
               </div>
               
               <div style="display:flex;justify-content:center;align-items:start;">
                 <img 
-                  src="/sign in.png" 
+                  src="/tutorial/sign in.png" 
                   alt="Sign In Screenshot" 
                   style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
                 />
@@ -273,7 +273,7 @@ export const topics: Topics = {
               
               <div style="display:flex;justify-content:center;align-items:start;">
                 <img 
-                  src="/passwordreset.png" 
+                  src="/tutorial/passwordreset.png" 
                   alt="Password Reset Screenshot" 
                   style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
                 />
@@ -359,7 +359,7 @@ export const topics: Topics = {
                 
                 <div style="display:flex;justify-content:center;align-items:start;">
                   <img 
-                    src="/editprofile.png" 
+                    src="/tutorial/editprofile.png" 
                     alt="Edit Profile Screenshot" 
                     style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
                   />
@@ -421,7 +421,7 @@ export const topics: Topics = {
                 
                 <div style="display:flex;justify-content:center;align-items:start;">
                   <img 
-                    src="/changepassword.png" 
+                    src="/tutorial/changepassword.png" 
                     alt="Password Change Screenshot" 
                     style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
                   />
@@ -505,7 +505,7 @@ export const topics: Topics = {
                 
                 <div style="display:flex;justify-content:center;align-items:start;">
                   <img 
-                    src="/personalizationlocation.png" 
+                    src="/tutorial/personalizationlocation.png" 
                     alt="Personalization Location Screenshot" 
                     style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
                   />
@@ -567,7 +567,7 @@ export const topics: Topics = {
                 
                 <div style="display:flex;justify-content:center;align-items:start;">
                   <img 
-                    src="/customerpersona.png" 
+                    src="/tutorial/customerpersona.png" 
                     alt="Customer Persona Screenshot" 
                     style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
                   />
@@ -616,7 +616,7 @@ export const topics: Topics = {
                 
                 <div style="display:flex;justify-content:center;align-items:start;">
                   <img 
-                    src="/meetingfocus.png" 
+                    src="/tutorial/meetingfocus.png" 
                     alt="Meeting Focus Screenshot" 
                     style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
                   />
@@ -706,7 +706,7 @@ export const topics: Topics = {
                 
                 <div style="display:flex;justify-content:center;align-items:start;">
                   <img 
-                    src="/answerstyles.png" 
+                    src="/tutorial/answerstyles.png" 
                     alt="Answering Styles Screenshot" 
                     style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
                   />
@@ -869,7 +869,7 @@ export const topics: Topics = {
 
                 <div>
                   <img 
-                    src="/doc-location2.png" 
+                    src="/tutorial/doc-location2.png" 
                     alt="Document Location 2 Screenshot" 
                     style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
                   />
@@ -896,7 +896,7 @@ export const topics: Topics = {
 
                 <div>
                   <img 
-                    src="/doc-location.png" 
+                    src="/tutorial/doc-location.png" 
                     alt="Document Location Screenshot" 
                     style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
                   />
@@ -997,7 +997,7 @@ export const topics: Topics = {
 
                 <div>
                   <img 
-                    src="/doocumments.png" 
+                    src="/tutorial/doocumments.png" 
                     alt="Documents Screenshot" 
                     style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
                   />
@@ -1136,7 +1136,7 @@ export const topics: Topics = {
 
                 <div>
                   <img 
-                    src="/theme loc.png" 
+                    src="/tutorial/theme loc.png" 
                     alt="Theme location Screenshot" 
                     style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
                   />
@@ -1178,7 +1178,7 @@ export const topics: Topics = {
 
                 <div>
                   <img 
-                    src="/theme toggle.png" 
+                    src="/tutorial/theme toggle.png" 
                     alt="Theme Toggle Screenshot" 
                     style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
                   />
@@ -1221,7 +1221,7 @@ export const topics: Topics = {
 
                 <div>
                   <img
-                    src="/theme comparision.png"
+                    src="/tutorial/theme comparision.png"
                     alt="Theme Comparison Screenshot"
                     style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
                   />
@@ -2184,7 +2184,7 @@ console: {
               </div>
               <div style="flex:1;min-width:300px;display:flex;justify-content:center;align-items:center;">
                 <img 
-                  src="/layout.png" 
+                  src="/tutorial/layout.png" 
                   alt="Layout Options Screenshot" 
                   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
                 />
@@ -2228,7 +2228,7 @@ console: {
               </div>
               <div style="flex:1;min-width:300px;display:flex;justify-content:center;align-items:center;">
                 <img 
-                  src="/full view.png" 
+                  src="/tutorial/full view.png" 
                   alt="Full View Screenshot" 
                   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
                 />
@@ -2271,7 +2271,7 @@ console: {
               </div>
               <div style="flex:1;min-width:300px;display:flex;justify-content:center;align-items:center;">
                 <img 
-                  src="/focused.png" 
+                  src="/tutorial/focused.png" 
                   alt="Focused View Screenshot" 
                   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
                 />
@@ -2319,7 +2319,7 @@ console: {
               </div>
               <div style="flex:1;min-width:300px;display:flex;justify-content:center;align-items:center;">
                 <img 
-                  src="/convo ai.png" 
+                  src="/tutorial/convo ai.png" 
                   alt="Convo Plus AI Screenshot" 
                   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
                 />
@@ -2368,7 +2368,7 @@ console: {
               </div>
               <div style="flex:1;min-width:300px;display:flex;justify-content:center;align-items:center;">
                 <img 
-                  src="/chat only.png" 
+                  src="/tutorial/chat only.png" 
                   alt="Chat Only Screenshot" 
                   style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
                 />

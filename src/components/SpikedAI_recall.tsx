@@ -6695,7 +6695,7 @@ return (
                         : "bg-slate-800 text-slate-100"
                     }`}
                 >
-                  Documents
+                  Content Hub
                   <div
                     className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
                       isDarkMode ? "bg-slate-200" : "bg-slate-800"
@@ -6707,7 +6707,8 @@ return (
               <div className="relative group">
 
               {/*Integrations*/}
-              <button
+              {/* Hiding as it is not functional currently */}
+              {/* <button
                 onClick={() => {
                   navigate("/integrations/jira");
                   // Refresh tasks when user returns
@@ -6720,7 +6721,7 @@ return (
                 } backdrop-blur-sm`}
               >
                 <Puzzle className="w-5 h-5" />
-              </button>
+              </button> */}
               <div
                 className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 text-sm rounded-md 
                   opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none
@@ -7062,7 +7063,7 @@ return (
                       </div>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <button
+                      {/* <button
                         onClick={() => downloadDocument(doc.filename)}
                         className={`p-2 ml-2 rounded-lg transition-all duration-300 hover:scale-105 ${
                           isDarkMode
@@ -7083,7 +7084,7 @@ return (
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
-                      </button>
+                      </button> */}
                     </div>
                   </div>
                 </div>

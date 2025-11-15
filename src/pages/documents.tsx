@@ -733,16 +733,33 @@ const DocumentUploadModal = ({
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // --- MODIFIED ---
   const handleFileSelect = (selectedFiles: FileList | null) => {
     if (selectedFiles && selectedFiles.length > 0) {
-      setFile(selectedFiles[0]);
-      setError(null);
+      const selectedFile = selectedFiles[0];
+      const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+
+      if (selectedFile.size > MAX_FILE_SIZE) {
+        setError("File size cannot exceed 50 MB.");
+        setFile(null);
+        // Clear the file input so the user can re-select
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      } else {
+        setFile(selectedFile);
+        setError(null);
+      }
     }
   };
+  // --- END MODIFIED ---
 
   const handleSubmit = async () => {
     if (!file) {
-      setError("Please select a file.");
+      // Error state is already set by handleFileSelect if it was a size issue
+      if (!error) {
+        setError("Please select a file.");
+      }
       return;
     }
     setIsUploading(true);
@@ -780,7 +797,11 @@ const DocumentUploadModal = ({
         </div>
         <div className="p-6 space-y-5">
           <div
-            className="border-2 border-dashed rounded-xl p-8 text-center transition-colors border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 cursor-pointer"
+            className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+              error // --- NEW ---
+                ? "border-red-400 bg-red-50/50 dark:border-red-500 dark:bg-red-900/20"
+                : "border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/20"
+            } cursor-pointer`} // --- END NEW ---
             onClick={() => fileInputRef.current?.click()}
           >
             <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -793,7 +814,7 @@ const DocumentUploadModal = ({
               or drag and drop
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              PDF, DOC, TXT, etc.
+              PDF, DOC, TXT, etc. (Max 50 MB) {/* --- MODIFIED --- */}
             </p>
             <input
               ref={fileInputRef}
@@ -801,7 +822,7 @@ const DocumentUploadModal = ({
               onChange={(e) => handleFileSelect(e.target.files)}
               className="hidden"
             />
-            {file && (
+            {file && ( // --- MODIFIED (show file info even if error, to show what was rejected) ---
               <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border dark:border-gray-600 text-left">
                 <div className="text-sm text-gray-800 dark:text-gray-200 font-medium">
                   {file.name}
@@ -846,7 +867,7 @@ const DocumentUploadModal = ({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={isUploading || !file}
+            disabled={isUploading || !file} 
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center transition-colors shadow-sm"
           >
             {isUploading && <Loader className="w-4 h-4 mr-2 animate-spin" />}{" "}
@@ -1281,22 +1302,45 @@ const SourcesListPage = ({
       )
   );
 
+  // --- NEW ---
+  const SOURCE_LIMIT = 10;
+  const limitReached = sources.length >= SOURCE_LIMIT;
+  const countLabel = type === "document" ? "Documents" : "Web Crawls";
+  // --- END NEW ---
+
   return (
     <>
       <div className="flex items-center justify-between mb-6">
-        <div className="relative">
-          <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder={`Search ${type}s...`}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-11 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg w-80 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white dark:bg-gray-800 dark:text-gray-200"
-          />
+        {/* --- MODIFIED (wrapped search and count) --- */}
+        <div className="flex items-center space-x-4">
+          <div className="relative">
+            <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder={`Search ${type}s...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-11 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg w-80 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white dark:bg-gray-800 dark:text-gray-200"
+            />
+          </div>
+          {/* --- NEW (count display) --- */}
+          <div className="font-medium text-sm text-gray-600 dark:text-gray-400">
+            {countLabel}:{" "}
+            <span className="font-bold text-gray-800 dark:text-gray-200">
+              {sources.length}
+            </span>
+            <span className="text-gray-500"> / {SOURCE_LIMIT}</span>
+          </div>
+          {/* --- END NEW --- */}
         </div>
+        {/* --- END MODIFIED --- */}
+
         <button
           onClick={onAdd}
-          className="inline-flex items-center px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium text-sm"
+          // --- MODIFIED (added disabled logic) ---
+          disabled={limitReached}
+          className="inline-flex items-center px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium text-sm disabled:bg-gray-400 dark:disabled:bg-gray-500 disabled:cursor-not-allowed"
+          // --- END MODIFIED ---
         >
           <Plus className="w-5 h-5 mr-2 -ml-1" />
           {type === "document" ? "Upload Document" : "Add Website"}

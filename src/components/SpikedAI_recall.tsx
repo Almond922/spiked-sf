@@ -57,7 +57,7 @@ import { useBotId } from '../BotIdContext';
 import { useTheme } from '../ThemeContext';
 
 const service_url_recall =
-  "https://recall-backend-production-409019309412.us-central1.run.app";
+  "http://localhost:8000";
 const service_url_base =
   "https://spikedai-production-application-409019309412.us-central1.run.app";
 const BASE_URL_PROD =
@@ -198,6 +198,8 @@ interface BuyingSignalsData {
 }
 
 interface TrackedTaskProgress {
+  medpic_score: number;
+  deal: any;
   task: JiraTask;
   is_achieved: boolean;
   evidences: Array<{
@@ -225,6 +227,7 @@ interface JiraTask {
 
 // Then update SentimentData interface to use it:
 interface SentimentData {
+  transcript: any;
   critical_alerts: CriticalAlert[];
   buying_signals: BuyingSignalsData;  // CHANGE from inline object
   participant_cards: ParticipantCard[];
@@ -248,7 +251,6 @@ interface MedpicCategorySummary {
   summary: string;
   discussed: boolean;
   analyzed_at?: string;
-  last_generated_at?: number; // <-- ADDED THIS LINE
 }
 
 interface MedpicSummaries {
@@ -362,7 +364,7 @@ const initialSentimentData: SentimentData = {
     trend: "neutral",
     recent_signals: [],
     signal_count: 0,
-    llm_summary: undefined,  
+    llm_summary: undefined,
     analysis_method: undefined,
   },
   participant_cards: [],
@@ -431,7 +433,7 @@ const initialSentimentData: SentimentData = {
   last_updated: "",
   custom_goals_progress: [], // <-- Add this field
   tracked_tasks_progress: [],
-
+  transcript: []
 };
 
 const initDB = (): Promise<IDBDatabase> => {
@@ -663,6 +665,10 @@ const SpikedAI = () => {
   const [autoAnswerHistory, setAutoAnswerHistory] = useState<
     Array<{ question: string; timestamp: Date }>
   >([]);
+  const [expandedDealEvidences, setExpandedDealEvidences] = useState<Set<string>>(new Set());
+  const [dealAnalyses, setDealAnalyses] = useState<Record<string, string>>({});
+  const [loadingDealAnalyses, setLoadingDealAnalyses] = useState<Set<string>>(new Set());
+  const [dealGenerationTimes, setDealGenerationTimes] = useState<Record<string, number>>({});
   const [customGoalSummaries, setCustomGoalSummaries] = useState<CustomGoalSummaries>({});
   const [loadingCustomGoals, setLoadingCustomGoals] = useState<Set<string>>(new Set());
   const [isHotMicActive, setIsHotMicActive] = useState(false);
@@ -701,7 +707,6 @@ const SpikedAI = () => {
   const [goalAnalysis, setGoalAnalysis] = useState<Record<string, string>>({});
   const [isAnalyzingGoals, setIsAnalyzingGoals] = useState(false);
   const [showGoalSettingsModal, setShowGoalSettingsModal] = useState(false);
-  
   const [goalSettings, setGoalSettings] = useState({
     format: 'summary' as 'summary' | 'detailed' | 'speakers_only',
     wordLimit: 150,
@@ -720,6 +725,7 @@ const SpikedAI = () => {
   });
   const [selectedJiraTasks, setSelectedJiraTasks] = useState<any[]>([]);
   const [jiraTasksCount, setJiraTasksCount] = useState(0);
+  
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>(
     loadFromSessionStorage("spikedai_suggested_questions", [])
   );
@@ -730,6 +736,19 @@ const SpikedAI = () => {
   const [trackedTasksProgress, setTrackedTasksProgress] = useState<any[]>([]);
   const [expandedTrackedTasks, setExpandedTrackedTasks] = useState<Set<string>>(new Set());
 
+  // ** START: HUBSPOT INTEGRATION **
+  // Add after Jira states
+  const [selectedHubSpotDeals, setSelectedHubSpotDeals] = useState<any[]>([]);
+  const [hubSpotDealsCount, setHubSpotDealsCount] = useState(0);
+  const [staticTrackedDeals, setStaticTrackedDeals] = useState<any[]>([]);
+  const [syncingHubSpot, setSyncingHubSpot] = useState(false);
+  const [hubSpotSyncResults, setHubSpotSyncResults] = useState<any>(null);
+  const [trackedDealAnalyses, setTrackedDealAnalyses] = useState<Record<string, string>>({});
+  const [loadingTrackedDeals, setLoadingTrackedDeals] = useState<Set<string>>(new Set());
+  const [trackedDealGenerationTimes, setTrackedDealGenerationTimes] = useState<Record<string, number>>({});
+  // REPLACE the existing allTrackedGoals state with these TWO separate states:
+  const [trackedJiraTasks, setTrackedJiraTasks] = useState<any[]>([]);
+  const [trackedHubSpotDeals, setTrackedHubSpotDeals] = useState<any[]>([]);
   // ** START: MODIFIED RECALL.AI FUNCTIONALITIES **
   const [transcriptEventSource, setTranscriptEventSource] =
     useState<EventSource | null>(null);
@@ -764,138 +783,6 @@ const fetchTrackedTasks = async () => {
   }
 };
 
-// Inside SpikedAI functional component:
-
-// Existing goalSettings state (MODIFIED: Renamed to customGoalSettings for clarity)
-// Find this section near the top of the SpikedAI component:
-
-// Existing goalSettings state (MODIFIED: Renamed to customGoalSettings for clarity)
-const [customGoalSettings, setCustomGoalSettings] = useState(() => {
-    const savedSettings = loadFromSessionStorage("spikedai_custom_goal_settings", {
-        format: 'summary' as 'summary' | 'detailed' | 'speakers_only',
-        wordLimit: 150,
-        includeTimestamps: true,
-        includeSpeakers: true,
-        includeInstances: false,
-        // *** CHANGE 1: Update default pollInterval to 30000ms (30s) ***
-        pollInterval: 30000, 
-        promptExtension: '',
-    });
-    // Ensure default pollInterval is set correctly (now uses 30000 as fallback)
-    savedSettings.pollInterval = savedSettings.pollInterval || 30000;
-    return savedSettings;
-});
-
-// ADD THIS NEW STATE for MEDPIC settings
-const [medpicSettings, setMedpicSettings] = useState(() => {
-    const savedSettings = loadFromSessionStorage("spikedai_medpic_settings", {
-        format: 'summary' as 'summary' | 'detailed' | 'speakers_only',
-        wordLimit: 150,
-        includeTimestamps: true,
-        includeSpeakers: true,
-        includeInstances: false,
-        // *** CHANGE 2: Update default pollInterval to 30000ms (30s) ***
-        pollInterval: 30000, 
-        promptExtension: '',
-    });
-    // Ensure default pollInterval is set correctly (now uses 30000 as fallback)
-    savedSettings.pollInterval = savedSettings.pollInterval || 30000;
-    return savedSettings;
-});
-
-// MODIFIED: Replace unifiedPollingInterval with separate intervals
-const [goalPollingInterval, setGoalPollingInterval] = useState<NodeJS.Timeout | null>(null);
-const [medpicPollingInterval, setMedpicPollingInterval] = useState<NodeJS.Timeout | null>(null);
-
-// NOTE: Your existing top-level sentiment polling logic (fetchSentimentDataStaggered)
-// will handle the base polling for alerts, participants, etc.
-
-// State variables to MODIFY/ADD:
-
-// REMOVE: This can be removed as sentimentPollingInterval will manage the main loop.
-// const [sentimentPollingInterval, setSentimentPollingInterval] = useState<NodeJS.Timeout | null>(null);
-
-// Inside SpikedAI functional component:
-// Inside SpikedAI functional component, add this:
-const [showMedpicSettingsModal, setShowMedpicSettingsModal] = useState(false);
-useEffect(() => {
-    if (goalPollingInterval) {
-        clearInterval(goalPollingInterval);
-    }
-
-    if (!isBotRunning || !session || !botId) {
-    return;
-  }
-  
-  // *** CHANGE 5: Use customGoalSettings.pollInterval (since it was the primary reference before) ***
-  const intervalDuration = customGoalSettings.pollInterval; 
-
-  const autoRefreshRoutine = () => {
-    // 1. Run the base sentiment cycle
-    fetchSentimentDataStaggered();
-
-    // 2. Auto-refresh Custom Goals
-    customGoals.forEach(goal => {
-      // Cooldown check
-      const lastGenerated = customGoalGenerationTimes[goal.id];
-      // *** CHANGE 6: Use customGoalSettings.pollInterval for auto-refresh cooldown ***
-      if (!lastGenerated || (Date.now() - lastGenerated) >= customGoalSettings.pollInterval) { 
-        analyzeCustomGoal(goal.id); 
-      }
-    });
-
-    // 3. Auto-refresh MEDPIC Categories
-    Object.keys(MEDPIC_CATEGORIES).forEach(category => {
-        const catSummary = medpicSummaries[category];
-        const lastGenerated = catSummary?.last_generated_at || 0;
-        // *** CHANGE 7: Use medpicSettings.pollInterval for auto-refresh cooldown ***
-        if (!lastGenerated || (Date.now() - lastGenerated) >= medpicSettings.pollInterval) { 
-          loadMedpicCategorySummary(category);
-        }
-    });
-  };
-}, [isBotRunning, session, botId, customGoalSettings.pollInterval, customGoals]);
-
-// Inside SpikedAI functional component:
-
-useEffect(() => {
-    if (medpicPollingInterval) {
-        clearInterval(medpicPollingInterval);
-    }
-
-    if (!isBotRunning || !session || !botId) {
-        return;
-    }
-
-    const intervalDuration = medpicSettings.pollInterval;
-
-    const medpicRefreshRoutine = () => {
-        Object.keys(MEDPIC_CATEGORIES).forEach(category => {
-            // The existing loadMedpicCategorySummary handles the cooldown and logic.
-            // We pass a flag to tell it not to show an alert on cooldown during auto-refresh.
-            loadMedpicCategorySummary(category); // Pass true for auto mode
-        });
-    };
-
-    console.log(`Starting MEDPIC polling interval: ${intervalDuration / 1000}s`);
-
-    // Start immediately after a delay, then repeat
-    const initialTimeout = setTimeout(medpicRefreshRoutine, 5000);
-    const intervalId = setInterval(medpicRefreshRoutine, intervalDuration);
-    setMedpicPollingInterval(intervalId);
-
-    return () => {
-        clearTimeout(initialTimeout);
-        if (intervalId) {
-            clearInterval(intervalId);
-        }
-    };
-}, [isBotRunning, session, botId, medpicSettings.pollInterval]);
-
-
-// ADD: A new unified polling interval
-const [unifiedPollingInterval, setUnifiedPollingInterval] = useState<NodeJS.Timeout | null>(null);
-
 const removeTrackedTask = async (taskKey: string) => {
   try {
     const response = await fetch(`${service_url_recall}/integrations/jira/tasks/${taskKey}/untrack`, {
@@ -927,6 +814,233 @@ const syncProgressToJira = async () => {
     setSyncing(false);
   }
 };
+// NEW: HubSpot sync function
+const syncProgressToHubSpot = async () => {
+  try {
+    setSyncingHubSpot(true);
+    setHubSpotSyncResults(null);
+    
+    const response = await fetch(`${service_url_recall}/integrations/hubspot/sync-progress`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session?.access_token}` }
+    });
+    
+    const data = await response.json();
+    setHubSpotSyncResults(data.synced_deals || []);
+    setTimeout(() => setHubSpotSyncResults(null), 5000);
+    
+    console.log('✓ Synced to HubSpot:', data);
+  } catch (error) {
+    console.error('Error syncing to HubSpot:', error);
+    alert('Failed to sync to HubSpot. Please try again.');
+  } finally {
+    setSyncingHubSpot(false);
+  }
+};
+// HubSpot Deals Functions
+const fetchTrackedDeals = async () => {
+  try {
+    const response = await fetch(`${service_url_recall}/integrations/hubspot/deals/tracked`, {
+      headers: { Authorization: `Bearer ${session?.access_token}` }
+    });
+    const data = await response.json();
+    setStaticTrackedDeals(data.deals || []);
+  } catch (error) {
+    console.error('Error fetching tracked deals:', error);
+  }
+};
+
+const removeTrackedDeal = async (dealId: string) => {
+  try {
+    const response = await fetch(`${service_url_recall}/integrations/hubspot/deals/${dealId}/untrack`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session?.access_token}` }
+    });
+    if (response.ok) {
+      setStaticTrackedDeals(prev => prev.filter(d => d.deal_id !== dealId));
+    }
+  } catch (error) {
+    console.error('Error removing deal:', error);
+  }
+};
+
+// Function 1: analyzeDeal (for the main deals section)
+const analyzeDeal = async (dealId: string, dealName: string) => {
+  if (!session || loadingDealAnalyses.has(dealId) || isTyping) return;
+  
+  // Check if transcript exists
+  if (!sentimentData.transcript || sentimentData.transcript.length === 0) {
+    alert('No transcript available yet. Please wait for the meeting to generate transcript data.');
+    return;
+  }
+  
+  // Check 1-minute cooldown
+  const lastGenerated = dealGenerationTimes[dealId];
+  if (lastGenerated && (Date.now() - lastGenerated) < 60000) {
+    const remainingTime = Math.ceil((60000 - (Date.now() - lastGenerated)) / 60000);
+    alert(`Please wait ${remainingTime} more minute(s) before regenerating this analysis.`);
+    return;
+  }
+  
+  setLoadingDealAnalyses(prev => new Set([...prev, dealId]));
+  setDealAnalyses(prev => ({ ...prev, [dealId]: 'Generating MEDPIC analysis...' }));
+
+  const startTime = Date.now();
+
+  try {
+    const transcriptText = sentimentData.transcript
+      .map((t: any) => `[${Math.floor(t.start)}s] ${t.speaker}: ${t.text}`)
+      .join('\n');
+
+    const prompt = `Analyze this meeting transcript for MEDPIC sales qualification criteria related to the deal "${dealName}".
+
+MEDPIC Framework:
+- **Metrics (M)**: Quantifiable ROI, cost savings, KPIs mentioned (score 0-100%)
+- **Economic Buyer (E)**: Decision-maker with budget authority identified (score 0-100%)
+- **Decision Criteria (D)**: Must-haves, evaluation criteria discussed (score 0-100%)
+- **Decision Process (D)**: Approval steps, timeline, stakeholders (score 0-100%)
+- **Identify Pain (I)**: Pain points, challenges, problems (score 0-100%)
+- **Champion (C)**: Internal advocate identified (score 0-100%)
+
+Transcript:
+${transcriptText}
+
+Provide a structured analysis with:
+1. Score for each MEDPIC criterion (0-100%)
+2. Key evidence/quotes for each criterion
+3. Overall qualification status
+4. Next steps to improve qualification
+
+Format as readable text with **bold** headers.`;
+
+    const response = await fetch(`${service_url_recall}/api/process-template`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ prompt: prompt })
+    });
+
+    if (!response.ok) throw new Error('Deal analysis failed');
+    
+    const data = await response.json();
+    const analysis = data.response as string;
+    
+    setDealAnalyses(prev => ({ ...prev, [dealId]: analysis }));
+    setDealGenerationTimes(prev => ({ ...prev, [dealId]: Date.now() }));
+    
+  } catch (error) {
+    console.error('Error analyzing deal:', error);
+    setDealAnalyses(prev => ({
+      ...prev,
+      [dealId]: 'Error generating analysis. Please try again.'
+    }));
+  } finally {
+    setLoadingDealAnalyses(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(dealId);
+      return newSet;
+    });
+  }
+};
+
+// Function 2: analyzeMEDPIC (for tracked HubSpot deals in playbook section)
+const analyzeMEDPIC = async (dealId: string, dealName: string) => {
+  if (loadingTrackedDeals.has(dealId)) return;
+  
+  // Check if transcript exists
+  if (!sentimentData.transcript || sentimentData.transcript.length === 0) {
+    alert('No transcript available yet. Please wait for the meeting to generate transcript data.');
+    return;
+  }
+  
+  // Check 1-minute cooldown
+  const lastGenerated = trackedDealGenerationTimes[dealId];
+  if (lastGenerated && (Date.now() - lastGenerated) < 60000) {
+    const remainingTime = Math.ceil((60000 - (Date.now() - lastGenerated)) / 60000);
+    alert(`Please wait ${remainingTime} more minute(s) before regenerating this analysis.`);
+    return;
+  }
+  
+  setLoadingTrackedDeals(prev => new Set(prev).add(dealId));
+  setTrackedDealAnalyses(prev => ({ ...prev, [dealId]: 'Generating MEDPIC analysis...' }));
+
+  const startTime = Date.now();
+
+  try {
+    const transcriptText = sentimentData.transcript
+      .map((t: any) => `${t.speaker}: ${t.text}`)
+      .join('\n');
+
+    const prompt = `Analyze this meeting transcript for MEDPIC sales qualification criteria related to the deal "${dealName}".
+
+MEDPIC Framework:
+- **Metrics (M)**: Quantifiable ROI, cost savings, KPIs mentioned (score 0-100%)
+- **Economic Buyer (E)**: Decision-maker with budget authority identified (score 0-100%)
+- **Decision Criteria (D)**: Must-haves, evaluation criteria discussed (score 0-100%)
+- **Decision Process (D)**: Approval steps, timeline, stakeholders (score 0-100%)
+- **Identify Pain (I)**: Pain points, challenges, problems (score 0-100%)
+- **Champion (C)**: Internal advocate identified (score 0-100%)
+
+Transcript:
+${transcriptText}
+
+Provide a structured analysis with:
+1. Score for each MEDPIC criterion (0-100%)
+2. Key evidence/quotes for each criterion
+3. Overall qualification status
+4. Next steps to improve qualification
+
+Format as readable text with **bold** headers.`;
+
+    const response = await fetch(`${service_url_recall}/api/process-template`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(session?.access_token
+          ? { 'Authorization': `Bearer ${session.access_token}` }
+          : {})
+      },
+      body: JSON.stringify({ prompt: prompt })
+    });
+
+    if (!response.ok) throw new Error('MEDPIC analysis failed');
+    
+    const data = await response.json();
+    const analysis = data.response as string;
+    
+    setTrackedDealAnalyses(prev => ({ ...prev, [dealId]: analysis }));
+    setTrackedDealGenerationTimes(prev => ({ ...prev, [dealId]: Date.now() }));
+    
+  } catch (error) {
+    console.error('Error analyzing MEDPIC:', error);
+    setTrackedDealAnalyses(prev => ({
+      ...prev,
+      [dealId]: 'Error generating analysis. Please try again.'
+    }));
+  } finally {
+    setLoadingTrackedDeals(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(dealId);
+      return newSet;
+    });
+  }
+};
+useEffect(() => {
+  if (transcript.length > 0) {
+    setSentimentData(prev => ({
+      ...prev,
+      transcript: transcript  // Sync main transcript to sentimentData
+    }));
+  }
+}, [transcript]);
+
+useEffect(() => {
+  if (session?.access_token) {
+    fetchTrackedDeals();
+  }
+}, [session]);
 
 useEffect(() => {
   if (session?.access_token) {
@@ -1242,17 +1356,13 @@ useEffect(() => {
 
   const loadMedpicCategorySummary = async (category: string) => {
   if (!session || loadingMedpicCategories.has(category)) return;
-
-  // Check cooldown (1 minute = 60000ms) - KEEP EXISTING CHECK
+  
+  // Check cooldown (1 minute = 60000ms)
   const lastGenerated = medpicGenerationTimes[category];
-  if (lastGenerated && (Date.now() - lastGenerated) < 30000) {
-    const remainingTime = Math.ceil((30000 - (Date.now() - lastGenerated)) / 1000);
-    // Only alert if manually triggered. The auto-refresh logic will handle silently.
-    // We assume the caller (manual click or auto-refresh) handles if it's too soon.
-    if (Date.now() - lastGenerated < 1000) { // Simple heuristic for manual click vs. auto-poll
-      
-      return;
-    }
+  if (lastGenerated && (Date.now() - lastGenerated) < 60000) {
+    const remainingTime = Math.ceil((60000 - (Date.now() - lastGenerated)) / 60000);
+    alert(`Please wait ${remainingTime} more minute(s) before regenerating this summary.`);
+    return;
   }
   
   setLoadingMedpicCategories(prev => new Set([...prev, category]));
@@ -1279,9 +1389,7 @@ useEffect(() => {
       [category]: {
         summary: result.summary,
         discussed: result.discussed,
-        analyzed_at: result.analyzed_at,
-        // ADDED: Store the generation time here
-        last_generated_at: Date.now(),
+        analyzed_at: result.analyzed_at
       }
     }));
     setMedpicGenerationTimes(prev => ({ ...prev, [category]: Date.now() }));
@@ -1299,60 +1407,6 @@ useEffect(() => {
     });
   }
 };
-
-useEffect(() => {
-  if (unifiedPollingInterval) {
-    clearInterval(unifiedPollingInterval);
-    setUnifiedPollingInterval(null);
-  }
-
-  if (!isBotRunning || !session || !botId) {
-    return;
-  }
-  
-  const intervalDuration = goalSettings.pollInterval; // Use setting value
-
-  const autoRefreshRoutine = () => {
-    // 1. Run the base sentiment cycle
-    fetchSentimentDataStaggered();
-
-    // 2. Auto-refresh Custom Goals
-    customGoals.forEach(goal => {
-      // Cooldown check (optional here since fetch is expensive, but good practice)
-      const lastGenerated = customGoalGenerationTimes[goal.id];
-      if (!lastGenerated || (Date.now() - lastGenerated) >= 90000) { // 90 seconds min
-        analyzeCustomGoal(goal.id); // Call with only goalId
-      }
-    });
-
-    // 3. Auto-refresh MEDPIC Categories
-    // The polling loop (inside the useEffect managing medpicPollingInterval):
-
-Object.keys(MEDPIC_CATEGORIES).forEach(category => {
-    // TypeScript can now safely infer the type of catSummary and find last_generated_at.
-    const catSummary = medpicSummaries[category];
-    const lastGenerated = catSummary?.last_generated_at || 0; // FIX is in the interface definition
-    if (!lastGenerated || (Date.now() - lastGenerated) >= 90000) { // 90 seconds min
-      loadMedpicCategorySummary(category);
-    }
-});
-  };
-
-  console.log(`Starting unified polling interval: ${intervalDuration / 1000}s`);
-
-  // Start immediately after a small delay, then repeat
-  const initialTimeout = setTimeout(autoRefreshRoutine, 5000); // Initial delay
-
-  const intervalId = setInterval(autoRefreshRoutine, intervalDuration);
-  setUnifiedPollingInterval(intervalId);
-
-  return () => {
-    clearTimeout(initialTimeout);
-    if (intervalId) {
-      clearInterval(intervalId);
-    }
-  };
-}, [isBotRunning, session, botId, goalSettings.pollInterval, customGoals, customGoalGenerationTimes, medpicSummaries]);
 
   useEffect(() => {
     const fetchHistoryAndConnect = async (currentBotId: string) => {
@@ -1428,56 +1482,38 @@ Object.keys(MEDPIC_CATEGORIES).forEach(category => {
     };
   }, [botId, session]);
 
-useEffect(() => {
-  if (unifiedPollingInterval) {
-    clearInterval(unifiedPollingInterval);
-    setUnifiedPollingInterval(null);
-  }
-
-  if (!isBotRunning || !session || !botId) {
-    return;
-  }
+  useEffect(() => {
+  let sentimentInterval: NodeJS.Timeout | null = null;
   
-  const intervalDuration = goalSettings.pollInterval; // Use setting value
+  // Start polling only when bot is running  
+  if (isBotRunning && session && botId) {
+    console.log("Starting sentiment polling interval");
+    
+    // Start polling after delay
+    setTimeout(() => {
+      fetchSentimentDataStaggered();
+      
+      // Set up regular polling without validation checks
+      sentimentInterval = setInterval(() => {
+        fetchSentimentDataStaggered();
+      }, 8000); // Poll every 8 seconds
 
-  const autoRefreshRoutine = () => {
-    // 1. Run the base sentiment cycle
-    fetchSentimentDataStaggered();
-
-    // 2. Auto-refresh Custom Goals
-    customGoals.forEach(goal => {
-      // Cooldown check (optional here since fetch is expensive, but good practice)
-      const lastGenerated = customGoalGenerationTimes[goal.id];
-      if (!lastGenerated || (Date.now() - lastGenerated) >= 90000) { // 90 seconds min
-        analyzeCustomGoal(goal.id); // Call with only goalId
-      }
-    });
-
-    // 3. Auto-refresh MEDPIC Categories
-    Object.keys(MEDPIC_CATEGORIES).forEach(category => {
-        const catSummary = medpicSummaries[category];
-        const lastGenerated = catSummary?.last_generated_at || 0;
-        if (!lastGenerated || (Date.now() - lastGenerated) >= 90000) { // 90 seconds min
-          loadMedpicCategorySummary(category);
-        }
-    });
-  };
-
-  console.log(`Starting unified polling interval: ${intervalDuration / 1000}s`);
-
-  // Start immediately after a small delay, then repeat
-  const initialTimeout = setTimeout(autoRefreshRoutine, 5000); // Initial delay
-
-  const intervalId = setInterval(autoRefreshRoutine, intervalDuration);
-  setUnifiedPollingInterval(intervalId);
+      setSentimentPollingInterval(sentimentInterval);
+    }, 8000); // Initial delay of 8 seconds
+  } else {
+    // Clear interval if bot stops
+    if (sentimentPollingInterval) {
+      clearInterval(sentimentPollingInterval);
+      setSentimentPollingInterval(null);
+    }
+  }
 
   return () => {
-    clearTimeout(initialTimeout);
-    if (intervalId) {
-      clearInterval(intervalId);
+    if (sentimentInterval) {
+      clearInterval(sentimentInterval);
     }
   };
-}, [isBotRunning, session, botId, goalSettings.pollInterval, customGoals, customGoalGenerationTimes, medpicSummaries]);
+}, [isBotRunning, session, botId]);
 
   // Initialize cached data on component mount
   useEffect(() => {
@@ -1587,11 +1623,14 @@ useEffect(() => {
     saveHistory();
   }, [chatHistory]);
 
-  useEffect(() => {
-    if (session) {
-      fetchSelectedJiraTasks();
-    }
-  }, [session]);
+// FIND and UPDATE the useEffect that fetches goals
+useEffect(() => {
+    // Fetch goals as soon as the user session is available
+  if (session?.access_token) {
+    fetchTrackedJiraTasks();
+    fetchTrackedHubSpotDeals();
+  }
+}, [session?.access_token]);
 
   useEffect(() => {
     saveToSessionStorage("spikedai_suggested_questions", suggestedQuestions);
@@ -1878,6 +1917,7 @@ const handleAskTranscript = async (segmentText: string) => {
   };
 
   const fetchSelectedJiraTasks = async () => {
+    
     if (!session) return;
     try {
       const response = await fetch(
@@ -1893,7 +1933,79 @@ const handleAskTranscript = async (segmentText: string) => {
       console.error("Error fetching selected Jira tasks:", error);
     }
   };
+  // NEW: Unified fetch for ALL goals
+  // REPLACE fetchAllTrackedGoals with these two functions:
 
+const fetchTrackedJiraTasks = async () => {
+  if (!session?.access_token) return;
+  
+  try {
+    const response = await fetch(
+      `${service_url_recall}/integrations/jira/tasks/tracked`,
+      {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      }
+    );
+    
+    if (response.ok) {
+      const data = await response.json();
+      const formattedTasks = (data.tasks || []).map((task: any) => ({
+        id: task.task_key,
+        title: task.title,
+        status: task.status,
+        type: 'jira',
+        icon: '📋',
+        metadata: {
+          project: task.project_name,
+          due_date: task.due_date,
+          assignee: task.assignee,
+          project_key: task.project_key
+        }
+      }));
+      setTrackedJiraTasks(formattedTasks);
+      console.log(`✓ Fetched ${formattedTasks.length} tracked Jira tasks`);
+    }
+  } catch (error) {
+    console.error('Error fetching tracked Jira tasks:', error);
+  }
+};
+
+const fetchTrackedHubSpotDeals = async () => {
+  if (!session?.access_token) return;
+  
+  try {
+    const response = await fetch(
+      `${service_url_recall}/integrations/hubspot/deals/tracked`,
+      {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      }
+    );
+    
+    if (response.ok) {
+      const data = await response.json();
+      const formattedDeals = (data.deals || []).map((deal: any) => ({
+        id: deal.deal_id,
+        title: deal.deal_name,
+        status: deal.stage,
+        type: 'hubspot',
+        icon: '💼',
+        metadata: {
+          amount: deal.amount,
+          pipeline: deal.pipeline,
+          close_date: deal.close_date
+        }
+      }));
+      setTrackedHubSpotDeals(formattedDeals);
+      console.log(`✓ Fetched ${formattedDeals.length} tracked HubSpot deals`);
+    }
+  } catch (error) {
+    console.error('Error fetching tracked HubSpot deals:', error);
+  }
+};
   const fetchParticipantDetails = async (speaker: string, type: 'buying-signals' | 'concerns') => {
     try {
       const response = await fetch(`${service_url_recall}/sentiment/participant/${encodeURIComponent(speaker)}/${type}-details`, {
@@ -1919,12 +2031,12 @@ const handleAskTranscript = async (segmentText: string) => {
 
 const analyzeCustomGoal = async (goalId: string) => {
   if (!session || loadingCustomGoals.has(goalId) || isTyping) return;
-
+  
   // Check 1-minute cooldown
   const lastGenerated = customGoalGenerationTimes[goalId];
-  if (!isAutoMode && lastGenerated && (Date.now() - lastGenerated) < 30000) { // Use isAutoMode flag
-    const remainingTime = Math.ceil((30000 - (Date.now() - lastGenerated)) / 1000);
-    
+  if (lastGenerated && (Date.now() - lastGenerated) < 60000) {
+    const remainingTime = Math.ceil((60000 - (Date.now() - lastGenerated)) / 60000);
+    alert(`Please wait ${remainingTime} more minute(s) before regenerating this analysis.`);
     return;
   }
   
@@ -1933,7 +2045,6 @@ const analyzeCustomGoal = async (goalId: string) => {
   
   setLoadingCustomGoals(prev => new Set([...prev, goalId]));
   setGoalAnalysis(prev => ({ ...prev, [goalId]: 'Generating analysis...' }));
-  setCustomGoalGenerationTimes(prev => ({ ...prev, [goalId]: Date.now() }));
 
   const transcriptText = transcript
     .map(seg => `[${Math.floor(seg.start)}s] ${seg.speaker || 'Unknown'}: ${seg.text}`)
@@ -2025,9 +2136,9 @@ const analyzeTrackedTask = async (taskKey: string, task: any) => {
   
   // Check 1-minute cooldown
   const lastGenerated = trackedTaskGenerationTimes[taskKey];
-  if (lastGenerated && (Date.now() - lastGenerated) < 30000) {
-    const remainingTime = Math.ceil((30000 - (Date.now() - lastGenerated)) / 1000);
-   
+  if (lastGenerated && (Date.now() - lastGenerated) < 60000) {
+    const remainingTime = Math.ceil((60000 - (Date.now() - lastGenerated)) / 60000);
+    alert(`Please wait ${remainingTime} more minute(s) before regenerating this analysis.`);
     return;
   }
   
@@ -2092,9 +2203,9 @@ ${transcriptText}`;
   if (!session || isAnalyzingSignals || isTyping) return;
   
   // Check 1-minute cooldown
-  if (signalsGenerationTime && (Date.now() - signalsGenerationTime) < 30000) {
-    const remainingTime = Math.ceil((30000 - (Date.now() - signalsGenerationTime)) / 1000);
-    
+  if (signalsGenerationTime && (Date.now() - signalsGenerationTime) < 60000) {
+    const remainingTime = Math.ceil((60000 - (Date.now() - signalsGenerationTime)) / 60000);
+    alert(`Please wait ${remainingTime} more minute(s) before regenerating this analysis.`);
     return;
   }
   
@@ -2277,16 +2388,6 @@ ${transcriptText}`;
     }
   };
 
-// Extend MedpicCategorySummary to include last_generated_at for proper typing
-interface MedpicCategorySummary {
-  summary: string;
-  discussed: boolean;
-  analyzed_at?: string;
-  last_generated_at?: number;
-}
-
-// (Optional: If MedpicCategoryAnalysis is used elsewhere, you can keep it, but the main interface should be MedpicCategorySummary)
-
   const getMedpicIcon = (category: string) => {
    return "";
   };
@@ -2390,40 +2491,6 @@ const updateCustomGoal = async (goalId: string, updates: MeetingGoalUpdate) => {
   } catch (error) {
     console.error("Error updating custom goal:", error);
   }
-};
-
-// Add this function near other utility functions like formatSummary
-const extractGoalStatus = (analysisText: string | undefined): 'Achieved' | 'In Progress' | 'Not Started' | 'Generating' | 'Error' | 'N/A' => {
-  if (!analysisText) {
-    return 'N/A';
-  }
-  
-  if (analysisText.startsWith('Error') || analysisText === 'Error generating analysis. Please try again.') {
-    return 'Error';
-  }
-  
-  if (analysisText === 'Generating analysis...') {
-    return 'Generating';
-  }
-  
-  // More flexible regex pattern to catch various status formats
-  const statusMatch = analysisText.match(/\*\*Status:\*\*\s*\[?\s*(.*?)\s*\]?(?:\n|<br|$)/i);
-  if (statusMatch && statusMatch[1]) {
-    const status = statusMatch[1].trim().toLowerCase();
-    
-    if (status.includes('achieved') || status.includes('completed') || status.includes('yes')) {
-      return 'Achieved';
-    }
-    if (status.includes('progress') || status.includes('pending') || status.includes('partially')) {
-      return 'In Progress';
-    }
-    if (status.includes('not started') || status.includes('not met') || status.includes('no') || status.includes('empty')) {
-      return 'Not Started';
-    }
-  }
-  
-  // If we have analysis text but couldn't parse a status, return N/A
-  return 'N/A';
 };
 
 // Enhanced deleteCustomGoal function:
@@ -2859,7 +2926,7 @@ const deleteCustomGoal = async (goalId: string) => {
     }
   };
   
-  const navigateTrackedTaskEvidence = async (taskKey: string, direction: "next" | "prev") => {
+  const navigateEvidence = async (taskKey: string, direction: "next" | "prev") => {
   if (!session) return;
   
   try {
@@ -5344,105 +5411,73 @@ const refreshAllMedpicSummaries = async () => {
             <span>Playbook</span>
         </span>
         <div className="flex items-center space-x-2"> {/* MODIFIED: Added wrapper for refresh and badge */}
-            {/* NEW: REFRESH ALL MEDDIC BUTTON */}
-            <button
-                onClick={refreshAllMedpicSummaries}
-                disabled={loadingMedpicCategories.size > 0}
-                className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 ${
-                    loadingMedpicCategories.size > 0
-                        ? "bg-gray-200 dark:bg-gray-700 cursor-wait"
-                        : "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/50"
-                }`}
-                title="Refresh all Playbook summaries"
-            >
-                {loadingMedpicCategories.size > 0 ? (
-                    <Loader className="w-4 h-4 animate-spin" />
-                ) : (
-                    <RefreshCw className="w-4 h-4" />
-                )}
-            </button>
-            <button
-      onClick={() => setShowMedpicSettingsModal(true)}
-      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-      title="Analysis Settings"
-    >
-      <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-    </button>
-    {/* MODIFIED: Show MEDPIC interval */}
-    <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
-      Auto: {medpicSettings.pollInterval / 1000}s
-    </span>
-            <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
-                Sales Framework
-            </span>
-        </div>
+                    {/* NEW: REFRESH ALL MEDDIC BUTTON */}
+                    <button
+                        onClick={refreshAllMedpicSummaries}
+                        disabled={loadingMedpicCategories.size > 0}
+                        className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 ${
+                            loadingMedpicCategories.size > 0
+                                ? "bg-gray-200 dark:bg-gray-700 cursor-wait"
+                                : "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/50"
+                        }`}
+                        title="Refresh all Playbook summaries"
+                    >
+                        {loadingMedpicCategories.size > 0 ? (
+                            <Loader className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <RefreshCw className="w-4 h-4" />
+                        )}
+                    </button>
+
+                    {/* --- ADD THIS BUTTON --- */}
+                    <button
+                      onClick={() => setShowGoalSettingsModal(true)}
+                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                      title="Analysis Settings"
+                    >
+                      <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </button>
+                    {/* --- END OF ADDED BUTTON --- */}
+                    
+                    <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
+                        Sales Framework
+                    </span>
+                </div>
     </div>
 
     <div className="space-y-3">
         {Object.entries(MEDPIC_CATEGORIES).map(([categoryName, label]) => {
-    const isLoading = loadingMedpicCategories.has(categoryName);
-    const summary = medpicSummaries[categoryName];
-    const error = medpicErrors[categoryName];
-    const lastGenerated = medpicGenerationTimes[categoryName];
-    const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 30000;
-    const analysisText = summary?.summary?.toLowerCase() || "";
-const analysisIsNegative = summary && 
-                           (analysisText.includes("unfortunately no") || 
-                            analysisText.includes("was not discussed") ||
-                            analysisText.includes("was not addressed") ||
-                            analysisText.includes("no mention") ||
-                            analysisText.includes("not yet discussed")); 
-
-// CONFIRMED: This logic ensures 'Not Started' is true initially OR if the analysis is explicitly negative.
-const statusNotStarted = (!summary && !isLoading && !error) || analysisIsNegative;
-
-return (
-    <details key={categoryName} className="group">
-        <summary 
-    className={`p-3 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between ${
-        // 1. Green: If explicitly discussed/achieved
-        summary?.discussed 
-            ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50" 
-        // 2. Red: If 'Not Started' (initial load) OR if analysis is explicitly negative
-        : statusNotStarted 
-            ? "bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-700/50 hover:bg-red-100/50 dark:hover:bg-red-800/50"
-        // 3. Blue: Default 'Analyzed' (summary exists, but not discussed/negative)
-        : summary 
-            ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50"
-        // 4. Gray: Default if loading or erroring
-        : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-    }`}
->
+            const isLoading = loadingMedpicCategories.has(categoryName);
+            const summary = medpicSummaries[categoryName];
+            const error = medpicErrors[categoryName];
+            const lastGenerated = medpicGenerationTimes[categoryName];
+            const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 60000;
+            
+            return (
+                <details key={categoryName} className="group">
+                    <summary 
+                        className={`p-3 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between ${
+                            summary?.discussed 
+                                ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50" 
+                                : summary
+                                ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50"
+                                : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                        }`}
+                    >
                         {/* ADDED: dark:text-gray-100 for the category label */}
                         <div className="flex items-center space-x-2 flex-1 text-gray-700 dark:text-gray-100">
-    <span>{label}</span>
-    {summary?.discussed && (
-        <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 px-2 py-0.5 rounded-full">
-            Discussed
-        </span>
-    )}
-    
-    {/* Use analysisIsNegative for precise red status text */}
-    {analysisIsNegative && (
-        <span className="text-xs bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 px-2 py-0.5 rounded-full">
-            Not Addressed
-        </span>
-    )}
-
-    {/* Display 'Not Started' if it hasn't run at all (initial state) */}
-    {(!summary && statusNotStarted) && (
-        <span className="text-xs bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 px-2 py-0.5 rounded-full">
-            Not Started
-        </span>
-    )}
-
-    {/* Default 'Analyzed' badge if analysis ran but wasn't discussed NOR negative */}
-    {summary && !summary.discussed && !analysisIsNegative && (
-        <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
-        Analyzed
-        </span>
-    )}
-</div>
+                            <span>{label}</span>
+                            {summary?.discussed && (
+                                <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 px-2 py-0.5 rounded-full">
+                                    Discussed
+                                </span>
+                            )}
+                            {summary && !summary.discussed && (
+                                <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                                    Analyzed
+                                </span>
+                            )}
+                        </div>
                         <div className="flex items-center space-x-2">
                             <button
                                 onClick={(e) => {
@@ -5469,7 +5504,7 @@ return (
                                 }
                             >
                                 {isLoading ? (
-                                    <Loader className="w-4 h-4 animate-spin  text-blue-600 dark:text-blue-400" />
+                                    <Loader className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
                                 ) : (
                                     <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                 )}
@@ -5528,8 +5563,6 @@ return (
 </div>
 </div>
 
-
-
             {/* Custom Goals Progress - Enhanced Version */}
             {customGoals.length > 0 && (
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -5556,16 +5589,12 @@ return (
                       )}
                     </button>
                     <button
-    onClick={() => setShowGoalSettingsModal(true)} // MODIFIED: New toggle function
-    className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-    title="Analysis Settings"
-  >
-    <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-  </button>
-  {/* MODIFIED: Show Custom Goal interval */}
-  <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
-    {customGoals.length} active (Auto: {customGoalSettings.pollInterval / 1000}s)
-  </span>
+                      onClick={() => setShowGoalSettingsModal(true)}
+                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                      title="Analysis Settings"
+                    >
+                      <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </button>
                     <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
                       {customGoals.length} active
                     </span>
@@ -5575,44 +5604,27 @@ return (
                 <div className="space-y-3">
                   {customGoals.map((goal, goalIndex) => {
                     const analysis = goalAnalysis[goal.id];
-                    const status = extractGoalStatus(analysis); // <--- NEW: Extract Status
-                    const hasAnalysis = status !== 'N/A' && status !== 'Generating' && status !== 'Error';
+                    const hasAnalysis = analysis && analysis !== 'Generating analysis...' && !analysis.startsWith('Error');
                     const isLoading = loadingCustomGoals.has(goal.id);
                     
-                    // Determine colors based on extracted status
-                    let statusColor = 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50';
-                    let statusText = 'Not Analyzed';
-                    
-                    if (status === 'Achieved') {
-                        statusColor = 'bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50';
-                        statusText = 'Achieved';
-                    } else if (status === 'In Progress') {
-                        statusColor = 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50';
-                        statusText = 'In Progress';
-                    } else if (status === 'Not Started') {
-                        statusColor = 'bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-700/50';
-                        statusText = 'Not Started';
-                    } else if (status === 'Error') {
-                        statusColor = 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700/50';
-                        statusText = 'Error';
-                    } else if (status === 'Generating' || isLoading) {
-                        statusText = 'Analyzing...';
-                        statusColor = 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50';
-                    }
-
-
                     // Define cooldown check INSIDE the map
                     const lastGenerated = customGoalGenerationTimes[goal.id];
-                    const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 30000;
+                    const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 60000;
                     
                     return (
                       <details key={goal.id} className="group">
-                        <summary className={`p-4 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-800/50 ${statusColor}`}>
+                        <summary className={`p-4 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between ${
+                          hasAnalysis
+                            ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50" 
+                            : analysis
+                            ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50"
+                            : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                        }`}>
                           <div className="flex items-center space-x-3 flex-1">
                             <div className={`flex items-center justify-center p-2 rounded-lg flex-shrink-0 w-8 h-8 ${
-                              status === 'Achieved' ? "bg-green-100 dark:bg-green-800/50" : "bg-gray-100 dark:bg-gray-800/50"
+                              hasAnalysis ? "bg-green-100 dark:bg-green-800/50" : "bg-gray-100 dark:bg-gray-800/50"
                             }`}>
-                              {status === 'Achieved' ? (
+                              {hasAnalysis ? (
                                 <span className="text-green-600 dark:text-green-400">✓</span>
                               ) : (
                                 <span className="font-bold text-gray-600 dark:text-gray-400">
@@ -5626,20 +5638,16 @@ return (
                                 {goal.goal_description}
                               </h4>
                               <div className="flex items-center space-x-2">
-                                {/* MODIFIED: Use extracted status for the badge */}
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                                    status === 'Achieved' 
-                                        ? 'bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300'
-                                        : status === 'In Progress' 
-                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
-                                        : status === 'Not Started' 
-                                        ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
-                                        : status === 'Error'
-                                        ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300'
-                                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300'
-                                }`}>
-                                  {statusText}
-                                </span>
+                                {hasAnalysis && (
+                                  <span className="text-xs bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300 px-2 py-0.5 rounded-full">
+                                    Analysis Ready
+                                  </span>
+                                )}
+                                {isLoading && (
+                                  <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                                    Analyzing...
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -5680,13 +5688,8 @@ return (
                         </summary>
                         
                         <div className="p-3 mt-2 border-t border-gray-200 dark:border-gray-700">
-                          {status !== 'N/A' && status !== 'Generating' ? ( // Show analysis if it has been generated or errored
+                          {hasAnalysis ? (
                             <div className="space-y-2">
-                              {status === 'Error' && (
-                                <p className="text-sm text-red-500 dark:text-red-400">
-                                  Error generating analysis. Please try again.
-                                </p>
-                              )}
                               <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
                                 <div 
                                   className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
@@ -5700,7 +5703,7 @@ return (
                             </div>
                           ) : (
                             <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                              {status === 'Generating' || isLoading
+                              {analysis === 'Generating analysis...' 
                                 ? 'AI is analyzing this goal...' 
                                 : 'Click the ✨ icon to generate AI analysis'}
                             </p>
@@ -5712,68 +5715,11 @@ return (
                 </div>
               </div>
             )}
-
-            {showMedpicSettingsModal && (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className={`w-full max-w-2xl rounded-2xl shadow-2xl ${
-            isDarkMode ? 'bg-gray-800' : 'bg-white'
-        } max-h-[90vh] overflow-y-auto`}>
-            <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    Playbook (MEDPIC) Analysis Settings
-                </h2>
-                <button
-                    onClick={() => setShowMedpicSettingsModal(false)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                    <X className="w-5 h-5" />
-                </button>
-            </div>
             
-            <div className="p-6 space-y-6">
-                <div>
-                    <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
-                        Auto-Refresh Interval (seconds)
-                    </label>
-                    <input
-                        type="number"
-                        min="90" // Minimum refresh enforced at 90 seconds
-                        max="300"
-                        value={medpicSettings.pollInterval / 1000}
-                        onChange={(e) => {
-                            const val = Math.max(90, Math.min(300, parseInt(e.target.value))) * 1000;
-                            setMedpicSettings((prev: typeof medpicSettings) => ({ ...prev, pollInterval: val }));
-                        }}
-                        className={`w-full px-4 py-3 border rounded-xl ${
-                            isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
-                        }`}
-                    />
-                    <p className="text-xs mt-1 text-gray-500 dark:text-gray-400">
-                        Minimum is 90 seconds to prevent rate limiting.
-                    </p>
-                </div>
-
-                {/* You can add more MEDPIC specific settings here if needed */}
-                {/* For now, other format options are inherited but pollInterval is decoupled */}
-            </div>
-
-            <div className={`p-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                <button
-                    onClick={() => {
-                        saveToSessionStorage("spikedai_medpic_settings", medpicSettings);
-                        setShowMedpicSettingsModal(false);
-                    }}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-700 text-white rounded-xl hover:from-purple-700 hover:to-indigo-800"
-                >
-                    Save Settings
-                </button>
-            </div>
-        </div>
-    </div>
-)}
             
-            {/* Tracked Tasks - ENHANCED WITH AI SUMMARY */}
-            {(staticTrackedTasks.length > 0 || (sentimentData.tracked_tasks_progress && sentimentData.tracked_tasks_progress.length > 0)) && (
+            
+            {/* JIRA TASKS SECTION */}
+            {trackedJiraTasks.length > 0 && (
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
@@ -5781,11 +5727,12 @@ return (
                   </span>
                   <div className="flex items-center space-x-2">
                     <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
-                      {(sentimentData.tracked_tasks_progress?.length || staticTrackedTasks.length)} tracking
+                      {trackedJiraTasks.length} tracking
                     </span>
                     <button
-                      onClick={fetchTrackedTasks}
+                      onClick={fetchTrackedJiraTasks}
                       className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      title="Refresh Jira tasks"
                     >
                       <RefreshCw className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                     </button>
@@ -5793,72 +5740,275 @@ return (
                 </div>
 
                 <div className="space-y-3">
-                  {/* During Meeting: Show Progress with AI Analysis */}
-                  {sentimentData.tracked_tasks_progress && sentimentData.tracked_tasks_progress.length > 0 ? (
-                    sentimentData.tracked_tasks_progress.map((progress, idx) => {
-                      const analysis = trackedTaskAnalyses[progress.task.task_key];
-                      const hasAnalysis = analysis && analysis !== 'Generating analysis...' && !analysis.startsWith('Error');
-                      const isLoading = loadingTrackedTasks.has(progress.task.task_key);
-                      const lastGenerated = trackedTaskGenerationTimes[progress.task.task_key];
-                      const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 30000;
-                      
-                      
+                  {trackedJiraTasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="text-lg">📋</span>
+                            <span className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase">
+                              {task.metadata.project_key}
+                            </span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              isDarkMode ? "bg-slate-700" : "bg-gray-200"
+                            }`}>
+                              {task.status}
+                            </span>
+                          </div>
+                          
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                            {task.title}
+                          </h4>
+                          
+                          <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400 mt-2">
+                            <span>📁 {task.metadata.project}</span>
+                            <span>👤 {task.metadata.assignee}</span>
+                            {task.metadata.due_date && (
+                              <span>📅 {task.metadata.due_date}</span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <button
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(
+                                `${service_url_recall}/integrations/jira/tasks/${task.id}/untrack`,
+                                {
+                                  method: 'DELETE',
+                                  headers: { Authorization: `Bearer ${session?.access_token}` }
+                                }
+                              );
+                              
+                              if (response.ok) {
+                                await fetchTrackedJiraTasks();
+                                console.log(`✓ Untracked Jira task: ${task.title}`);
+                              }
+                            } catch (error) {
+                              console.error('Error untracking task:', error);
+                            }
+                          }}
+                          className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors group"
+                          title="Stop tracking this task"
+                        >
+                          <Eye className="w-4 h-4 text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Live MEDPIC Progress for Jira Tasks */}
+            {sentimentData.tracked_tasks_progress && sentimentData.tracked_tasks_progress.length > 0 && (
+              <div className="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+                <h5 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">
+                  📊 Live Progress Tracking
+                </h5>
+                <div className="space-y-3">
+                  {sentimentData.tracked_tasks_progress
+                    .filter(progress => {
+                      // Filter for Jira tasks only (tasks have task_key with hyphen)
+                      return progress.task && progress.task.task_key && progress.task.task_key.includes('-');
+                    })
+                    .map((progress, idx) => (
+                      <div
+                        key={`jira-progress-${idx}`}
+                        className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+                      >
+                        {/* Header with task info and score */}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <span>📋</span>
+                            <span className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase">
+                              {progress.task.task_key}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className={`text-sm font-bold ${
+                              progress.achievement_percentage >= 70 ? 'text-green-600 dark:text-green-400' :
+                              progress.achievement_percentage >= 40 ? 'text-yellow-600 dark:text-yellow-400' :
+                              'text-red-600 dark:text-red-400'
+                            }`}>
+                              {progress.achievement_percentage}%
+                            </span>
+                            {progress.is_achieved && (
+                              <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">
+                                ✓ Achieved
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {/* Task title */}
+                        <p className="text-xs text-gray-700 dark:text-gray-300 font-medium mb-2">
+                          {progress.task.title}
+                        </p>
+                        {/* Evidence count and navigation */}
+                        {progress.evidences && progress.evidences.length > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-600 dark:text-gray-400">
+                              {progress.evidences.length} evidence point{progress.evidences.length !== 1 ? 's' : ''} found
+                            </span>
+                            {progress.total_evidence_count > 1 && (
+                              <div className="flex items-center space-x-1">
+                                <button
+                                  onClick={() => navigateEvidence(progress.task.task_key, 'prev')}
+                                  className="p-1 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                                  disabled={progress.current_evidence_index === 0}
+                                >
+                                  <ChevronDown className="w-3 h-3 rotate-90" />
+                                </button>
+                                <span className="text-xs text-gray-600 dark:text-gray-400">
+                                  {progress.current_evidence_index + 1}/{progress.total_evidence_count}
+                                </span>
+                                <button
+                                  onClick={() => navigateEvidence(progress.task.task_key, 'next')}
+                                  className="p-1 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                                  disabled={progress.current_evidence_index >= progress.total_evidence_count - 1}
+                                >
+                                  <ChevronDown className="w-3 h-3 -rotate-90" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+              </div>
+            )}
 
-                      return (
-                        <details key={progress.task.task_key} className="group">
-                          <summary className={`p-4 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between ${
-                            hasAnalysis
-                              ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50"
-                              : analysis
-                              ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50"
-                              : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                          }`}>
-                            <div className="flex items-center space-x-3 flex-1">
-                              <div className={`flex items-center justify-center p-2 rounded-lg flex-shrink-0 w-8 h-8 ${
-                                hasAnalysis ? "bg-green-100 dark:bg-green-800/50" : "bg-gray-100 dark:bg-gray-800/50"
-                              }`}>
-                                {hasAnalysis ? (
-                                  <span className="text-green-600 dark:text-green-400">✓</span>
-                                ) : (
-                                  <span className="font-bold text-gray-600 dark:text-gray-400">{idx + 1}</span>
+            {/* HUBSPOT DEALS SECTION */}
+            {trackedHubSpotDeals.length > 0 && (
+              <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm mt-4">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+                    <span>💼 HubSpot Deals</span>
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2.5 py-1 rounded-full font-medium">
+                      {trackedHubSpotDeals.length} tracking
+                    </span>
+                    <button
+                      onClick={fetchTrackedHubSpotDeals}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      title="Refresh HubSpot deals"
+                    >
+                      <RefreshCw className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {trackedHubSpotDeals.map((deal) => {
+                    // Get progress data for this deal
+                    const progress = sentimentData.tracked_tasks_progress?.find(
+                      p => p.task?.task_key === deal.id
+                    );
+                    
+                    const hasAnalysis = dealAnalyses[deal.id] && 
+                                      dealAnalyses[deal.id] !== 'Generating MEDPIC analysis...' && 
+                                      !dealAnalyses[deal.id].startsWith('Error');
+                    const isLoading = loadingDealAnalyses.has(deal.id);
+                    const lastGenerated = dealGenerationTimes[deal.id];
+                    const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 60000;
+                    
+                    return (
+                      <details key={deal.id} className="group">
+                        <summary className={`p-4 cursor-pointer rounded-lg border-2 transition-all list-none ${
+                          hasAnalysis
+                            ? 'bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50'
+                            : progress
+                            ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50'
+                            : 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <span className="text-lg">💼</span>
+                                <span className="text-xs font-medium text-green-600 dark:text-green-400 uppercase">
+                                  DEAL
+                                </span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  isDarkMode ? "bg-slate-700" : "bg-gray-200"
+                                }`}>
+                                  {deal.status}
+                                </span>
+                                {progress && (
+                                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                                    progress.achievement_percentage >= 70 
+                                      ? 'bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300'
+                                      : progress.achievement_percentage >= 40
+                                      ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-800/50 dark:text-yellow-300'
+                                      : 'bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-300'
+                                  }`}>
+                                    {progress.achievement_percentage}% MEDPIC
+                                  </span>
                                 )}
                               </div>
                               
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center space-x-2 mb-1">
-                                  <span className="text-xs font-mono text-blue-500">{progress.task.task_key}</span>
-                                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                    isDarkMode ? "bg-slate-600" : "bg-gray-200"
-                                  }`}>
-                                    {progress.task.status}
-                                  </span>
-                                </div>
-                                
-                                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1 leading-snug">
-                                  {progress.task.title}
-                                </h4>
-                                
-                                <div className="flex items-center space-x-2">
-                                  {hasAnalysis && (
-                                    <span className="text-xs bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300 px-2 py-0.5 rounded-full">
-                                      Analysis Ready
-                                    </span>
-                                  )}
-                                  {isLoading && (
-                                    <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                                      Analyzing...
-                                    </span>
-                                  )}
-                                </div>
+                              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                                {deal.title}
+                              </h4>
+                              
+                              <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                <span className="text-green-600 dark:text-green-400 font-medium">
+                                  {deal.metadata.amount}
+                                </span>
+                                <span>📊 {deal.metadata.pipeline}</span>
+                                {deal.metadata.close_date && (
+                                  <span>📅 {deal.metadata.close_date}</span>
+                                )}
                               </div>
+
+                              {/* Evidence Count & Navigation */}
+                              {progress?.evidences && progress.evidences.length > 0 && (
+                                <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                                    {progress.evidences.length} discussion point{progress.evidences.length !== 1 ? 's' : ''} found
+                                  </span>
+                                  {progress.total_evidence_count > 1 && (
+                                    <div className="flex items-center space-x-1">
+                                      <button
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          navigateEvidence(deal.id, 'prev');
+                                        }}
+                                        className="p-1 rounded hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                                        disabled={progress.current_evidence_index === 0}
+                                      >
+                                        <ChevronDown className="w-3 h-3 rotate-90" />
+                                      </button>
+                                      <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                                        {progress.current_evidence_index + 1}/{progress.total_evidence_count}
+                                      </span>
+                                      <button
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          navigateEvidence(deal.id, 'next');
+                                        }}
+                                        className="p-1 rounded hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                                        disabled={progress.current_evidence_index >= progress.total_evidence_count - 1}
+                                      >
+                                        <ChevronDown className="w-3 h-3 -rotate-90" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                             
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-2 ml-4">
                               <button
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  analyzeTrackedTask(progress.task.task_key, progress.task);
+                                  analyzeDeal(deal.id, deal.title);
                                 }}
                                 disabled={isLoading || !canRegenerate}
                                 className={`p-1.5 rounded-full transition-all ${
@@ -5884,231 +6034,264 @@ return (
                                   <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                 )}
                               </button>
+                              
+                              <button
+                                onClick={async (e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  try {
+                                    const response = await fetch(
+                                      `${service_url_recall}/integrations/hubspot/deals/${deal.id}/untrack`,
+                                      {
+                                        method: 'DELETE',
+                                        headers: { Authorization: `Bearer ${session?.access_token}` }
+                                      }
+                                    );
+                                    
+                                    if (response.ok) {
+                                      await fetchTrackedHubSpotDeals();
+                                      console.log(`✓ Untracked HubSpot deal: ${deal.title}`);
+                                    }
+                                  } catch (error) {
+                                    console.error('Error untracking deal:', error);
+                                  }
+                                }}
+                                className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors group"
+                                title="Stop tracking this deal"
+                              >
+                                <Eye className="w-4 h-4 text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400" />
+                              </button>
+                              
                               <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
                             </div>
-                          </summary>
-                          
-                          <div className="p-3 mt-2 border-t border-gray-200 dark:border-gray-700">
-                            {hasAnalysis ? (
-                              <div className="space-y-2">
-                                <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                                  <div 
-                                    className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-                                    dangerouslySetInnerHTML={{ 
-                                      __html: analysis
-                                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                        .replace(/\n/g, '<br/>')
-                                    }}
-                                  />
-                                </div>
-                                {lastGenerated && (
-                                  <p className="text-xs text-gray-400">
-                                    Generated {new Date(lastGenerated).toLocaleTimeString()}
-                                  </p>
-                                )}
-                              </div>
-                            ) : (
-                              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                                {analysis === 'Generating analysis...' 
-                                  ? 'AI is analyzing this task...' 
-                                  : 'Click the ✨ icon to generate AI analysis'}
+                          </div>
+                        </summary>
+                        
+                        {/* Expanded Content */}
+                        <div className="p-4 mt-2 border-t border-gray-200 dark:border-gray-700 space-y-3">
+                          {/* Current Evidence Display */}
+                          {progress?.evidences && progress.evidences.length > 0 && (
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2">
+                                📝 Discussion Evidence ({progress.current_evidence_index + 1}/{progress.total_evidence_count}):
                               </p>
-                            )}
-                          </div>
-                        </details>
-                      );
-                    })
-                  ) : (
-                    /* Static list when no meeting active */
-                    staticTrackedTasks.map((task) => (
-                      <div key={task.task_key} className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                              {task.title}
-                            </p>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <span className="text-xs font-mono text-blue-500">{task.task_key}</span>
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${isDarkMode ? "bg-slate-700" : "bg-gray-200"}`}>
-                                {task.status}
-                              </span>
+                              {(() => {
+                                const currentEvidence = progress.evidences[progress.current_evidence_index];
+                                return (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between text-xs text-blue-600 dark:text-blue-400">
+                                      <span className="font-medium">{currentEvidence.primary_speaker}</span>
+                                      <span>{currentEvidence.timestamp}</span>
+                                    </div>
+                                    <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
+                                      {currentEvidence.text}
+                                    </p>
+                                    <div className="flex items-center justify-between pt-2 border-t border-blue-200 dark:border-blue-800">
+                                      <span className="text-xs text-blue-600 dark:text-blue-400">
+                                        Relevance: {(currentEvidence.relevance_score * 100).toFixed(0)}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </div>
-                          </div>
-                          <button
-                            onClick={() => removeTrackedTask(task.task_key)}
-                            className="ml-2 p-1.5 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-900/50 transition-colors"
-                            title="Stop tracking this task"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                          )}
+                          
+                          {/* AI Analysis */}
+                          {hasAnalysis && (
+                            <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                                🤖 AI Analysis:
+                              </p>
+                              <div 
+                                className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+                                dangerouslySetInnerHTML={{ 
+                                  __html: dealAnalyses[deal.id]
+                                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                    .replace(/\n/g, '<br/>')
+                                }}
+                              />
+                              {lastGenerated && (
+                                <p className="text-xs text-gray-400 mt-2">
+                                  Generated {new Date(lastGenerated).toLocaleTimeString()}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          
+                          {!progress && !hasAnalysis && (
+                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                              Click the ✨ icon to generate AI analysis
+                            </p>
+                          )}
                         </div>
-                      </div>
-                    ))
+                      </details>
+                    );
+                  })}
+                </div>
+                
+                {/* SYNC TO HUBSPOT BUTTON */}
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={syncProgressToHubSpot}
+                    disabled={syncingHubSpot}
+                    className={`w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                      syncingHubSpot
+                        ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                  >
+                    {syncingHubSpot ? (
+                      <Loader className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                    <span>
+                      {syncingHubSpot ? 'Syncing to HubSpot...' : 'Sync Progress to HubSpot'}
+                    </span>
+                  </button>
+                  {hubSpotSyncResults && (
+                    <div className="mt-2 text-xs text-center text-green-600 dark:text-green-400">
+                      ✓ Successfully synced {hubSpotSyncResults.length} deal(s)!
+                    </div>
                   )}
                 </div>
-
-                {/* Sync Button */}
-                {botId && (
-                  <button
-                    onClick={syncProgressToJira}
-                    disabled={syncing}
-                    className="w-full mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
-                  >
-                    {syncing ? (
-                      <>
-                        <Loader className="w-4 h-4 animate-spin" />
-                        <span>Syncing...</span>
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-4 h-4" />
-                        <span>Sync Progress to Jira</span>
-                      </>
-                    )}
-                  </button>
-                )}
               </div>
             )}
 
             {/* ADD THIS SETTINGS MODAL */}
-{showGoalSettingsModal && (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className={`w-full max-w-2xl rounded-2xl shadow-2xl ${
-            isDarkMode ? 'bg-gray-800' : 'bg-white'
-        } max-h-[90vh] overflow-y-auto`}>
-            <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    Goal Analysis Settings
-                </h2>
-                <button
-                    onClick={() => setShowGoalSettingsModal(false)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                    <X className="w-5 h-5 text-gray-900 dark:text-white" />
-                </button>
-            </div>
-            
-            <div className="p-6 space-y-6">
-                <div>
-    <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
-        Auto-Update Interval (seconds)
-    </label>
-    <input
-        type="number"
-        min="30" // Min is correctly 30
-        max="300"
-        // *** CHANGE 12: Use customGoalSettings variable ***
-        value={customGoalSettings.pollInterval / 1000} 
-        onChange={(e) => {
-            const val = Math.max(30, Math.min(300, parseInt(e.target.value))) * 1000;
-            // Use typed prev to avoid implicit any
-            setCustomGoalSettings((prev: typeof customGoalSettings) => ({ ...prev, pollInterval: val })); 
-        }}
-        className={`w-full px-4 py-3 border rounded-xl ${
-            isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
-        }`}
-    />
-</div>
-
-                <div>
-                    <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
-                        Output Format
-                    </label>
-                    <div className="flex gap-4">
-                        {['summary', 'detailed', 'speakers_only'].map((fmt) => (
-                            <label key={fmt} className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    value={fmt}
-                                    checked={goalSettings.format === fmt}
-                                    onChange={(e) => setGoalSettings(prev => ({ 
-                                        ...prev, 
-                                        format: e.target.value as any 
-                                    }))}
-                                    className="form-radio"
-                                />
-                                {/* MODIFIED: Added text contrast classes */}
-                                <span className="text-sm capitalize text-gray-900 dark:text-white">{fmt.replace('_', ' ')}</span>
-                            </label>
-                        ))}
+            {showGoalSettingsModal && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className={`w-full max-w-2xl rounded-2xl shadow-2xl ${
+                  isDarkMode ? 'bg-gray-800' : 'bg-white'
+                } max-h-[90vh] overflow-y-auto`}>
+                  <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                      Goal Analysis Settings
+                    </h2>
+                    <button
+                      onClick={() => setShowGoalSettingsModal(false)}
+                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  
+                  <div className="p-6 space-y-6">
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
+                        Auto-Update Interval (seconds)
+                      </label>
+                      <input
+                        type="number"
+                        min="30"
+                        max="300"
+                        value={goalSettings.pollInterval / 1000}
+                        onChange={(e) => {
+                          const val = Math.max(30, Math.min(300, parseInt(e.target.value))) * 1000;
+                          setGoalSettings(prev => ({ ...prev, pollInterval: val }));
+                        }}
+                        className={`w-full px-4 py-3 border rounded-xl ${
+                          isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
+                        }`}
+                      />
                     </div>
-                </div>
 
-                <div>
-                    <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
+                        Output Format
+                      </label>
+                      <div className="flex gap-4">
+                        {['summary', 'detailed', 'speakers_only'].map((fmt) => (
+                          <label key={fmt} className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              value={fmt}
+                              checked={goalSettings.format === fmt}
+                              onChange={(e) => setGoalSettings(prev => ({ 
+                                ...prev, 
+                                format: e.target.value as any 
+                              }))}
+                              className="form-radio"
+                            />
+                            <span className="text-sm capitalize">{fmt.replace('_', ' ')}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
                         Word Limit: {goalSettings.wordLimit}
-                    </label>
-                    <input
+                      </label>
+                      <input
                         type="range"
                         min="50"
                         max="500"
                         step="50"
                         value={goalSettings.wordLimit}
                         onChange={(e) => setGoalSettings(prev => ({ 
-                            ...prev, 
-                            wordLimit: parseInt(e.target.value) 
+                          ...prev, 
+                          wordLimit: parseInt(e.target.value) 
                         }))}
                         className="w-full"
-                    />
-                </div>
+                      />
+                    </div>
 
-                <div className="space-y-3">
-                    <label className="block text-sm font-semibold text-gray-900 dark:text-white">
+                    <div className="space-y-3">
+                      <label className="block text-sm font-semibold text-gray-900 dark:text-white">
                         Include in Analysis
-                    </label>
-                    {[
+                      </label>
+                      {[
                         { key: 'includeTimestamps', label: 'Timestamps' },
                         { key: 'includeSpeakers', label: 'Speaker Names' },
                         { key: 'includeInstances', label: 'Exact Quotes' },
-                    ].map(({ key, label }) => (
+                      ].map(({ key, label }) => (
                         <label key={key} className="flex items-center space-x-2">
-                            <input
-                                type="checkbox"
-                                checked={goalSettings[key as keyof typeof goalSettings] as boolean}
-                                onChange={(e) => setGoalSettings(prev => ({ 
-                                    ...prev, 
-                                    [key]: e.target.checked 
-                                }))}
-                                className="form-checkbox"
-                            />
-                            {/* MODIFIED: Added text contrast classes */}
-                            <span className="text-sm text-gray-900 dark:text-white">{label}</span>
+                          <input
+                            type="checkbox"
+                            checked={goalSettings[key as keyof typeof goalSettings] as boolean}
+                            onChange={(e) => setGoalSettings(prev => ({ 
+                              ...prev, 
+                              [key]: e.target.checked 
+                            }))}
+                            className="form-checkbox"
+                          />
+                          <span className="text-sm">{label}</span>
                         </label>
-                    ))}
-                </div>
+                      ))}
+                    </div>
 
-                <div>
-                    <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 text-gray-900 dark:text-white">
                         Additional Instructions (Optional)
-                    </label>
-                    <textarea
+                      </label>
+                      <textarea
                         value={goalSettings.promptExtension}
                         onChange={(e) => setGoalSettings(prev => ({ 
-                            ...prev, 
-                            promptExtension: e.target.value 
+                          ...prev, 
+                          promptExtension: e.target.value 
                         }))}
                         placeholder="e.g., Focus on buyer commitments only"
                         rows={3}
                         className={`w-full px-4 py-3 border rounded-xl ${
-                            isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
+                          isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'
                         }`}
-                    />
+                      />
+                    </div>
+                  </div>
+
+                  <div className={`p-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                    <button
+                      onClick={() => setShowGoalSettingsModal(false)}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800"
+                    >
+                      Save Settings
+                    </button>
+                  </div>
                 </div>
-            </div>
-
-            <div className={`p-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                <button
-                    onClick={() => setShowGoalSettingsModal(false)}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800"
-                >
-                    Save Settings
-                </button>
-            </div>
-        </div>
-    </div>
-)}
-
-            
+              </div>
+            )}
 
             {/* ADDED: Clear Sentiment Button */}
             <div className="mt-6 flex justify-left">
@@ -6201,27 +6384,6 @@ return (
                                   {card.role}
                                 </span>
                               </div>
-
-                              {/* ADDED: Mute/Unmute Button Next to Speaker Name */}
-                    <button
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            toggleMuteParticipant(card.speaker);
-                        }}
-                        className={`p-1.5 rounded-full transition-all ${
-                            mutedSpeakers.includes(card.speaker)
-                                ? "bg-red-500/20 text-red-500 hover:bg-red-500/30"
-                                : "text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700/50"
-                        }`}
-                        title={mutedSpeakers.includes(card.speaker) ? "Unmute Transcript" : "Mute Transcript"}
-                    >
-                        {mutedSpeakers.includes(card.speaker) ? (
-                            <MicOff className="w-4 h-4" />
-                        ) : (
-                            <Mic className="w-4 h-4" />
-                        )}
-                    </button>
 
                               <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400 mb-2">
                                 <span>
@@ -6539,7 +6701,7 @@ return (
                 >
                   Conversational AI Platform{" "}
                   <span className="ml-2 px-2 py-0.5 rounded bg-cerulean/10 text-cerulean text-xs">
-                    v2.1
+                    v1.7
                   </span>
                 </p>
               </div>
@@ -6695,7 +6857,7 @@ return (
                         : "bg-slate-800 text-slate-100"
                     }`}
                 >
-                  Content Hub
+                  Documents
                   <div
                     className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
                       isDarkMode ? "bg-slate-200" : "bg-slate-800"
@@ -6707,10 +6869,9 @@ return (
               <div className="relative group">
 
               {/*Integrations*/}
-              {/* Hiding as it is not functional currently */}
-              {/* <button
+              <button
                 onClick={() => {
-                  navigate("/integrations/jira");
+                  navigate("/integrations");
                   // Refresh tasks when user returns
                   setTimeout(() => fetchSelectedJiraTasks(), 500);
                 }}
@@ -6721,7 +6882,7 @@ return (
                 } backdrop-blur-sm`}
               >
                 <Puzzle className="w-5 h-5" />
-              </button> */}
+              </button>
               <div
                 className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 text-sm rounded-md 
                   opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none
@@ -7063,7 +7224,7 @@ return (
                       </div>
                     </div>
                     <div className="flex items-center space-x-1">
-                      {/* <button
+                      <button
                         onClick={() => downloadDocument(doc.filename)}
                         className={`p-2 ml-2 rounded-lg transition-all duration-300 hover:scale-105 ${
                           isDarkMode
@@ -7084,7 +7245,7 @@ return (
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
-                      </button> */}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -7177,13 +7338,28 @@ return (
                       </div>
                     ) : (
                       <div className="flex items-center space-x-1 text-gray-500">
-                       
-                        
+                        <MicOff className="w-4 h-4" />
+                        <span className="text-sm font-medium">Hot Mic Off</span>
                       </div>
                     )}
 
                     {/* Sliding Toggle Switch */}
-                   
+                    <button
+                      onClick={toggleListening}
+                      disabled={!isSupported}
+                      className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                        isListening
+                          ? "bg-blue-600"
+                          : "bg-gray-200 dark:bg-gray-700"
+                      }`}
+                    >
+                      <span className="sr-only">Toggle Mic</span>
+                      <span
+                        className={`inline-block w-4 h-4 transform rounded-full bg-white transition-transform ${
+                          isListening ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
                   </div>
 
                   {/* Bottom: Discrete "Powered by" and Switch Button */}
@@ -7416,37 +7592,91 @@ return (
                 {/* Auto-Mode Toggle and Manual Trigger */}
                 <div className="flex items-center space-x-2">
                   {/* Auto/Manual Mode Toggle */}
-                  
+                  <button
+                    onClick={() => setIsAutoMode(!isAutoMode)}
+                    className={`px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-200 ease-in-out hover:shadow-sm ${
+                      isAutoMode
+                        ? "bg-green-500 text-white hover:bg-green-600"
+                        : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                    }`}
+                  >
+                    {isAutoMode ? "Auto Mode ON" : "Manual Mode ON"}
+                  </button>
 
                   {/* Manual Question Trigger */}
-                  
-                 
+                  <button
+                    onClick={handleManualQuestionDetection}
+                    disabled={
+                      isTyping || isAutoMode || suggestedQuestions.length === 0
+                    }
+                    title={
+                      isAutoMode
+                        ? "Disable Auto-Mode to trigger manually"
+                        : "Generate question from recent transcript"
+                    }
+                    className={`relative px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-200 ease-in-out hover:shadow-sm ${
+                      isTyping || isAutoMode || suggestedQuestions.length === 0
+                        ? "bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-not-allowed"
+                        : "bg-blue-500 text-white hover:bg-blue-600"
+                    }`}
+                  >
+                    {suggestedQuestions.length > 0 &&
+                      !isAutoMode &&
+                      !isTyping && (
+                        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full animate-pulse border-2 border-white dark:border-blue-500"></span>
+                      )}
+                    <RefreshCw
+                      className={`w-3.5 h-3.5 ${
+                        isTyping ? "animate-spin" : ""
+                      }`}
+                    />
+                    <span>
+                      {isTyping ? "Answering..." : "Generate Question"}
+                    </span>
+                  </button>
                 </div>
 
-                
+                <button
+                  onClick={() => setAutoAnswerEnabled(!autoAnswerEnabled)}
+                  className={`px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-300 transform hover:scale-105 ${
+                    autoAnswerEnabled
+                      ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 shadow-lg"
+                      : "bg-gradient-to-r from-slate-400 to-slate-500 text-white hover:from-slate-500 hover:to-slate-600 shadow-lg"
+                  }`}
+                  title={
+                    autoAnswerEnabled ? "Auto-Answer: ON" : "Auto-Answer: OFF"
+                  }
+                >
+                  <span>
+                    {autoAnswerEnabled ? "Auto-Answer ON" : "Auto-Answer OFF"}
+                  </span>
+                </button>
 
                 <button
-    onClick={() => setShowHistory(!showHistory)}
-    className={`
-        p-3 rounded-xl transition-all duration-300 hover:scale-105 
-        **flex items-center justify-center gap-2** // <-- ADD THESE FLEX CLASSES
-        ${
-            showHistory
-                ? "bg-gradient-to-r from-cerulean to-berkeley-blue text-white shadow-lg"
-                : isDarkMode
-                ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
-                : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900"
-        }
-    `}
-    title="Toggle History"
->
-    <span className="inline-flex items-center **gap-2**">
-        History  
-        <History className="w-5 h-5" />
-    </span>
-</button>
+                  onClick={() => setShowHistory(!showHistory)}
+                  className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
+                    showHistory
+                      ? "bg-gradient-to-r from-cerulean to-berkeley-blue text-white shadow-lg"
+                      : isDarkMode
+                      ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
+                      : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900"
+                  }`}
+                  title="Toggle History"
+                >
+                  <History className="w-5 h-5" />
+                </button>
 
-               
+                <button
+                  onClick={clearChatHistory}
+                  className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
+                    isDarkMode
+                      ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
+                      : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900"
+                  }`}
+                  title="Clear Chat"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
               </div>
             </div>
           </div>

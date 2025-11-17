@@ -2132,6 +2132,7 @@ const AdminDashboard: React.FC = () => {
     // { id: "api_keys", label: "API Keys", icon: KeyRound },
     { id: "support", label: "Support", icon: HelpCircle },
     { id: "tutorial", label: "Tutorial", icon: BookOpen },
+    {id:"knowledge_base",label:"User Journey",icon:BookOpen}
   ];
 
   const handleViewDetails = (id: string) => setSelectedMeetingId(id);
@@ -2256,7 +2257,10 @@ const AdminDashboard: React.FC = () => {
         case "tutorial":
   navigate("/tutorial"); 
   return null;
-
+  
+  case "knowledge_base":
+    navigate("/knowledge_base");
+    return null;
 
       case "support":
         return (

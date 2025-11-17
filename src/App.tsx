@@ -15,6 +15,7 @@ import SpikedAIvexa from "./pages/SpikedAI_vexa";
 import ProtectedRoute from "./ProtectedRoute";
 import Integrations from './pages/Integrations';
 import TutorialsHub from "./pages/TutorialsHub";
+import KnowledgeBase from "./pages/knowledge_base";
 
 import JiraDashboard from './pages/JiraDashboard';
 
@@ -56,6 +57,7 @@ function App() {
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/integrations/jira" element={<JiraDashboard />} />
             <Route path="/tutorial" element={<TutorialsHub />} />
+            <Route path="/knowledge_base" element={<KnowledgeBase/>}/>
 
           </Route>
         </Route>

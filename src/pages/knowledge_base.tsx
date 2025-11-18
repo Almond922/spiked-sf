@@ -1,15 +1,19 @@
 import React, { useState, FormEvent, FC, useEffect } from 'react';
 import { Rocket, Mail, Lock, User, Zap, BookOpen, Settings, CheckCircle, XCircle, Clock, Send, Search, Bell, Menu, Tag, Users, Folder, Inbox, Filter } from 'lucide-react';
+// 1. Import useNavigate
+import { useNavigate } from 'react-router-dom';
 
 import KnowledgeSign from '../pages/knowledge_sign'
 import KnowledgePersona from '../pages/knowledge_persona'
 import KnowledgeDocx from '../pages/knowledge_docx'
+import KnowledgeNote from '../pages/knowledge_note'
 
+// --- TypeScript Interfaces ---
 interface SubQuestion {
-  id: string;
-  question: string;
-  answer: string;
-  type: 'form-demo' | 'verification-demo' | 'password-checker' | 'gmail-folders-demo'; 
+    id: string;
+    question: string;
+    answer: string;
+    type: 'form-demo' | 'verification-demo' | 'password-checker' | 'gmail-folders-demo'; 
 }
 interface Question { id: string; title: string; emoji: string; description: string; subQuestions?: SubQuestion[]; }
 interface Item { id: string; title: string; description: string; questions: Question[]; }
@@ -20,120 +24,120 @@ interface Topics { [key: string]: Topic; }
 // --- DEMO COMPONENT 1: SIGN UP FORM ---
 
 const SignUpFormDemo: FC = () => {
-  const [status, setStatus] = useState<'ready' | 'submitting' | 'success'>('ready');
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.target as HTMLFormElement;
-    const password = (form.elements.namedItem('password') as HTMLInputElement).value;
-    const confirmPassword = (form.elements.namedItem('confirm_password') as HTMLInputElement).value;
-    if (password !== confirmPassword) { console.error("Passwords do not match!"); return; }
-    setStatus('submitting');
-    setTimeout(() => { setStatus('success'); }, 1500);
-  };
+    const [status, setStatus] = useState<'ready' | 'submitting' | 'success'>('ready');
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const form = e.target as HTMLFormElement;
+        const password = (form.elements.namedItem('password') as HTMLInputElement).value;
+        const confirmPassword = (form.elements.namedItem('confirm_password') as HTMLInputElement).value;
+        if (password !== confirmPassword) { console.error("Passwords do not match!"); return; }
+        setStatus('submitting');
+        setTimeout(() => { setStatus('success'); }, 1500);
+    };
 
-  return (
-    <div style={{ aspectRatio: '1.2 / 1', maxWidth: '600px', minWidth: '350px' }} className="flex w-full h-full rounded-xl overflow-hidden shadow-2xl">
-      <div className="hidden md:flex flex-col justify-center items-center p-6 md:p-8 w-5/12 bg-[#1A1A1A] text-white">
-        <div className="text-center">
-          <div className="flex items-center justify-center mb-2">
-            <span className="text-4xl md:text-5xl text-red-600 font-extrabold mr-1">!</span>
-            <h2 className="text-xl md:text-2xl font-bold font-sans">SpikedAI</h2>
-          </div>
-          <p className="text-xs opacity-80 mb-4 font-sans">The Revenue OS Platform.</p>
+    return (
+        <div style={{ aspectRatio: '1.2 / 1', maxWidth: '600px', minWidth: '350px' }} className="flex w-full h-full rounded-xl overflow-hidden shadow-2xl">
+            <div className="hidden md:flex flex-col justify-center items-center p-6 md:p-8 w-5/12 bg-[#1A1A1A] text-white">
+                <div className="text-center">
+                    <div className="flex items-center justify-center mb-2">
+                        <span className="text-4xl md:text-5xl text-red-600 font-extrabold mr-1">!</span>
+                        <h2 className="text-xl md:text-2xl font-bold font-sans">SpikedAI</h2>
+                    </div>
+                    <p className="text-xs opacity-80 mb-4 font-sans">The Revenue OS Platform.</p>
+                </div>
+            </div>
+            <div className="w-full md:w-7/12 p-6 md:p-8 bg-white flex flex-col justify-center">
+                <h3 className="text-xl font-semibold text-gray-900 mb-1 font-sans">Create account</h3>
+                <p className="text-sm text-gray-500 mb-6 font-sans">Get started with your free account</p>
+                {status === 'success' ? (
+                    <div className="text-center p-6 bg-green-50 rounded-lg border border-green-200">
+                        <Zap className="w-6 h-6 mx-auto text-green-600 mb-3" />
+                        <p className="text-md font-medium text-green-700 font-sans">Success!</p>
+                        <p className="text-sm text-green-600 font-sans">Verification email sent. Check your inbox to activate your account.</p>
+                        <button 
+                            onClick={() => setStatus('ready')}
+                            className="mt-3 text-xs text-indigo-600 hover:text-indigo-800 font-medium font-sans"
+                        >
+                            Start Over
+                        </button>
+                    </div>
+                ) : (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                            <div><label htmlFor="first_name" className="text-xs font-medium text-gray-700 block mb-1 font-sans">First name</label><div className="relative"><User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" /><input type="text" id="first_name" name="first_name" placeholder="John" required className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" /></div></div>
+                            <div><label htmlFor="last_name" className="text-xs font-medium text-gray-700 block mb-1 font-sans">Last name</label><div className="relative"><User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" /><input type="text" id="last_name" name="last_name" placeholder="Doe" required className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" /></div></div>
+                            </div>
+                            <div><label htmlFor="email" className="text-xs font-medium text-gray-700 block mb-1 font-sans">Email address</label><div className="relative"><Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" /><input type="email" id="email" name="email" placeholder="john@company.com" required className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" /></div></div>
+                            <div><label htmlFor="password" className="text-xs font-medium text-gray-700 block mb-1 font-sans">Password</label><div className="relative"><Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" /><input type="password" id="password" name="password" placeholder="At least 8 characters" required className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" /></div></div>
+                            <div><label htmlFor="confirm_password" className="text-xs font-medium text-gray-700 block mb-1 font-sans">Confirm password</label><div className="relative"><Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" /><input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm your password" required className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" /></div></div>
+
+                            <button type="submit" disabled={status === 'submitting'} className="w-full py-2 bg-gray-900 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 transition duration-150 ease-in-out disabled:bg-gray-400 mt-4 font-sans">
+                                {status === 'submitting' ? 'Creating...' : 'Create account'}
+                            </button>
+                            <p className="text-center text-xs text-gray-500 mt-4 font-sans">Already have an account? <a href="#" className="text-indigo-600 hover:text-indigo-800 font-medium">Sign in</a></p>
+                        </form>
+                )}
+            </div>
         </div>
-      </div>
-      <div className="w-full md:w-7/12 p-6 md:p-8 bg-white flex flex-col justify-center">
-        <h3 className="text-xl font-semibold text-gray-900 mb-1 font-sans">Create account</h3>
-        <p className="text-sm text-gray-500 mb-6 font-sans">Get started with your free account</p>
-        {status === 'success' ? (
-          <div className="text-center p-6 bg-green-50 rounded-lg border border-green-200">
-            <Zap className="w-6 h-6 mx-auto text-green-600 mb-3" />
-            <p className="text-md font-medium text-green-700 font-sans">Success!</p>
-            <p className="text-sm text-green-600 font-sans">Verification email sent. Check your inbox to activate your account.</p>
-            <button 
-              onClick={() => setStatus('ready')}
-              className="mt-3 text-xs text-indigo-600 hover:text-indigo-800 font-medium font-sans"
-            >
-              Start Over
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-               <div className="grid grid-cols-2 gap-3">
-               <div><label htmlFor="first_name" className="text-xs font-medium text-gray-700 block mb-1 font-sans">First name</label><div className="relative"><User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" /><input type="text" id="first_name" name="first_name" placeholder="John" required className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" /></div></div>
-               <div><label htmlFor="last_name" className="text-xs font-medium text-gray-700 block mb-1 font-sans">Last name</label><div className="relative"><User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" /><input type="text" id="last_name" name="last_name" placeholder="Doe" required className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" /></div></div>
-             </div>
-             <div><label htmlFor="email" className="text-xs font-medium text-gray-700 block mb-1 font-sans">Email address</label><div className="relative"><Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" /><input type="email" id="email" name="email" placeholder="john@company.com" required className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" /></div></div>
-             <div><label htmlFor="password" className="text-xs font-medium text-gray-700 block mb-1 font-sans">Password</label><div className="relative"><Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" /><input type="password" id="password" name="password" placeholder="At least 8 characters" required className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" /></div></div>
-             <div><label htmlFor="confirm_password" className="text-xs font-medium text-gray-700 block mb-1 font-sans">Confirm password</label><div className="relative"><Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" /><input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm your password" required className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" /></div></div>
-
-             <button type="submit" disabled={status === 'submitting'} className="w-full py-2 bg-gray-900 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 transition duration-150 ease-in-out disabled:bg-gray-400 mt-4 font-sans">
-               {status === 'submitting' ? 'Creating...' : 'Create account'}
-             </button>
-             <p className="text-center text-xs text-gray-500 mt-4 font-sans">Already have an account? <a href="#" className="text-indigo-600 hover:text-indigo-800 font-medium">Sign in</a></p>
-           </form>
-        )}
-      </div>
-    </div>
-  );
+    );
 };
 
 
 // --- DEMO COMPONENT 2: VERIFICATION SUCCESS ---
 
 const VerificationSuccessDemo: FC = () => {
-  const [isConfirmed, setIsConfirmed] = useState(false);
+    const [isConfirmed, setIsConfirmed] = useState(false);
 
-  return (
-      <div style={{ aspectRatio: '1.2 / 1', maxWidth: '600px', minWidth: '350px' }} className="flex w-full h-full rounded-xl overflow-hidden shadow-2xl">
-          <div className="hidden md:flex flex-col justify-center items-center p-6 md:p-8 w-5/12 bg-[#1A1A1A] text-white">
-              <div className="text-center">
-                  <div className="flex items-center justify-center mb-2">
-                      <span className="text-4xl md:text-5xl text-red-600 font-extrabold mr-1">!</span>
-                      <h2 className="text-xl md:text-2xl font-bold font-sans">SpikedAI</h2>
-                  </div>
-                  <p className="text-xs opacity-80 mb-4 font-sans">The Revenue OS Platform.</p>
-              </div>
-          </div>
-          
-          <div className="w-full md:w-7/12 p-6 md:p-8 bg-white flex flex-col justify-center items-center text-center">
-              {isConfirmed ? (
-                  <div className="p-6 bg-green-50 rounded-lg border border-green-200 w-full">
-                      <Zap className="w-8 h-8 mx-auto text-green-600 mb-3" />
-                      <p className="text-xl font-bold text-green-700 font-sans mb-2">Email Confirmed!</p>
-                      <p className="text-sm text-green-600 font-sans">Your account is now active. Redirecting to login...</p>
-                      <button 
-                        onClick={() => setIsConfirmed(false)}
-                        className="mt-4 text-xs text-indigo-600 hover:text-indigo-800 font-medium font-sans"
-                      >
-                        Reset Demo
-                      </button>
-                  </div>
-              ) : (
-                  <>
-                      <h1 className="text-xl font-bold text-red-600 mb-1">Confirm your signup</h1>
-                      <p className="text-sm text-gray-700 mb-6">Welcome to SpikedAI 🚀</p>
-                      <p className="text-sm text-gray-600 mb-8">
-                          To complete your signup, click the button below:
-                      </p>
-                      <button 
-                        onClick={() => setIsConfirmed(true)}
-                        className="relative py-3 px-12 bg-red-600 text-white font-semibold rounded-full shadow-lg transition duration-300 ease-in-out hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-300 transform scale-100 hover:scale-105"
-                      >
-                          <span className="relative z-10">Confirm your email</span>
-                      </button>
-                      <div className="w-full h-px bg-gray-200 my-8"></div>
-                      <p className="text-xs text-gray-500">
-                          <span className="text-red-600">✽ Note:</span> Once logged in, please reset up your password.
-                      </p>
-                      <p className="text-xs text-gray-400">
-                          If you didn't sign up, you can safely ignore this email.
-                      </p>
-                  </>
-              )}
-          </div>
-      </div>
-  );
+    return (
+        <div style={{ aspectRatio: '1.2 / 1', maxWidth: '600px', minWidth: '350px' }} className="flex w-full h-full rounded-xl overflow-hidden shadow-2xl">
+            <div className="hidden md:flex flex-col justify-center items-center p-6 md:p-8 w-5/12 bg-[#1A1A1A] text-white">
+                <div className="text-center">
+                    <div className="flex items-center justify-center mb-2">
+                        <span className="text-4xl md:text-5xl text-red-600 font-extrabold mr-1">!</span>
+                        <h2 className="text-xl md:text-2xl font-bold font-sans">SpikedAI</h2>
+                    </div>
+                    <p className="text-xs opacity-80 mb-4 font-sans">The Revenue OS Platform.</p>
+                </div>
+            </div>
+            
+            <div className="w-full md:w-7/12 p-6 md:p-8 bg-white flex flex-col justify-center items-center text-center">
+                {isConfirmed ? (
+                    <div className="p-6 bg-green-50 rounded-lg border border-green-200 w-full">
+                        <Zap className="w-8 h-8 mx-auto text-green-600 mb-3" />
+                        <p className="text-xl font-bold text-green-700 font-sans mb-2">Email Confirmed!</p>
+                        <p className="text-sm text-green-600 font-sans">Your account is now active. Redirecting to login...</p>
+                        <button 
+                            onClick={() => setIsConfirmed(false)}
+                            className="mt-4 text-xs text-indigo-600 hover:text-indigo-800 font-medium font-sans"
+                        >
+                            Reset Demo
+                        </button>
+                    </div>
+                ) : (
+                    <>
+                        <h1 className="text-xl font-bold text-red-600 mb-1">Confirm your signup</h1>
+                        <p className="text-sm text-gray-700 mb-6">Welcome to SpikedAI 🚀</p>
+                        <p className="text-sm text-gray-600 mb-8">
+                            To complete your signup, click the button below:
+                        </p>
+                        <button 
+                            onClick={() => setIsConfirmed(true)}
+                            className="relative py-3 px-12 bg-red-600 text-white font-semibold rounded-full shadow-lg transition duration-300 ease-in-out hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-300 transform scale-100 hover:scale-105"
+                        >
+                            <span className="relative z-10">Confirm your email</span>
+                        </button>
+                        <div className="w-full h-px bg-gray-200 my-8"></div>
+                        <p className="text-xs text-gray-500">
+                            <span className="text-red-600">✽ Note:</span> Once logged in, please reset up your password.
+                        </p>
+                        <p className="text-xs text-gray-400">
+                            If you didn't sign up, you can safely ignore this email.
+                        </p>
+                    </>
+                )}
+            </div>
+        </div>
+    );
 };
 
 
@@ -142,18 +146,18 @@ const VerificationSuccessDemo: FC = () => {
 const PasswordCheckerDemo: FC = () => {
     const [password, setPassword] = useState('');
     const rules = [
-      { label: "Minimum 8 characters", regex: /.{8,}/, id: 'len' },
-      { label: "Upper & lowercase letters", regex: /(?=.*[a-z])(?=.*[A-Z])/, id: 'case' },
-      { label: "Include numbers", regex: /(?=.*\d)/, id: 'num' },
-      { label: "Special characters (!@#$%)", regex: /(?=.*[!@#$%^&*])/, id: 'special' },
+        { label: "Minimum 8 characters", regex: /.{8,}/, id: 'len' },
+        { label: "Upper & lowercase letters", regex: /(?=.*[a-z])(?=.*[A-Z])/, id: 'case' },
+        { label: "Include numbers", regex: /(?=.*\d)/, id: 'num' },
+        { label: "Special characters (!@#$%)", regex: /(?=.*[!@#$%^&*])/, id: 'special' },
     ];
     const metRulesCount = rules.filter(rule => rule.regex.test(password)).length;
     
     const getStrength = () => {
-      if (password.length === 0) return { label: 'Start typing', color: 'text-gray-400', width: 0 };
-      if (metRulesCount < 2) return { label: 'Weak', color: 'text-red-500', width: 25 };
-      if (metRulesCount < 4) return { label: 'Moderate', color: 'text-yellow-500', width: 75 };
-      return { label: 'Strong', color: 'text-green-500', width: 100 };
+        if (password.length === 0) return { label: 'Start typing', color: 'text-gray-400', width: 0 };
+        if (metRulesCount < 2) return { label: 'Weak', color: 'text-red-500', width: 25 };
+        if (metRulesCount < 4) return { label: 'Moderate', color: 'text-yellow-500', width: 75 };
+        return { label: 'Strong', color: 'text-green-500', width: 100 };
     };
     const strength = getStrength();
 
@@ -315,79 +319,82 @@ const GmailFoldersDemo: FC = () => {
 
 // --- TOPICS DATA STRUCTURE ---
 export const topics: Topics = {
-  gettingStarted: {
-    cardId: 'card-getting-started',
-    cardTitle: 'Getting Started',
-    cardDescription: 'Set up your spikedAI workspace...',
-    icon: <Rocket style={{ width: '20px', height: '20px' }} />,
-    emoji: '🚀',
-    items: [
-      {
-        id: 'signup',
-        title: 'Sign Up',
-        description: 'Create your spikedAI account and start exploring personalized meeting insights.',
-        questions: [
-          {
-            id: 'signup-flow',
-            title: 'Sign Up Process',
-            emoji: '🆕',
-            description: 'Simple steps to create your spikedAI account.',
-            subQuestions: [
-              {
-                id: 'signup-process',
-                question: 'How do I sign up for spikedAI?',
-                type: 'form-demo', 
-                answer: `<div id="signup-content-wrapper" style="line-height:1.8;color:#374151;font-size:15px;text-align: left;"><h2 style="font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #1f2937;">How to Sign Up</h2><p style="margin:0 0 20px 0;">The sign-up process in <strong>spikedAI</strong> is quick and straightforward. Follow these steps:</p><ol style="margin:0 0 20px 0;padding-left:20px;list-style-type:decimal;"><li style="margin:0 0 12px 0;">Navigate to the <strong>Sign Up</strong> page.</li><li style="margin:0 0 12px 0;">Fill in your details: First Name, Last Name, Email, and Password.</li><li style="margin:0 0 12px 0;">Click <strong>Create Account</strong> to submit the form.</li><li style="margin:0 0 12px 0;">Check your inbox for a verification email.</li><li style="margin:0;">Click <strong>Verify Email</strong> to activate your account.</li></ol><p style="margin:0;">After verification, you can immediately log in to your workspace and begin setting up your personalized AI.</p></div>`
-              },
-              {
-                id: 'signup-verify',
-                question: 'How do I verify my email after signing up?',
-                type: 'verification-demo', 
-                answer: `<div id="verify-content-wrapper" style="line-height:1.8;color:#374151;font-size:15px;text-align: left;"><h2 style="font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #1f2937;">Confirming Your Email</h2><p style="margin:0 0 20px 0;">Email verification activates your spikedAI account:</p><ol style="margin:0 0 20px 0;padding-left:20px;list-style-type:decimal;"><li style="margin:0 0 12px 0;">Open the email from <strong>spikedAI</strong> (arrives within 1-2 minutes)</li><li style="margin:0 0 12px 0;">Click the <strong>Confirm your email</strong> button (Try clicking the button on the right!)</li><li style="margin:0;">Your account activates instantly and you will be redirected to the login screen.</li></ol><p style="margin:0;padding:12px;background:#eef2ff;border-left:3px solid #4f46e5;border-radius:4px;font-size:14px;"><strong>Tip:</strong> If you don't receive the email, please check your <strong>Spam</strong> or <strong>Promotions</strong> folder.</p></div>`
-              },
-              {
-                id: 'signup-password',
-                question: 'What are the password requirements?',
-                type: 'password-checker',
-                answer: `<div style="line-height:1.8;color:#374151;font-size:15px;text-align: left;"><h2 style="font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #1f2937;">Setting a Strong Password</h2><p style="margin:0 0 20px 0;"><strong>spikedAI</strong> allows flexible passwords, but we recommend following security best practices:</p><div style="display:grid;grid-template-columns:1fr;gap:20px;margin:0 0 20px 0;"><div><p style="margin:0 0 12px 0;font-weight:600;">Recommended guidelines:</p><ul style="margin:0;padding-left:20px;"><li style="margin:0 0 8px 0;">Minimum <strong>8 characters</strong></li><li style="margin:0 0 8px 0;">Upper & lowercase letters</li><li style="margin:0 0 8px 0;">Include numbers</li><li style="margin:0;">Special characters (!@#$%)</li></ul></div><div><p style="margin:0 0 12px 0;font-weight:600;">Examples:</p><ul style="margin:0;padding-left:0;list-style:none;"><li style="margin:0 0 8px 0;font-family:monospace;">✓ SpikedAI2025! — <span style="color:#059669;">Strong</span></li><li style="margin:0 0 8px 0;font-family:monospace;">✓ Sales#Track24 — <span style="color:#059669;">Strong</span></li><li style="margin:0;font-family:monospace;">✗ password123 — <span style="color:#dc2626;">Weak</span></li></ul></div></div><p style="margin:0;padding:12px;background:#fefce8;border-left:3px solid #eab308;border-radius:4px;font-size:14px;"><strong>Try it out:</strong> Use the live checker on the right to test your password ideas against these rules.</p></div>`
-              },
-              {
-                id: 'signup-not-received',
-                question: 'I didn\'t receive my verification email. What should I do?',
-                type: 'gmail-folders-demo',
-                answer: `
-                  <div style="line-height:1.8;color:#374151;font-size:15px;text-align: left;">
-                    <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #1f2937;">Troubleshooting Email Delivery</h2>
-                    <p style="margin:0 0 20px 0;">If the verification email hasn't arrived, it's usually due to your email provider routing it to a separate folder. Follow these steps, referencing the demo on the right:</p>
-                    
-                    <ol style="margin:0 0 20px 0;padding-left:20px;">
-                      <li style="margin:0 0 10px 0;">First, check your <strong>Promotions</strong> tab.</li>
-                      <li style="margin:0 0 10px 0;">Next, check the <strong>Spam</strong> or <strong>Junk</strong> folders, as highlighted on the right.</li>
-                      <li style="margin:0 0 10px 0;"><strong>If you find it, click "Not Spam? Move to Inbox" on the right to simulate the action.</strong> This trains your mailbox.</li>
-                      <li style="margin:0;">If you still cannot find it, please contact <strong>support@spiked.ai</strong> for manual verification.</li>
-                    </ol>
+    gettingStarted: {
+        cardId: 'card-getting-started',
+        cardTitle: 'Getting Started',
+        cardDescription: 'Set up your spikedAI workspace...',
+        icon: <Rocket style={{ width: '20px', height: '20px' }} />,
+        emoji: '🚀',
+        items: [
+            {
+                id: 'signup',
+                title: 'Sign Up',
+                description: 'Create your spikedAI account and start exploring personalized meeting insights.',
+                questions: [
+                    {
+                        id: 'signup-flow',
+                        title: 'Sign Up Process',
+                        emoji: '🆕',
+                        description: 'Simple steps to create your spikedAI account.',
+                        subQuestions: [
+                            {
+                                id: 'signup-process',
+                                question: 'How do I sign up for spikedAI?',
+                                type: 'form-demo', 
+                                answer: `<div id="signup-content-wrapper" style="line-height:1.8;color:#374151;font-size:15px;text-align: left;"><h2 style="font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #1f2937;">How to Sign Up</h2><p style="margin:0 0 20px 0;">The sign-up process in <strong>spikedAI</strong> is quick and straightforward. Follow these steps:</p><ol style="margin:0 0 20px 0;padding-left:20px;list-style-type:decimal;"><li style="margin:0 0 12px 0;">Navigate to the <strong>Sign Up</strong> page.</li><li style="margin:0 0 12px 0;">Fill in your details: First Name, Last Name, Email, and Password.</li><li style="margin:0 0 12px 0;">Click <strong>Create Account</strong> to submit the form.</li><li style="margin:0 0 12px 0;">Check your inbox for a verification email.</li><li style="margin:0;">Click <strong>Verify Email</strong> to activate your account.</li></ol><p style="margin:0;">After verification, you can immediately log in to your workspace and begin setting up your personalized AI.</p></div>`
+                            },
+                            {
+                                id: 'signup-verify',
+                                question: 'How do I verify my email after signing up?',
+                                type: 'verification-demo', 
+                                answer: `<div id="verify-content-wrapper" style="line-height:1.8;color:#374151;font-size:15px;text-align: left;"><h2 style="font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #1f2937;">Confirming Your Email</h2><p style="margin:0 0 20px 0;">Email verification activates your spikedAI account:</p><ol style="margin:0 0 20px 0;padding-left:20px;list-style-type:decimal;"><li style="margin:0 0 12px 0;">Open the email from <strong>spikedAI</strong> (arrives within 1-2 minutes)</li><li style="margin:0 0 12px 0;">Click the <strong>Confirm your email</strong> button (Try clicking the button on the right!)</li><li style="margin:0;">Your account activates instantly and you will be redirected to the login screen.</li></ol><p style="margin:0;padding:12px;background:#eef2ff;border-left:3px solid #4f46e5;border-radius:4px;font-size:14px;"><strong>Tip:</strong> If you don't receive the email, please check your <strong>Spam</strong> or <strong>Promotions</strong> folder.</p></div>`
+                            },
+                            {
+                                id: 'signup-password',
+                                question: 'What are the password requirements?',
+                                type: 'password-checker',
+                                answer: `<div style="line-height:1.8;color:#374151;font-size:15px;text-align: left;"><h2 style="font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #1f2937;">Setting a Strong Password</h2><p style="margin:0 0 20px 0;"><strong>spikedAI</strong> allows flexible passwords, but we recommend following security best practices:</p><div style="display:grid;grid-template-columns:1fr;gap:20px;margin:0 0 20px 0;"><div><p style="margin:0 0 12px 0;font-weight:600;">Recommended guidelines:</p><ul style="margin:0;padding-left:20px;"><li style="margin:0 0 8px 0;">Minimum <strong>8 characters</strong></li><li style="margin:0 0 8px 0;">Upper & lowercase letters</li><li style="margin:0 0 8px 0;">Include numbers</li><li style="margin:0;">Special characters (!@#$%)</li></ul></div><div><p style="margin:0 0 12px 0;font-weight:600;">Examples:</p><ul style="margin:0;padding-left:0;list-style:none;"><li style="margin:0 0 8px 0;font-family:monospace;">✓ SpikedAI2025! — <span style="color:#059669;">Strong</span></li><li style="margin:0 0 8px 0;font-family:monospace;">✓ Sales#Track24 — <span style="color:#059669;">Strong</span></li><li style="margin:0;font-family:monospace;">✗ password123 — <span style="color:#dc2626;">Weak</span></li></ul></div></div><p style="margin:0;padding:12px;background:#fefce8;border-left:3px solid #eab308;border-radius:4px;font-size:14px;"><strong>Try it out:</strong> Use the live checker on the right to test your password ideas against these rules.</p></div>`
+                            },
+                            {
+                                id: 'signup-not-received',
+                                question: 'I didn\'t receive my verification email. What should I do?',
+                                type: 'gmail-folders-demo',
+                                answer: `
+                                    <div style="line-height:1.8;color:#374151;font-size:15px;text-align: left;">
+                                        <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #1f2937;">Troubleshooting Email Delivery</h2>
+                                        <p style="margin:0 0 20px 0;">If the verification email hasn't arrived, it's usually due to your email provider routing it to a separate folder. Follow these steps, referencing the demo on the right:</p>
+                                        
+                                        <ol style="margin:0 0 20px 0;padding-left:20px;">
+                                            <li style="margin:0 0 10px 0;">First, check your <strong>Promotions</strong> tab.</li>
+                                            <li style="margin:0 0 10px 0;">Next, check the <strong>Spam</strong> or <strong>Junk</strong> folders, as highlighted on the right.</li>
+                                            <li style="margin:0 0 10px 0;"><strong>If you find it, click "Not Spam? Move to Inbox" on the right to simulate the action.</strong> This trains your mailbox.</li>
+                                            <li style="margin:0;">If you still cannot find it, please contact <strong>support@spiked.ai</strong> for manual verification.</li>
+                                        </ol>
 
-                    <p style="margin:0;padding:12px;background:#f9fafb;border-left:3px solid #EAB308;border-radius:4px;font-size:14px;">
-                      <strong>Tip:</strong> Click on the folder names (Spam, Junk, Promotions) in the demo to see where your email might be hiding!
-                    </p>
-                  </div>
-                `
-              },
-            ], 
-          }, 
+                                        <p style="margin:0;padding:12px;background:#f9fafb;border-left:3px solid #EAB308;border-radius:4px;font-size:14px;">
+                                            <strong>Tip:</strong> Click on the folder names (Spam, Junk, Promotions) in the demo to see where your email might be hiding!
+                                        </p>
+                                    </div>
+                                `
+                            },
+                        ], 
+                    }, 
+                ], 
+            }, 
         ], 
-      }, 
-    ], 
-  }, 
+    }, 
 }; 
 
 // --- MAIN APP COMPONENT ---
 
 const App: FC = () => {
+    // 2. Initialize useNavigate
+    const navigate = useNavigate();
+
     // Setting initial state to the email troubleshooting article
     const [currentArticleId, setCurrentArticleId] = useState<'signup-process' | 'signup-verify' | 'signup-password' | 'signup-not-received'>('signup-not-received'); 
     
-    // --- NEW TTS STATE ---
+    // --- TTS STATE ---
     const [isSpeaking, setIsSpeaking] = useState(false); 
     // ----------------------
 
@@ -397,7 +404,7 @@ const App: FC = () => {
     const topicData = subQuestions.find(sq => sq.id === currentArticleId)!;
     const textContent = topicData.answer;
 
-    // --- NEW TTS LOGIC ---
+    // --- TTS LOGIC ---
     const handleSpeak = () => {
         // 1. Stop any speech currently in progress
         window.speechSynthesis.cancel();
@@ -456,8 +463,23 @@ const App: FC = () => {
 
     return (
         <div className="p-6 md:p-10 bg-gray-50 min-h-screen font-inter">
+            
+            {/* NEW: Back to Dashboard Button */}
+            <div className="max-w-6xl mx-auto flex">
+                
+                <button
+                    onClick={() => navigate('/admin')} // 3. Implement navigation logic
+                    className="flex items-center text-sm font-medium text-gray-500 mb-6 hover:text-indigo-600 transition duration-150 cursor-pointer p-1 -ml-1 rounded"
+                >
+                    <Settings className="w-4 h-4 mr-1.5" />
+                    <span>Back to Dashboard</span>
+                </button>
+               
+            </div>
+            
+            
             <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 max-w-6xl mx-auto">
-             
+               
                 <div className="flex border-b border-gray-200 mb-6">
                     <BookOpen className="w-5 h-5 text-gray-400 mr-2 self-center" />
                     {subQuestions.map((q) => (
@@ -492,12 +514,11 @@ const App: FC = () => {
                             </>
                         ) : (
                             <>
-                                <Send className="w-4 h-4 mr-1 transform -rotate-45" /> Listen
+                                <Send className="w-4 h-4 mr-1 transform -rotate-45" /> Read Aloud
                             </>
                         )}
                     </button>
                 </h1>
-                {/* ------------------------------------------- */}
                 
                 {/* Two-Column Layout (Instructions on Left, Interactive Demo on Right) */}
                 <div 
@@ -515,11 +536,13 @@ const App: FC = () => {
                 
                 
             </div>
-           
+            
             <div>
+                {/* Assuming these components are defined elsewhere and are needed here */}
                 <KnowledgeSign/>
                 <KnowledgePersona/>
                 <KnowledgeDocx/>
+                <KnowledgeNote/>
             </div>
         </div>
         

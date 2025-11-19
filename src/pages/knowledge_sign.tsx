@@ -1,11 +1,8 @@
 import React, { useState, FormEvent, FC, useEffect } from 'react';
 import { Rocket, Mail, Lock, User, Zap, BookOpen, Settings, CheckCircle, XCircle, Clock, Send, Search, Bell, Menu, Tag, Users, Folder, Inbox, Filter, LogIn, Volume2 } from 'lucide-react';
-// Note: Assuming '../pages/knowledge_sign' is a component you want to keep.
-// import KnowledgeSign from '../pages/knowledge_sign' 
 
 // --- INTERFACES (Typescript Definitions) ---
 
-// Updated SubQuestion type for Sign-In related demos
 interface SubQuestion {
   id: string;
   question: string;
@@ -20,94 +17,64 @@ interface Topics { [key: string]: Topic; }
 
 // --- CUSTOM HOOK: SPEECH SYNTHESIS ---
 
-/**
- * Custom Hook to handle text-to-speech functionality.
- * It will read the content of the article.
- * @param contentHTML The HTML content of the article to be read.
- */
 const useSpeechSynthesis = (contentHTML: string) => {
-    const [isSpeaking, setIsSpeaking] = useState(false);
-    const [isSupported, setIsSupported] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isSupported, setIsSupported] = useState(false);
 
-    useEffect(() => {
-        // Check if the browser supports the Web Speech API
-        if ('speechSynthesis' in window) {
-            setIsSupported(true);
-        }
-    }, []);
+  useEffect(() => {
+    if ('speechSynthesis' in window) {
+      setIsSupported(true);
+    }
+  }, []);
 
-    // Function to strip HTML tags and convert entities for clean speech
-    const stripHtml = (html: string) => {
-        // Simple stripping: replace tags with space, then normalize whitespace
-        let text = html.replace(/<[^>]+>/g, ' '); 
-        
-        // Convert some common HTML entities
-        text = text.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
+  const stripHtml = (html: string) => {
+    let text = html.replace(/<[^>]+>/g, ' '); 
+    text = text.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
+    text = text.replace(/style="[^"]*"/g, '');
+    text = text.replace(/<div id="[a-z\-]+-content-wrapper"[^>]*>([\s\S]*?)<\/div>/i, '$1');
+    text = text.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (match, p1) => `. ${p1.trim()}`);
+    text = text.replace(/<\/?(strong|b)[^>]*>/gi, ''); 
+    return text.trim().replace(/\s+/g, ' ');
+  };
 
-        // Remove the style attribute from HTML elements (it often adds noise)
-        text = text.replace(/style="[^"]*"/g, '');
-        
-        // Remove content from inside the `div` wrapper for cleaner speech start
-        text = text.replace(/<div id="[a-z\-]+-content-wrapper"[^>]*>([\s\S]*?)<\/div>/i, '$1');
-        
-        // Remove list bullets/numbers which might be read poorly
-        text = text.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (match, p1) => `. ${p1.trim()}`);
-        
-        // Replace bold/strong tags with a pause or emphasis cue (can be complex, often better left simple)
-        text = text.replace(/<\/?(strong|b)[^>]*>/gi, ''); 
+  const speak = () => {
+    if (!isSupported || !contentHTML) return;
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
 
-        return text.trim().replace(/\s+/g, ' '); // Normalize whitespace
-    };
-
-
-    const speak = () => {
-        if (!isSupported || !contentHTML) return;
-
-        // Stop any current speech before starting a new one
-        window.speechSynthesis.cancel();
-        setIsSpeaking(false);
-
-        const textToSpeak = stripHtml(contentHTML);
-
-        const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        
-        utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => setIsSpeaking(false);
-        
-        // Optional: Set voice, pitch, rate
-        // utterance.voice = window.speechSynthesis.getVoices().find(v => v.lang === 'en-US');
-        utterance.rate = 1.0; // speed
-        utterance.pitch = 1.0; // tone
-
-        window.speechSynthesis.speak(utterance);
-    };
-
-    const stop = () => {
-        if (isSupported && isSpeaking) {
-            window.speechSynthesis.cancel();
-            setIsSpeaking(false);
-        }
-    };
+    const textToSpeak = stripHtml(contentHTML);
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
     
-    // Cleanup function: stop speech when the component unmounts or the content changes
-    useEffect(() => {
-        // When content changes, stop the previous speech
-        stop();
-        // Speak the new content automatically
-        if (contentHTML) {
-            // Add a slight delay to ensure browser speech system is ready for the new text
-            const timeoutId = setTimeout(speak, 50); 
-            return () => clearTimeout(timeoutId);
-        }
-        
-        return () => {
-            stop(); // Cleanup when unmounting
-        };
-    }, [contentHTML]); // Re-run effect when the article content changes
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
 
-    return { speak, stop, isSpeaking, isSupported };
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stop = () => {
+    if (isSupported && isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+  };
+  
+  useEffect(() => {
+    stop();
+    if (contentHTML) {
+      const timeoutId = setTimeout(speak, 50); 
+      return () => clearTimeout(timeoutId);
+    }
+    return () => {
+      stop();
+    };
+  }, [contentHTML]);
+
+  return { speak, stop, isSpeaking, isSupported };
 };
+
 
 // --- DEMO COMPONENT 1: SIGN IN FORM ---
 
@@ -130,7 +97,6 @@ const SignInFormDemo: FC = () => {
       } else {
         setErrorMessage("Invalid credentials. Please check your email and password.");
         setStatus('error');
-        // Reset after 3 seconds
         setTimeout(() => setStatus('ready'), 3000);
       }
     }, 1500);
@@ -204,256 +170,256 @@ const SignInFormDemo: FC = () => {
 // --- DEMO COMPONENT 2: PASSWORD RESET FLOW ---
 
 const PasswordResetDemo: FC = () => {
-    const [step, setStep] = useState<'email' | 'linkSent' | 'resetForm'>('email');
-    const [email, setEmail] = useState('');
-    
-    const handleEmailSubmit = (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setStep('linkSent');
-    };
+  const [step, setStep] = useState<'email' | 'linkSent' | 'resetForm'>('email');
+  const [email, setEmail] = useState('');
+  
+  const handleEmailSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setStep('linkSent');
+  };
 
-    const handleResetPassword = (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        alert('Password successfully reset! Proceeding to Sign In.');
-        setStep('email'); // Reset demo
-    };
+  const handleResetPassword = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    alert('Password successfully reset! Proceeding to Sign In.');
+    setStep('email'); 
+  };
 
-    return (
-        <div style={{ aspectRatio: '1.2 / 1', maxWidth: '600px', minWidth: '350px' }} className="flex w-full h-full rounded-xl overflow-hidden shadow-2xl">
-            <div className="hidden md:flex flex-col justify-center items-center p-6 md:p-8 w-5/12 bg-[#1A1A1A] text-white">
-                <div className="text-center">
-                    <div className="flex items-center justify-center mb-2">
-                        <span className="text-4xl md:text-5xl text-red-600 font-extrabold mr-1">!</span>
-                        <h2 className="text-xl md:text-2xl font-bold font-sans">SpikedAI</h2>
-                    </div>
-                    <p className="text-xs opacity-80 mb-4 font-sans">Password Recovery.</p>
-                </div>
-            </div>
-            <div className="w-full md:w-7/12 p-6 md:p-8 bg-white flex flex-col justify-center">
-                <h3 className="text-xl font-semibold text-gray-900 mb-1 font-sans">
-                    {step === 'email' ? 'Forgot Password?' : step === 'linkSent' ? 'Check Your Email' : 'Set New Password'}
-                </h3>
-                <p className="text-sm text-gray-500 mb-6 font-sans">
-                    {step === 'email' ? 'Enter your registered email to receive a reset link.' : 
-                     step === 'linkSent' ? `A link has been sent to ${email}.` :
-                     'Enter and confirm your new password.'}
-                </p>
-
-                {step === 'email' && (
-                    <form onSubmit={handleEmailSubmit} className="space-y-4">
-                        <div>
-                            <label htmlFor="reset-email" className="text-xs font-medium text-gray-700 block mb-1 font-sans">Email address</label>
-                            <div className="relative">
-                                <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                                <input 
-                                    type="email" 
-                                    id="reset-email" 
-                                    name="reset-email" 
-                                    placeholder="john@company.com" 
-                                    required 
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" 
-                                />
-                            </div>
-                        </div>
-                        <button type="submit" className="w-full py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150">
-                            Send Reset Link
-                        </button>
-                    </form>
-                )}
-
-                {step === 'linkSent' && (
-                    <div className="text-center p-6 bg-yellow-50 rounded-lg border border-yellow-200">
-                        <Send className="w-6 h-6 mx-auto text-yellow-600 mb-3" />
-                        <p className="text-md font-medium text-yellow-700 font-sans mb-3">Password reset link sent!</p>
-                        <p className="text-sm text-yellow-600 font-sans mb-4">Please check your inbox and click the link. (Simulate the link click below)</p>
-                        <button 
-                            onClick={() => setStep('resetForm')}
-                            className="text-sm py-2 px-4 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition"
-                        >
-                            Simulate Link Click / Go to Reset Form
-                        </button>
-                    </div>
-                )}
-
-                {step === 'resetForm' && (
-                    <form onSubmit={handleResetPassword} className="space-y-4">
-                        <div>
-                            <label htmlFor="new_password" className="text-xs font-medium text-gray-700 block mb-1 font-sans">New Password</label>
-                            <div className="relative">
-                                <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                                <input type="password" id="new_password" name="new_password" placeholder="Minimum 8 characters" required className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" />
-                            </div>
-                        </div>
-                        <div>
-                            <label htmlFor="confirm_new_password" className="text-xs font-medium text-gray-700 block mb-1 font-sans">Confirm New Password</label>
-                            <div className="relative">
-                                <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                                <input type="password" id="confirm_new_password" name="confirm_new_password" placeholder="Confirm your new password" required className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" />
-                            </div>
-                        </div>
-                        <button type="submit" className="w-full py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-150">
-                            Reset Password
-                        </button>
-                    </form>
-                )}
-            </div>
+  return (
+    <div style={{ aspectRatio: '1.2 / 1', maxWidth: '600px', minWidth: '350px' }} className="flex w-full h-full rounded-xl overflow-hidden shadow-2xl">
+      <div className="hidden md:flex flex-col justify-center items-center p-6 md:p-8 w-5/12 bg-[#1A1A1A] text-white">
+        <div className="text-center">
+          <div className="flex items-center justify-center mb-2">
+            <span className="text-4xl md:text-5xl text-red-600 font-extrabold mr-1">!</span>
+            <h2 className="text-xl md:text-2xl font-bold font-sans">SpikedAI</h2>
+          </div>
+          <p className="text-xs opacity-80 mb-4 font-sans">Password Recovery.</p>
         </div>
-    );
+      </div>
+      <div className="w-full md:w-7/12 p-6 md:p-8 bg-white flex flex-col justify-center">
+        <h3 className="text-xl font-semibold text-gray-900 mb-1 font-sans">
+          {step === 'email' ? 'Forgot Password?' : step === 'linkSent' ? 'Check Your Email' : 'Set New Password'}
+        </h3>
+        <p className="text-sm text-gray-500 mb-6 font-sans">
+          {step === 'email' ? 'Enter your registered email to receive a reset link.' : 
+            step === 'linkSent' ? `A link has been sent to ${email}.` :
+            'Enter and confirm your new password.'}
+        </p>
+
+        {step === 'email' && (
+          <form onSubmit={handleEmailSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="reset-email" className="text-xs font-medium text-gray-700 block mb-1 font-sans">Email address</label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <input 
+                  type="email" 
+                  id="reset-email" 
+                  name="reset-email" 
+                  placeholder="john@company.com" 
+                  required 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" 
+                />
+              </div>
+            </div>
+            <button type="submit" className="w-full py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150">
+              Send Reset Link
+            </button>
+          </form>
+        )}
+
+        {step === 'linkSent' && (
+          <div className="text-center p-6 bg-yellow-50 rounded-lg border border-yellow-200">
+            <Send className="w-6 h-6 mx-auto text-yellow-600 mb-3" />
+            <p className="text-md font-medium text-yellow-700 font-sans mb-3">Password reset link sent!</p>
+            <p className="text-sm text-yellow-600 font-sans mb-4">Please check your inbox and click the link. (Simulate the link click below)</p>
+            <button 
+              onClick={() => setStep('resetForm')}
+              className="text-sm py-2 px-4 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition"
+            >
+              Simulate Link Click / Go to Reset Form
+            </button>
+          </div>
+        )}
+
+        {step === 'resetForm' && (
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <div>
+              <label htmlFor="new_password" className="text-xs font-medium text-gray-700 block mb-1 font-sans">New Password</label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <input type="password" id="new_password" name="new_password" placeholder="Minimum 8 characters" required className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="confirm_new_password" className="text-xs font-medium text-gray-700 block mb-1 font-sans">Confirm New Password</label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <input type="password" id="confirm_new_password" name="confirm_new_password" placeholder="Confirm your new password" required className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" />
+              </div>
+            </div>
+            <button type="submit" className="w-full py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-150">
+              Reset Password
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
 };
 
 
 // --- DEMO COMPONENT 3: MFA (2FA) DEMO ---
 
 const MFADemo: FC = () => {
-    const [step, setStep] = useState<'code' | 'verified' | 'error'>('code');
-    const [code, setCode] = useState('');
+  const [step, setStep] = useState<'code' | 'verified' | 'error'>('code');
+  const [code, setCode] = useState('');
 
-    const handleCodeSubmit = (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        if (code === '123456') {
-            setStep('verified');
-            setTimeout(() => setStep('code'), 3000);
-        } else {
-            setStep('error');
-            setTimeout(() => { setStep('code'); setCode(''); }, 1500);
-        }
-    };
+  const handleCodeSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (code === '123456') {
+      setStep('verified');
+      setTimeout(() => setStep('code'), 3000);
+    } else {
+      setStep('error');
+      setTimeout(() => { setStep('code'); setCode(''); }, 1500);
+    }
+  };
 
-    return (
-        <div style={{ aspectRatio: '1.2 / 1', maxWidth: '600px', minWidth: '350px' }} className="flex w-full h-full rounded-xl overflow-hidden shadow-2xl">
-            <div className="hidden md:flex flex-col justify-center items-center p-6 md:p-8 w-5/12 bg-[#1A1A1A] text-white">
-                <div className="text-center">
-                    <div className="flex items-center justify-center mb-2">
-                        <span className="text-4xl md:text-5xl text-red-600 font-extrabold mr-1">!</span>
-                        <h2 className="text-xl md:text-2xl font-bold font-sans">SpikedAI</h2>
-                    </div>
-                    <p className="text-xs opacity-80 mb-4 font-sans">Security Check.</p>
-                </div>
-            </div>
-            <div className="w-full md:w-7/12 p-6 md:p-8 bg-white flex flex-col justify-center">
-                <h3 className="text-xl font-semibold text-gray-900 mb-1 font-sans">Two-Factor Authentication</h3>
-                <p className="text-sm text-gray-500 mb-6 font-sans">Enter the 6-digit code from your authenticator app.</p>
-
-                {step === 'verified' && (
-                    <div className="text-center p-6 bg-green-50 rounded-lg border border-green-200">
-                        <CheckCircle className="w-6 h-6 mx-auto text-green-600 mb-3" />
-                        <p className="text-md font-medium text-green-700 font-sans">Code Verified!</p>
-                        <p className="text-sm text-green-600 font-sans">Access granted to the dashboard.</p>
-                    </div>
-                )}
-
-                {step === 'error' && (
-                    <div className="text-center p-6 bg-red-50 rounded-lg border border-red-200">
-                        <XCircle className="w-6 h-6 mx-auto text-red-600 mb-3" />
-                        <p className="text-md font-medium text-red-700 font-sans">Error!</p>
-                        <p className="text-sm text-red-600 font-sans">Invalid code. Please try again. (Simulated)</p>
-                    </div>
-                )}
-                
-                {step === 'code' && (
-                    <form onSubmit={handleCodeSubmit} className="space-y-4">
-                        <div>
-                            <label htmlFor="mfa-code" className="text-xs font-medium text-gray-700 block mb-1 font-sans">Authentication Code (Hint: 123456)</label>
-                            <div className="relative">
-                                <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                                <input 
-                                    type="text" 
-                                    id="mfa-code" 
-                                    name="mfa-code" 
-                                    placeholder="e.g., 123456" 
-                                    required 
-                                    maxLength={6}
-                                    value={code}
-                                    onChange={(e) => setCode(e.target.value)}
-                                    className="w-full p-2 pl-9 text-center tracking-widest text-lg border-2 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" 
-                                />
-                            </div>
-                        </div>
-                        <button type="submit" className="w-full py-2 bg-gray-900 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition duration-150">
-                            Verify Code
-                        </button>
-                    </form>
-                )}
-                <p className="text-center text-xs text-gray-500 mt-4 font-sans">
-                    <a href="#" className="text-indigo-600 hover:text-indigo-800 font-medium">Lost your device?</a>
-                </p>
-            </div>
+  return (
+    <div style={{ aspectRatio: '1.2 / 1', maxWidth: '600px', minWidth: '350px' }} className="flex w-full h-full rounded-xl overflow-hidden shadow-2xl">
+      <div className="hidden md:flex flex-col justify-center items-center p-6 md:p-8 w-5/12 bg-[#1A1A1A] text-white">
+        <div className="text-center">
+          <div className="flex items-center justify-center mb-2">
+            <span className="text-4xl md:text-5xl text-red-600 font-extrabold mr-1">!</span>
+            <h2 className="text-xl md:text-2xl font-bold font-sans">SpikedAI</h2>
+          </div>
+          <p className="text-xs opacity-80 mb-4 font-sans">Security Check.</p>
         </div>
-    );
+      </div>
+      <div className="w-full md:w-7/12 p-6 md:p-8 bg-white flex flex-col justify-center">
+        <h3 className="text-xl font-semibold text-gray-900 mb-1 font-sans">Two-Factor Authentication</h3>
+        <p className="text-sm text-gray-500 mb-6 font-sans">Enter the 6-digit code from your authenticator app.</p>
+
+        {step === 'verified' && (
+          <div className="text-center p-6 bg-green-50 rounded-lg border border-green-200">
+            <CheckCircle className="w-6 h-6 mx-auto text-green-600 mb-3" />
+            <p className="text-md font-medium text-green-700 font-sans">Code Verified!</p>
+            <p className="text-sm text-green-600 font-sans">Access granted to the dashboard.</p>
+          </div>
+        )}
+
+        {step === 'error' && (
+          <div className="text-center p-6 bg-red-50 rounded-lg border border-red-200">
+            <XCircle className="w-6 h-6 mx-auto text-red-600 mb-3" />
+            <p className="text-md font-medium text-red-700 font-sans">Error!</p>
+            <p className="text-sm text-red-600 font-sans">Invalid code. Please try again. (Simulated)</p>
+          </div>
+        )}
+        
+        {step === 'code' && (
+          <form onSubmit={handleCodeSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="mfa-code" className="text-xs font-medium text-gray-700 block mb-1 font-sans">Authentication Code (Hint: 123456)</label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <input 
+                  type="text" 
+                  id="mfa-code" 
+                  name="mfa-code" 
+                  placeholder="e.g., 123456" 
+                  required 
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="w-full p-2 pl-9 text-center tracking-widest text-lg border-2 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition font-sans" 
+                />
+              </div>
+            </div>
+            <button type="submit" className="w-full py-2 bg-gray-900 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition duration-150">
+              Verify Code
+            </button>
+          </form>
+        )}
+        <p className="text-center text-xs text-gray-500 mt-4 font-sans">
+          <a href="#" className="text-indigo-600 hover:text-indigo-800 font-medium">Lost your device?</a>
+        </p>
+      </div>
+    </div>
+  );
 };
 
 
 // --- DEMO COMPONENT 4: SSO FLOW DEMO ---
 
 const SSOFlowDemo: FC = () => {
-    const [status, setStatus] = useState<'ready' | 'redirecting' | 'authenticated'>('ready');
+  const [status, setStatus] = useState<'ready' | 'redirecting' | 'authenticated'>('ready');
 
-    const handleSSO = () => {
-        setStatus('redirecting');
-        setTimeout(() => {
-            setStatus('authenticated');
-        }, 2000);
-    };
+  const handleSSO = () => {
+    setStatus('redirecting');
+    setTimeout(() => {
+      setStatus('authenticated');
+    }, 2000);
+  };
 
-    return (
-        <div style={{ maxWidth: '600px', minWidth: '350px' }} className="w-full p-6 bg-white rounded-xl shadow-2xl border border-gray-100 min-h-[400px] flex flex-col justify-center items-center">
-            
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">Single Sign-On (SSO) Demo</h3>
-            
-            {status === 'authenticated' ? (
-                <div className="text-center p-6 bg-green-50 rounded-lg border border-green-200 w-full">
-                    <CheckCircle className="w-8 h-8 mx-auto text-green-600 mb-3" />
-                    <p className="text-xl font-bold text-green-700 font-sans mb-2">SSO Successful!</p>
-                    <p className="text-sm text-green-600 font-sans">You have been authenticated via your corporate provider.</p>
-                    <button 
-                        onClick={() => setStatus('ready')}
-                        className="mt-4 text-xs text-indigo-600 hover:text-indigo-800 font-medium font-sans"
-                    >
-                        Reset Demo
-                    </button>
-                </div>
-            ) : (
-                <>
-                    <button 
-                        onClick={handleSSO} 
-                        disabled={status === 'redirecting'}
-                        className="w-full max-w-sm py-3 px-6 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 disabled:bg-indigo-400 flex items-center justify-center mb-4"
-                    >
-                        {status === 'redirecting' ? (
-                            <Clock className="w-5 h-5 mr-2 animate-spin" />
-                        ) : (
-                            <LogIn className="w-5 h-5 mr-2" />
-                        )}
-                        {status === 'redirecting' ? 'Redirecting to Provider...' : 'Sign In with SSO'}
-                    </button>
-                    
-                    <div className="flex items-center w-full max-w-sm my-4">
-                        <div className="flex-grow border-t border-gray-300"></div>
-                        <span className="flex-shrink mx-4 text-gray-500 text-sm">OR</span>
-                        <div className="flex-grow border-t border-gray-300"></div>
-                    </div>
-                    
-                    <button 
-                        onClick={() => alert("Simulating Google sign-in...")}
-                        className="w-full max-w-sm py-3 px-6 border border-gray-300 bg-white text-gray-700 font-semibold rounded-lg shadow-sm hover:bg-gray-50 transition duration-150 flex items-center justify-center"
-                    >
-                        <Zap className="w-5 h-5 mr-2 text-red-600" />
-                        Sign In with Google
-                    </button>
-                    
-                    <p className="text-xs text-gray-500 mt-6 text-center">
-                        SSO allows you to use your existing company credentials for a seamless login experience.
-                    </p>
-                </>
-            )}
+  return (
+    <div style={{ maxWidth: '600px', minWidth: '350px' }} className="w-full p-6 bg-white rounded-xl shadow-2xl border border-gray-100 min-h-[400px] flex flex-col justify-center items-center">
+      <h3 className="text-xl font-semibold text-gray-900 mb-6">Single Sign-On (SSO) Demo</h3>
+      
+      {status === 'authenticated' ? (
+        <div className="text-center p-6 bg-green-50 rounded-lg border border-green-200 w-full">
+          <CheckCircle className="w-8 h-8 mx-auto text-green-600 mb-3" />
+          <p className="text-xl font-bold text-green-700 font-sans mb-2">SSO Successful!</p>
+          <p className="text-sm text-green-600 font-sans">You have been authenticated via your corporate provider.</p>
+          <button 
+            onClick={() => setStatus('ready')}
+            className="mt-4 text-xs text-indigo-600 hover:text-indigo-800 font-medium font-sans"
+          >
+            Reset Demo
+          </button>
         </div>
-    );
+      ) : (
+        <>
+          <button 
+            onClick={handleSSO} 
+            disabled={status === 'redirecting'}
+            className="w-full max-w-sm py-3 px-6 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 disabled:bg-indigo-400 flex items-center justify-center mb-4"
+          >
+            {status === 'redirecting' ? (
+              <Clock className="w-5 h-5 mr-2 animate-spin" />
+            ) : (
+              <LogIn className="w-5 h-5 mr-2" />
+            )}
+            {status === 'redirecting' ? 'Redirecting to Provider...' : 'Sign In with SSO'}
+          </button>
+          
+          <div className="flex items-center w-full max-w-sm my-4">
+            <div className="flex-grow border-t border-gray-300"></div>
+            <span className="flex-shrink mx-4 text-gray-500 text-sm">OR</span>
+            <div className="flex-grow border-t border-gray-300"></div>
+          </div>
+          
+          <button 
+            onClick={() => alert("Simulating Google sign-in...")}
+            className="w-full max-w-sm py-3 px-6 border border-gray-300 bg-white text-gray-700 font-semibold rounded-lg shadow-sm hover:bg-gray-50 transition duration-150 flex items-center justify-center"
+          >
+            <Zap className="w-5 h-5 mr-2 text-red-600" />
+            Sign In with Google
+          </button>
+          
+          <p className="text-xs text-gray-500 mt-6 text-center">
+            SSO allows you to use your existing company credentials for a seamless login experience.
+          </p>
+        </>
+      )}
+    </div>
+  );
 };
 
 
-// --- TOPICS DATA STRUCTURE (Updated for Sign-In - Kept original) ---
+// --- TOPICS DATA STRUCTURE (same as yours) ---
+
 export const topics: Topics = {
   accessingAccount: {
     cardId: 'card-accessing-account',
@@ -520,109 +486,161 @@ export const topics: Topics = {
   }, 
 }; 
 
+
+// --- STEP DATA FOR STRIKE-THROUGH UI ---
+
+type ArticleId = 'standard-signin' | 'forgot-password' | 'mfa-login' | 'sso-login';
+
+const articleSteps: Record<ArticleId, string[]> = {
+  'standard-signin': [
+    'Go to the Sign In page',
+    'Enter email address',
+    'Enter password',
+    'Click Sign In button'
+  ],
+  'forgot-password': [
+    'Click “Forgot Password?”',
+    'Enter registered email',
+    'Check inbox and open link',
+    'Set new password'
+  ],
+  'mfa-login': [
+    'Enter email & password',
+    'See MFA screen',
+    'Open authenticator app',
+    'Enter 6-digit code'
+  ],
+  'sso-login': [
+    'Click “Sign In with SSO”',
+    'Redirect to IdP (Okta, etc.)',
+    'Authenticate on IdP',
+    'Return to spikedAI dashboard'
+  ],
+};
+
+
 // --- MAIN APP COMPONENT ---
 
 const App: FC = () => {
-    // Setting initial state to the standard sign-in article
-    const [currentArticleId, setCurrentArticleId] = useState<'standard-signin' | 'forgot-password' | 'mfa-login' | 'sso-login'>('standard-signin'); 
+  const [currentArticleId, setCurrentArticleId] = useState<ArticleId>('standard-signin'); 
 
-    const articleTopic = topics.accessingAccount;
-    const articleItem = articleTopic.items[0];
-    const subQuestions = articleItem.questions[0].subQuestions!;
-    
-    // Type assertion to ensure the topicData is found and correctly typed
-    const topicData = subQuestions.find(sq => sq.id === currentArticleId)! as SubQuestion;
-    const textContent = topicData.answer;
+  const articleTopic = topics.accessingAccount;
+  const articleItem = articleTopic.items[0];
+  const subQuestions = articleItem.questions[0].subQuestions!;
+  
+  const topicData = subQuestions.find(sq => sq.id === currentArticleId)! as SubQuestion;
+  const textContent = topicData.answer;
 
-    // *** INTEGRATE VOICE FEATURE ***
-    const { speak, stop, isSpeaking, isSupported } = useSpeechSynthesis(textContent);
+  const { speak, stop, isSpeaking, isSupported } = useSpeechSynthesis(textContent);
 
+  const RightSideComponent = () => {
+    if (topicData.type === 'signin-form-demo') return <SignInFormDemo />;
+    if (topicData.type === 'password-reset-demo') return <PasswordResetDemo />;
+    if (topicData.type === 'mfa-demo') return <MFADemo />;
+    if (topicData.type === 'sso-flow-demo') return <SSOFlowDemo />;
+    return null;
+  };
 
-    // Conditionally render the correct interactive component
-    const RightSideComponent = () => {
-        if (topicData.type === 'signin-form-demo') return <SignInFormDemo />;
-        if (topicData.type === 'password-reset-demo') return <PasswordResetDemo />;
-        if (topicData.type === 'mfa-demo') return <MFADemo />;
-        if (topicData.type === 'sso-flow-demo') return <SSOFlowDemo />;
-        return null;
-    };
+  const handleTabClick = (id: ArticleId) => {
+    stop(); 
+    setCurrentArticleId(id);
+  };
 
-    const handleTabClick = (id: typeof currentArticleId) => {
-        // Stop current speech before switching, the useEffect hook will start the new one
-        stop(); 
-        setCurrentArticleId(id);
-    };
+  // simple logic: last step is “current”, previous ones are “completed”
+  const stepsForArticle = articleSteps[currentArticleId];
+  const currentIndex = stepsForArticle.length - 1; // marking last as current for demo
 
-    return (
-        <div className="p-6 md:p-10 bg-gray-50 min-h-screen font-inter">
-            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 max-w-6xl mx-auto">
-                
-                {/* Article Selector (Tabs for easy switching) */}
-                <div className="flex border-b border-gray-200 mb-6">
-                    <LogIn className="w-5 h-5 text-gray-400 mr-2 self-center" />
-                    {subQuestions.map((q) => (
-                        <button
-                            key={q.id}
-                            onClick={() => handleTabClick(q.id as typeof currentArticleId)}
-                            className={`py-2 px-4 text-sm font-medium transition-all border-b-2 ${
-                                q.id === currentArticleId 
-                                ? 'border-indigo-600 text-indigo-600'
-                                : 'text-gray-500 border-transparent hover:text-gray-700'
-                            }`}
-                        >
-                            {q.question}
-                        </button>
-                    ))}
-                </div>
-                
-                <div className="flex justify-between items-center mb-4">
-                    <h1 className="text-2xl font-bold text-gray-900">Article: {topicData.question}</h1>
-                    
-                    {/* Voice Button */}
-                    {isSupported && (
-                        <button
-                            onClick={isSpeaking ? stop : speak}
-                            className={`flex items-center text-sm font-medium py-1 px-3 rounded-full transition-colors ${
-                                isSpeaking 
-                                    ? 'bg-red-500 text-white hover:bg-red-600'
-                                    : 'bg-indigo-500 text-white hover:bg-indigo-600'
-                            }`}
-                            title={isSpeaking ? "Stop Reading" : "Read Article Aloud"}
-                        >
-                            <Volume2 className={`w-4 h-4 mr-2 ${isSpeaking ? 'animate-pulse' : ''}`} />
-                            {isSpeaking ? 'Stop Voice' : 'Read Aloud'}
-                        </button>
-                    )}
-                </div>
-                
-                {/* Two-Column Layout (Instructions on Left, Interactive Demo on Right) */}
-                <div 
-                    style={{padding: '20px 0'}} 
-                    className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start"
-                >
-                    {/* LEFT COLUMN: Instructions (from data structure) */}
-                    <div className="text-content-container">
-                        <div dangerouslySetInnerHTML={{ __html: textContent }} />
-                        {/* Optional: Add a visual cue for the user that the content is being read */}
-                        {isSpeaking && (
-                            <p className="mt-4 p-3 bg-indigo-50 text-indigo-700 text-xs rounded-lg flex items-center">
-                                <Volume2 className="w-4 h-4 mr-2" /> The text is currently being read aloud by your browser.
-                            </p>
-                        )}
-                    </div>
-                    
-                    {/* RIGHT COLUMN: Interactive Demo (Conditionally Rendered) */}
-                    <div className="flex justify-center md:justify-end">
-                        <RightSideComponent />
-                    </div>
-                </div>
-                
-                
-            </div>
+  return (
+    <div className="p-6 md:p-10 bg-gray-50 min-h-screen font-inter">
+      <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 max-w-6xl mx-auto">
+        
+        {/* Article Selector (Tabs) */}
+        <div className="flex border-b border-gray-200 mb-6 overflow-x-auto">
+          <LogIn className="w-5 h-5 text-gray-400 mr-2 self-center flex-shrink-0" />
+          {subQuestions.map((q) => (
+            <button
+              key={q.id}
+              onClick={() => handleTabClick(q.id as ArticleId)}
+              className={`py-2 px-4 text-sm font-medium transition-all border-b-2 whitespace-nowrap ${
+                q.id === currentArticleId 
+                  ? 'border-indigo-600 text-indigo-600 bg-indigo-50'
+                  : 'text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {q.question}
+            </button>
+          ))}
         </div>
         
-    );
-};
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
+          <h1 className="text-2xl font-bold text-gray-900">
+            Article: {topicData.question}
+          </h1>
+          
+          {isSupported && (
+            <button
+              onClick={isSpeaking ? stop : speak}
+              className={`flex items-center text-sm font-medium py-1 px-3 rounded-full transition-colors ${
+                isSpeaking 
+                  ? 'bg-red-500 text-white hover:bg-red-600'
+                  : 'bg-indigo-500 text-white hover:bg-indigo-600'
+              }`}
+              title={isSpeaking ? "Stop Reading" : "Read Article Aloud"}
+            >
+              <Volume2 className={`w-4 h-4 mr-2 ${isSpeaking ? 'animate-pulse' : ''}`} />
+              {isSpeaking ? 'Stop Voice' : 'Read Aloud'}
+            </button>
+          )}
+        </div>
 
+        {/* STEP STRIKE-THROUGH STRIP */}
+        <div className="mb-6">
+          <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm">
+            {stepsForArticle.map((step, index) => {
+              const isCompleted = index < currentIndex;
+              const isCurrent = index === currentIndex;
+              return (
+                <div
+                  key={index}
+                  className={`
+                    flex items-center px-2.5 py-1 rounded-full border
+                    ${isCurrent ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : ''}
+                    ${isCompleted ? 'border-green-400 bg-green-50 text-green-700 line-through' : ''}
+                    ${!isCompleted && !isCurrent ? 'border-gray-200 bg-gray-50 text-gray-500' : ''}
+                  `}
+                >
+                  {isCompleted && <CheckCircle className="w-3 h-3 mr-1" />}
+                  {isCurrent && !isCompleted && <Clock className="w-3 h-3 mr-1" />}
+                  <span>{step}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* Content + Demo */}
+        <div 
+          style={{padding: '20px 0'}} 
+          className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start"
+        >
+          {/* LEFT COLUMN */}
+          <div className="text-content-container">
+            <div dangerouslySetInnerHTML={{ __html: textContent }} />
+            {isSpeaking && (
+              <p className="mt-4 p-3 bg-indigo-50 text-indigo-700 text-xs rounded-lg flex items-center">
+                <Volume2 className="w-4 h-4 mr-2" /> The text is currently being read aloud by your browser.
+              </p>
+            )}
+          </div>
+          
+          {/* RIGHT COLUMN */}
+          <div className="flex justify-center md:justify-end">
+            <RightSideComponent />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default App;

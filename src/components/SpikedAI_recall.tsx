@@ -63,7 +63,7 @@ const service_url_base =
 const BASE_URL_PROD =
   "https://spikedai-production-application-409019309412.us-central1.run.app";
 const MEDPIC_CATEGORIES = {
-  "metrics": "Metrics & ROI",
+  "metrics": "Metrics",
   "economic_buyer": "Economic Buyer", 
   "decision_criteria": "Decision Criteria",
   "decision_process": "Decision Process",
@@ -5408,7 +5408,7 @@ const refreshAllMedpicSummaries = async () => {
     <div className="flex items-center justify-between mb-4">
         <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
             <span>📋</span>
-            <span>Playbook</span>
+            <span>Sales Framework</span>
         </span>
         <div className="flex items-center space-x-2"> {/* MODIFIED: Added wrapper for refresh and badge */}
                     {/* NEW: REFRESH ALL MEDDIC BUTTON */}
@@ -6701,7 +6701,7 @@ const refreshAllMedpicSummaries = async () => {
                 >
                   Conversational AI Platform{" "}
                   <span className="ml-2 px-2 py-0.5 rounded bg-cerulean/10 text-cerulean text-xs">
-                    v1.7
+                    v2.1
                   </span>
                 </p>
               </div>
@@ -6857,7 +6857,7 @@ const refreshAllMedpicSummaries = async () => {
                         : "bg-slate-800 text-slate-100"
                     }`}
                 >
-                  Documents
+                  Content
                   <div
                     className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
                       isDarkMode ? "bg-slate-200" : "bg-slate-800"
@@ -6922,7 +6922,7 @@ const refreshAllMedpicSummaries = async () => {
                         : "bg-slate-800 text-slate-100"
                     }`}
                 >
-                  Note Taker
+                  Analyser
                   <div
                     className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
                       isDarkMode ? "bg-slate-200" : "bg-slate-800"
@@ -7294,7 +7294,7 @@ const refreshAllMedpicSummaries = async () => {
                       >
                         {isHotMicActive
                           ? "Hot Transcribe"
-                          : "Live Transcription"}
+                          : "Live-Assist"}
                       </h2>
                       <p
                         className={`text-xs ${
@@ -7572,7 +7572,7 @@ const refreshAllMedpicSummaries = async () => {
                       isDarkMode ? "text-white" : "text-berkeley-blue"
                     }`}
                   >
-                    AI Copilot
+                    Ans-Assist
                   </h2>
                   <span
                     className={`ml-2 px-2 py-0.5 rounded-lg text-xs font-semibold shadow-sm ${
@@ -8526,7 +8526,7 @@ const refreshAllMedpicSummaries = async () => {
                       isDarkMode ? "text-white" : "text-berkeley-blue"
                     }`}
                   >
-                    Smart Suggestions
+                    Intelli-Assist
                   </h2>
                   <p
                     className={`text-xs ${

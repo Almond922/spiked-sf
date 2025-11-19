@@ -1661,7 +1661,7 @@ ${transcriptText}`;
                     <div className="flex items-center flex-1 min-w-0 space-x-4">
                         <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-900/20' : 'bg-blue-100'} flex-shrink-0`}><Headphones className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} /></div>
                         <div className="flex-1 min-w-0">
-                            <h2 className="text-xl font-bold truncate text-black-600 dark:text-red-400">Live Transcription</h2>
+                            <h2 className="text-xl font-bold truncate text-black-600 dark:text-red-400">Live-Assist</h2>
                             <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} truncate`}>Real-time meeting notes</p>
                         </div>
                     </div>

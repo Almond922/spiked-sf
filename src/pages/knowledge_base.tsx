@@ -1,4 +1,4 @@
-import React, { useState, FormEvent, FC, useEffect } from 'react';
+import React, { useState, FormEvent, FC, useEffect, useRef } from 'react';
 import {
   Rocket, Mail, Lock, User, Zap, BookOpen, Settings,
   CheckCircle, XCircle, Clock, Send, Search, Bell, Menu,
@@ -803,6 +803,8 @@ const App: FC = () => {
   const [currentArticleId, setCurrentArticleId] = useState<'signup-process' | 'signup-verify' | 'signup-password' | 'signup-not-received'>('signup-process');
 
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const voicesLoadedRef = useRef(false);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const articleItem = topics.gettingStarted.items[0];
   const subQuestions = articleItem.questions[0].subQuestions!;
@@ -813,40 +815,113 @@ const App: FC = () => {
     setCurrentStep(currentArticleId);
   }, [currentArticleId]);
 
-  const handleSpeak = () => {
-    window.speechSynthesis.cancel();
+  // Ensure voices are loaded (some browsers load asynchronously)
+  useEffect(() => {
+    if (!('speechSynthesis' in window)) return;
+    const synth = window.speechSynthesis;
 
-    if (isSpeaking) {
-      setIsSpeaking(false);
+    const onVoicesChanged = () => {
+      const vs = synth.getVoices();
+      if (vs && vs.length > 0) voicesLoadedRef.current = true;
+    };
+
+    // call once and also listen
+    onVoicesChanged();
+    synth.addEventListener('voiceschanged', onVoicesChanged);
+
+    return () => {
+      try {
+        synth.removeEventListener('voiceschanged', onVoicesChanged);
+      } catch {
+        /* ignore if unavailable */
+      }
+    };
+  }, []);
+
+  // stop any speaking safely
+  const stopSpeaking = () => {
+    if (!('speechSynthesis' in window)) return;
+    // cancel cancels and clears queue
+    window.speechSynthesis.cancel();
+    // also clear any lingering utterance event handlers
+    if (utteranceRef.current) {
+      utteranceRef.current.onend = null;
+      utteranceRef.current.onerror = null;
+      utteranceRef.current = null;
+    }
+    setIsSpeaking(false);
+  };
+
+  const handleSpeak = () => {
+    if (!('speechSynthesis' in window)) {
+      alert('Speech synthesis not supported in this browser.');
       return;
     }
 
+    // If already speaking -> stop
+    if (isSpeaking) {
+      stopSpeaking();
+      return;
+    }
+
+    // Cancel any previous speech
+    window.speechSynthesis.cancel();
+
+    // extract plain text from the HTML article
     const parser = new DOMParser();
     const doc = parser.parseFromString(textContent, 'text/html');
     const plainText = doc.body.textContent || '';
 
-    if (!plainText) return;
+    if (!plainText.trim()) return;
 
-    const utterance = new SpeechSynthesisUtterance(plainText);
-    utterance.rate = 1;
-    utterance.pitch = 1;
+    const synth = window.speechSynthesis;
+    const voices = synth.getVoices();
 
-    const englishVoice = window.speechSynthesis.getVoices().find(v => v.lang === 'en-US');
-    if (englishVoice) utterance.voice = englishVoice;
+    // some browsers require a tiny dummy utterance to "unlock" voices
+    if (!voicesLoadedRef.current || (voices && voices.length === 0)) {
+      const dummy = new SpeechSynthesisUtterance(' ');
+      synth.speak(dummy);
+      dummy.onend = () => {
+        voicesLoadedRef.current = true;
+      };
+    }
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    const u = new SpeechSynthesisUtterance(plainText);
+    utteranceRef.current = u;
+    u.rate = 1;
+    u.pitch = 1;
 
-    window.speechSynthesis.speak(utterance);
+    // pick a reasonable English voice if available
+    const englishVoice = voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en')) || undefined;
+    if (englishVoice) u.voice = englishVoice;
+
+    let endedOrErrored = false;
+    u.onstart = () => {
+      setIsSpeaking(true);
+    };
+    u.onend = () => {
+      if (endedOrErrored) return;
+      endedOrErrored = true;
+      setIsSpeaking(false);
+      utteranceRef.current = null;
+    };
+    u.onerror = () => {
+      if (endedOrErrored) return;
+      endedOrErrored = true;
+      setIsSpeaking(false);
+      utteranceRef.current = null;
+    };
+
+    synth.speak(u);
   };
 
+  // if user changes article while reading, stop reading
   useEffect(() => {
     if (isSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
+      stopSpeaking();
     }
-  }, [currentArticleId, isSpeaking]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentArticleId]);
 
   // top-step completion helpers
   const markStepCompleted = (id: StepId) => {
@@ -897,53 +972,72 @@ const App: FC = () => {
       </div>
 
       {/* TOP STEPPER */}
+            {/* TOP STEPPER – slim Sign In Journey bar */}
       <div className="max-w-6xl mx-auto mb-6">
-        <div className="flex items-center justify-between bg-[#020617] px-4 py-3 rounded-xl border border-gray-800">
-          {steps.map((step, index) => {
-            const isCompleted = completedSteps.includes(step.id);
-            const isActive = currentStep === step.id;
-            const isLast = index === steps.length - 1;
+        <div
+          className="
+            flex items-center justify-between
+            bg-[#020518]
+            px-8 py-3
+            rounded-xl
+            border border-[#04081a]
+            shadow-[0_12px_25px_rgba(0,0,0,0.35)]
+          "
+        >
+          {/* Left label */}
+          <div className="text-[11px] tracking-[0.25em] text-slate-300 uppercase">
+            Sign Up Journey
+          </div>
 
-            return (
-              <div key={step.id} className="flex items-center flex-1">
-                <div className="flex items-center">
-                  <div
+          {/* Right steps, compact & aligned like screenshot */}
+          <div className="flex items-center gap-6">
+            {steps.map((step, index) => {
+              const isCompleted = completedSteps.includes(step.id);
+              const isActive = currentStep === step.id;
+
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  onClick={() => setCurrentStep(step.id)}
+                  className="flex items-center gap-2 text-xs md:text-sm group"
+                >
+                  {/* Number circle – small and tight */}
+                  <span
                     className={[
-                      "flex items-center justify-center rounded-full w-8 h-8 border text-sm transition-all",
-                      isCompleted
-                        ? "bg-emerald-500 border-emerald-500 text-white"
-                        : isActive
-                          ? "border-red-500 text-red-300 bg-gray-900"
-                          : "border-gray-600 text-gray-400 bg-gray-900"
+                      "flex items-center justify-center",
+                      "w-7 h-7 rounded-full border text-[11px]",
+                      "transition-all duration-150",
+                      isActive
+                        ? "bg-white text-black border-white shadow-sm"
+                        : "border-slate-500/70 text-slate-200 bg-transparent group-hover:border-slate-300"
                     ].join(" ")}
                   >
                     {isCompleted ? (
-                      <CheckCircle className="w-4 h-4" />
+                      <CheckCircle className="w-3.5 h-3.5" />
                     ) : (
                       index + 1
                     )}
-                  </div>
+                  </span>
+
+                  {/* Label – light, no line-through, just like the ref */}
                   <span
                     className={[
-                      "ml-2 text-xs md:text-sm",
-                      isCompleted
-                        ? "text-emerald-400 line-through"
-                        : isActive
-                          ? "text-amber-300"
-                          : "text-gray-400"
+                      "transition-colors",
+                      isActive
+                        ? "text-white font-medium"
+                        : "text-slate-300 group-hover:text-slate-100"
                     ].join(" ")}
                   >
                     {step.label}
                   </span>
-                </div>
-                {!isLast && (
-                  <div className="flex-1 h-px mx-2 bg-gray-700" />
-                )}
-              </div>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
+
 
       {/* MAIN CARD */}
       <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 max-w-6xl mx-auto">

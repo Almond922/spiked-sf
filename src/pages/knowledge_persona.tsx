@@ -1,5 +1,9 @@
 import React, { useState, FormEvent, FC, useEffect, useCallback } from 'react';
-import { Rocket, Mail, Lock, User, Zap, BookOpen, Settings, CheckCircle, XCircle, Clock, Send, Search, Bell, Menu, Tag, Users, Folder, Inbox, Filter, Cpu, TrendingUp, Briefcase, Volume2, VolumeX } from 'lucide-react';
+import { 
+  Rocket, Mail, Lock, User, Zap, BookOpen, Settings, CheckCircle, XCircle, 
+  Clock, Send, Search, Bell, Menu, Tag, Users, Folder, Inbox, Filter, 
+  Cpu, TrendingUp, Briefcase, Volume2, VolumeX 
+} from 'lucide-react';
 
 // --- INTERFACES (Typescript Definitions) ---
 
@@ -7,7 +11,7 @@ interface SubQuestion {
   id: string;
   question: string;
   answer: string;
-  type:'personalization-access-demo' | 'customer-persona-demo' | 'meeting-focus-demo';
+  type: 'personalization-access-demo' | 'customer-persona-demo' | 'meeting-focus-demo';
 }
 interface Question { id: string; title: string; emoji: string; description: string; subQuestions?: SubQuestion[]; }
 interface Item { id: string; title: string; description: string; questions: Question[]; }
@@ -98,14 +102,19 @@ const PersonalizationAccessDemo: FC = () => {
   const [isPersonalizationClicked, setIsPersonalizationClicked] = useState(false);
 
   return (
-    <div style={{ aspectRatio: '1.2 / 1', maxWidth: '600px', minWidth: '350px' }} className="w-full h-full bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden relative">
+    <div
+      style={{ aspectRatio: '1.2 / 1', maxWidth: '600px', minWidth: '350px' }}
+      className="w-full h-full bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden relative"
+    >
       <div className="p-4 flex items-center justify-between border-b bg-gray-50">
         <h1 className="text-lg font-semibold text-gray-900 flex items-center">
           <span className="text-red-600 font-extrabold text-xl mr-1">!</span>
           SpikedAI Console
         </h1>
         <div className="flex items-center space-x-3">
-          <button className="text-gray-500 hover:text-gray-700"><Bell className="w-5 h-5" /></button>
+          <button className="text-gray-500 hover:text-gray-700">
+            <Bell className="w-5 h-5" />
+          </button>
           <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-500 hover:text-gray-700">
             <Settings className="w-5 h-5" />
           </button>
@@ -118,18 +127,21 @@ const PersonalizationAccessDemo: FC = () => {
         <div className="w-1/4 p-4 border-r bg-white space-y-2 relative">
           <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Navigation</p>
           {['Dashboard', 'Meetings', 'Library'].map(label => (
-            <div key={label} className="flex items-center p-2 text-sm text-gray-700 rounded-lg hover:bg-indigo-50 cursor-pointer">
+            <div
+              key={label}
+              className="flex items-center p-2 text-sm text-gray-700 rounded-lg hover:bg-indigo-50 cursor-pointer"
+            >
               <Folder className="w-4 h-4 mr-2" />
               <span>{label}</span>
             </div>
           ))}
           {/* Highlighted Personalization Link */}
-          <div 
+          <div
             onClick={() => setIsPersonalizationClicked(true)}
             className={`flex items-center p-2 text-sm font-semibold rounded-lg cursor-pointer transition-all border-l-4 ${
-              isPersonalizationClicked 
-              ? 'bg-indigo-100 text-indigo-700 border-indigo-600'
-              : 'text-gray-700 hover:bg-indigo-50 border-transparent'
+              isPersonalizationClicked
+                ? 'bg-indigo-100 text-indigo-700 border-indigo-600'
+                : 'text-gray-700 hover:bg-indigo-50 border-transparent'
             }`}
           >
             <Settings className="w-4 h-4 mr-2" />
@@ -145,7 +157,7 @@ const PersonalizationAccessDemo: FC = () => {
               <Zap className="w-8 h-8 mx-auto text-red-600 mb-3" />
               <p className="text-lg font-semibold text-gray-800 mb-1">Ready to Assist</p>
               <p className="text-sm text-gray-500">
-                Click on **Personalization** in the navigation menu to configure your settings.
+                Click on <strong>Personalization</strong> in the navigation menu to configure your settings.
               </p>
             </div>
           ) : (
@@ -184,11 +196,23 @@ interface PersonaCardProps {
 }
 
 const PersonaCard: FC<PersonaCardProps> = ({ icon, title, description, isDefault = false }) => (
-  <div className={`p-4 rounded-lg border transition-all ${isDefault ? 'bg-indigo-50 border-indigo-300 shadow-md' : 'bg-white border-gray-200 hover:border-indigo-400 cursor-pointer'}`}>
+  <div
+    className={`p-4 rounded-lg border transition-all ${
+      isDefault
+        ? 'bg-indigo-50 border-indigo-300 shadow-md'
+        : 'bg-white border-gray-200 hover:border-indigo-400 cursor-pointer'
+    }`}
+  >
     <div className="flex items-center mb-1">
       {icon}
-      <h4 className={`text-base font-semibold ml-2 ${isDefault ? 'text-indigo-800' : 'text-gray-900'}`}>{title}</h4>
-      {isDefault && <span className="ml-2 text-xs font-medium text-white bg-indigo-600 px-2 py-0.5 rounded-full">Default</span>}
+      <h4 className={`text-base font-semibold ml-2 ${isDefault ? 'text-indigo-800' : 'text-gray-900'}`}>
+        {title}
+      </h4>
+      {isDefault && (
+        <span className="ml-2 text-xs font-medium text-white bg-indigo-600 px-2 py-0.5 rounded-full">
+          Default
+        </span>
+      )}
     </div>
     <p className="text-sm text-gray-600">{description}</p>
   </div>
@@ -196,7 +220,12 @@ const PersonaCard: FC<PersonaCardProps> = ({ icon, title, description, isDefault
 
 const CustomerPersonaDemo: FC = () => {
   const personas: PersonaCardProps[] = [
-    { icon: <Users className="w-4 h-4 text-indigo-500" />, title: 'Balanced', description: 'Versatile profile for general business users in B2B settings.', isDefault: true },
+    {
+      icon: <Users className="w-4 h-4 text-indigo-500" />,
+      title: 'Balanced',
+      description: 'Versatile profile for general business users in B2B settings.',
+      isDefault: true
+    },
     { icon: <Cpu className="w-4 h-4 text-purple-500" />, title: 'Technical', description: 'Deep technical jargon-friendly responses for engineering teams.' },
     { icon: <TrendingUp className="w-4 h-4 text-yellow-600" />, title: 'Financial', description: 'ROI-driven, cost-benefit analysis focused for finance teams.' },
     { icon: <Briefcase className="w-4 h-4 text-blue-600" />, title: 'Business Executive', description: 'High-impact insights for C-suite executives.' },
@@ -209,10 +238,14 @@ const CustomerPersonaDemo: FC = () => {
   ];
 
   return (
-    <div style={{ maxWidth: '600px', minWidth: '350px' }} className="w-full p-6 bg-white rounded-xl shadow-2xl border border-gray-100">
+    <div
+      style={{ maxWidth: '600px', minWidth: '350px' }}
+      className="w-full p-6 bg-white rounded-xl shadow-2xl border border-gray-100"
+    >
       <h3 className="text-xl font-bold text-gray-900 mb-4">Customer Persona Settings</h3>
       <p className="text-sm text-gray-600 mb-4">
-        Choose the persona that matches your meeting audience. The AI's communication style, depth, and focus will adjust automatically.
+        Choose the persona that matches your meeting audience. The AI's communication style, depth, and focus will adjust
+        automatically.
       </p>
       
       <div className="space-y-3 mb-8">
@@ -228,18 +261,22 @@ const CustomerPersonaDemo: FC = () => {
       
       <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border">
         {meetingFocusOptions.map((item, index) => (
-          <span 
+          <span
             key={index}
             className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${
-              item.isSelected 
-              ? 'bg-red-600 text-white' 
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer'
+              item.isSelected
+                ? 'bg-red-600 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer'
             }`}
           >
             {item.label}
           </span>
         ))}
-        <input type="text" placeholder="Add custom topic..." className="text-xs px-3 py-1 bg-white border rounded-full w-32" />
+        <input
+          type="text"
+          placeholder="Add custom topic..."
+          className="text-xs px-3 py-1 bg-white border rounded-full w-32"
+        />
       </div>
     </div>
   );
@@ -248,7 +285,6 @@ const CustomerPersonaDemo: FC = () => {
 
 // --- TOPICS DATA STRUCTURE (Updated to include Personalization) ---
 export const topics: Topics = {
-  // --- NEW PERSONALIZATION TOPIC ---
   personalization: {
     cardId: 'card-personalization',
     cardTitle: 'Personalization',
@@ -353,122 +389,108 @@ export const topics: Topics = {
   },
 };
 
+
 // --- MAIN APP COMPONENT ---
 
 const App: FC = () => {
-    // Collect all sub-questions for the tabs, mapping the structure to a flat array
-    const allSubQuestions = Object.values(topics).flatMap(topic => 
-        topic.items.flatMap(item => 
-            item.questions.flatMap(question => 
-                question.subQuestions || []
-            )
-        )
-    );
-    
-    // Set initial state to the first personalization article
-    const initialArticleId = 'access-settings'; 
-    const [currentArticleId, setCurrentArticleId] = useState<string>(initialArticleId);
+  // Collect all sub-questions (still useful if you later want to reuse)
+  const allSubQuestions = Object.values(topics).flatMap(topic =>
+    topic.items.flatMap(item =>
+      item.questions.flatMap(question =>
+        question.subQuestions || []
+      )
+    )
+  );
 
-    // Find the current topic data based on the ID
-    const topicData = allSubQuestions.find(sq => sq.id === currentArticleId);
+  // Pick which article to show (like choosing Sign In vs Sign Up screen)
+  // Change this value to: 'access-settings' | 'choose-persona' | 'meeting-focus'
+  const [currentArticleId] = useState<string>('access-settings');
 
-    if (!topicData) {
-        return <div className="p-10 text-center text-red-600">Article not found!</div>;
+  // Find the current topic data based on the ID
+  const topicData = allSubQuestions.find(sq => sq.id === currentArticleId);
+
+  if (!topicData) {
+    return <div className="p-10 text-center text-red-600">Article not found!</div>;
+  }
+
+  const textContent = topicData.answer;
+
+  // --- VOICE INTEGRATION ---
+  const { isSpeaking, toggleEnabled, isEnabled, error } = useSpeechSynthesis(textContent);
+
+  // Conditionally render the correct interactive component
+  const RightSideComponent = () => {
+    if (topicData.type === 'personalization-access-demo') return <PersonalizationAccessDemo />;
+    if (topicData.type === 'customer-persona-demo' || topicData.type === 'meeting-focus-demo') {
+      return <CustomerPersonaDemo />;
     }
+    return null;
+  };
 
-    const textContent = topicData.answer;
+  return (
+    <div className="p-6 md:p-10 bg-gray-50 min-h-screen font-inter">
+      <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 max-w-6xl mx-auto">
 
-    // --- VOICE INTEGRATION ---
-    const { isSpeaking, toggleEnabled, isEnabled, error } = useSpeechSynthesis(textContent);
+        {/* Header with Title + Voice Button (no steps/tabs) */}
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {topicData.question}
+          </h1>
 
-    // Conditionally render the correct interactive component
-    const RightSideComponent = () => {
-        if (topicData.type === 'personalization-access-demo') return <PersonalizationAccessDemo />;
-        // CustomerPersonaDemo will cover both Customer Persona and Meeting Focus articles
-        if (topicData.type === 'customer-persona-demo' || topicData.type === 'meeting-focus-demo') return <CustomerPersonaDemo />; 
-        return null;
-    };
-
-    return (
-        <div className="p-6 md:p-10 bg-gray-50 min-h-screen font-inter">
-            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 max-w-6xl mx-auto">
-                
-                <h1 className="text-2xl font-bold mb-4 text-gray-900 flex items-center justify-between">
-                  Article: {topicData.question}
-                  
-                  {/* Voice Control Button */}
-                  <button 
-                    onClick={toggleEnabled} 
-                    className={`p-2 rounded-full transition-all flex items-center text-sm font-medium ${
-                      isEnabled 
-                        ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                    title={isEnabled ? 'Disable Voice Playback' : 'Enable Voice Playback'}
-                  >
-                    {isEnabled ? (
-                      isSpeaking ? (
-                        <>
-                          <Volume2 className="w-5 h-5 mr-1 animate-pulse" />
-                          Speaking...
-                        </>
-                      ) : (
-                        <>
-                          <Volume2 className="w-5 h-5 mr-1" />
-                          Voice On
-                        </>
-                      )
-                    ) : (
-                      <>
-                        <VolumeX className="w-5 h-5 mr-1" />
-                        Voice Off
-                      </>
-                    )}
-                  </button>
-                </h1>
-
-                {/* Article Selector (Tabs for easy switching) */}
-                <div className="flex border-b border-gray-200 mb-6 overflow-x-auto whitespace-nowrap">
-                    <BookOpen className="w-5 h-5 text-gray-400 mr-2 self-center flex-shrink-0" />
-                    {allSubQuestions.map((q) => (
-                        <button
-                            key={q.id}
-                            onClick={() => setCurrentArticleId(q.id)}
-                            className={`py-2 px-4 text-sm font-medium flex-shrink-0 transition-all border-b-2 ${
-                                q.id === currentArticleId 
-                                ? 'border-indigo-600 text-indigo-600'
-                                : 'text-gray-500 border-transparent hover:text-gray-700'
-                            }`}
-                        >
-                            {q.question}
-                        </button>
-                    ))}
-                </div>
-                
-                {/* Voice Error Notification */}
-                {error && (
-                    <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg mb-4 text-sm">
-                        ⚠️ **Error:** {error}
-                    </div>
-                )}
-                
-                {/* Two-Column Layout (Instructions on Left, Interactive Demo on Right) */}
-                <div 
-                    style={{padding: '20px 0'}} 
-                    className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start"
-                >
-                    {/* LEFT COLUMN: Instructions (from data structure) */}
-                    <div dangerouslySetInnerHTML={{ __html: textContent }} />
-                    
-                    {/* RIGHT COLUMN: Interactive Demo (Conditionally Rendered) */}
-                    <div className="flex justify-center md:justify-end">
-                        <RightSideComponent />
-                    </div>
-                </div>
-            </div>
+          {/* Voice Control Button */}
+          <button
+            onClick={toggleEnabled}
+            className={`p-2 rounded-full transition-all flex items-center text-sm font-medium ${
+              isEnabled
+                ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+            title={isEnabled ? 'Disable Voice Playback' : 'Enable Voice Playback'}
+          >
+            {isEnabled ? (
+              isSpeaking ? (
+                <>
+                  <Volume2 className="w-5 h-5 mr-1 animate-pulse" />
+                  Speaking...
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-5 h-5 mr-1" />
+                  Voice On
+                </>
+              )
+            ) : (
+              <>
+                <VolumeX className="w-5 h-5 mr-1" />
+                Voice Off
+              </>
+            )}
+          </button>
         </div>
-    );
-};
 
+        {/* Voice Error Notification */}
+        {error && (
+          <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg mb-4 text-sm">
+            ⚠️ <strong>Error:</strong> {error}
+          </div>
+        )}
+
+        {/* Two-Column Layout (Instructions on Left, Interactive Demo on Right) */}
+        <div
+          style={{ padding: '20px 0' }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start"
+        >
+          {/* LEFT COLUMN: Instructions (from data structure) */}
+          <div dangerouslySetInnerHTML={{ __html: textContent }} />
+
+          {/* RIGHT COLUMN: Interactive Demo */}
+          <div className="flex justify-center md:justify-end">
+            <RightSideComponent />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default App;

@@ -126,7 +126,7 @@ const SignUpFormDemo: FC<SignUpFormDemoProps> = ({ onSignUpComplete }) => {
 
       {/* RIGHT: actual form */}
       <div className="w-full md:w-7/12 p-6 md:p-8 bg-white flex flex-col justify-center">
-        <h3 className="text-xl font-semibold text-gray-900 mb-1 font-sans">Create account</h3>
+        <h3 className="text-xl font-semibold text-gray-900 mb-1 font-sans"><br/>Create account</h3>
         <p className="text-sm text-gray-500 mb-6 font-sans">Get started with your free SpikedAI workspace</p>
 
         {status === 'success' ? (

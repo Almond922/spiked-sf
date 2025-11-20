@@ -6756,7 +6756,7 @@ const refreshAllMedpicSummaries = async () => {
                   : botStatus === "stopping"
                   ? "Disconnecting..."
                   : isBotRunning
-                  ? "Stop Bot"
+                  ? "Stop"
                   : "Connect Meet"}
               </span>
             </button>

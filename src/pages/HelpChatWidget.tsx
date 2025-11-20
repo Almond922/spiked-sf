@@ -7,6 +7,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
 }
+const BASE_URL = "https://spikedai-production-application-409019309412.us-central1.run.app";
 
 const HelpChatWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,7 +41,7 @@ const HelpChatWidget: React.FC = () => {
       setIsLoading(true);
 
       try {
-          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/help/chat`, {
+          const response = await fetch(`${BASE_URL}/help/chat`, {
               method: "POST",
               headers: {
                   "Content-Type": "application/json",

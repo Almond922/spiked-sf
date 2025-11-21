@@ -73,6 +73,7 @@ const MEDPIC_CATEGORIES = {
 
 
 
+
 const formatSummary  = (rawText: string): string => {
   if (!rawText) return rawText;
   
@@ -602,6 +603,20 @@ const SpikedAI = () => {
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
   const [showDocuments, setShowDocuments] = useState(false);
   const [chatInput, setChatInput] = useState("");
+  // Inside the 'SpikedAI' component, alongside other state declarations (e.g., around line 3190)
+
+// --- NEW LOGIC FOR FOCUS NOTIFICATION STATE ---
+// This now correctly calls the defined 'loadFromSessionStorage'
+const [hasBeenNotifiedOfFocus, setHasBeenNotifiedOfFocus] = useState(
+  loadFromSessionStorage("spikedai_focus_notification", false)
+);
+
+// Persist the notification state to session storage
+useEffect(() => {
+  // This now correctly calls the defined 'saveToSessionStorage'
+  saveToSessionStorage("spikedai_focus_notification", hasBeenNotifiedOfFocus);
+}, [hasBeenNotifiedOfFocus]);
+// --- END NEW LOGIC ---
   const [selectedCategories, setSelectedCategories] = useState<string[]>([
     "all",
   ]);
@@ -1297,6 +1312,28 @@ useEffect(() => {
             error instanceof Error ? error.message : String(error)
         }`);
     }
+};
+// Assuming 'startBot' is your existing function to connect the bot
+
+const handleConnectClick = () => {
+  // Check if the bot is already running or in transition (though button is disabled)
+  if (isBotRunning || botStatus === "starting" || botStatus === "stopping") {
+    return;
+  }
+
+  // 1. Check if the user has been notified
+  if (!hasBeenNotifiedOfFocus) {
+    // 2. Display the required notification/alert
+   alert("Before connecting the bot, please ensure that the meeting focus has been added to get relevant, topic-based questions.");
+
+    // 3. Set the state to true so the next click will proceed
+    setHasBeenNotifiedOfFocus(true);
+    return; // STOP execution, do not connect yet
+  }
+
+  // 4. If already notified, proceed with the original connection logic
+  // The 'startBot' function must be defined and available in this scope.
+  startBot();
 };
   
   const stopBot = async () => {
@@ -6728,7 +6765,7 @@ const refreshAllMedpicSummaries = async () => {
               )}
             </div>
             <button
-              onClick={isBotRunning ? stopBot : startBot} // MODIFIED: Changed function call to simpler `startBot`
+              onClick={isBotRunning ?stopBot : handleConnectClick} // Use the new wrapper function 
               disabled={
                 !meetingUrl ||
                 botStatus === "starting" ||

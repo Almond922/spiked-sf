@@ -6941,7 +6941,7 @@ const refreshAllMedpicSummaries = async () => {
               {/* Note Taker Button */}
               <div className="relative group">
                 <button
-                  onClick={() => window.open("/note-taker", "_blank")}
+                  onClick={() => navigate("/note-taker")}
                   className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
                     isDarkMode
                       ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
@@ -7609,7 +7609,7 @@ const refreshAllMedpicSummaries = async () => {
                       isDarkMode ? "text-white" : "text-berkeley-blue"
                     }`}
                   >
-                    Ans-Assist
+                    Answer-Assist
                   </h2>
                   <span
                     className={`ml-2 px-2 py-0.5 rounded-lg text-xs font-semibold shadow-sm ${

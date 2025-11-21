@@ -1,4 +1,4 @@
-import React, { FC, useState } from 'react';
+import React, { FC, useState, useEffect, useCallback } from 'react';
 import { 
     ArrowLeft, 
     Plus, 
@@ -17,12 +17,81 @@ import {
     X,
     BookOpen,
     FileText,
-    Volume2
+    Volume2,
+    VolumeX
 } from 'lucide-react';
 
-// ======================================================================
-// 0. SMALL TOP STEPS BAR
-// ======================================================================
+/* ======================================================================
+   0. useSpeechSynthesis HOOK (Text-to-Speech)
+   ====================================================================== */
+
+const useSpeechSynthesis = (text: string) => {
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [isEnabled, setIsEnabled] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const stripHtml = (html: string) =>
+        html.replace(/<[^>]*>/g, ' ').replace(/\s{2,}/g, ' ').trim();
+
+    const speak = useCallback(
+        (content: string) => {
+            if (!('speechSynthesis' in window)) {
+                setError('Text-to-speech not supported in this browser.');
+                return;
+            }
+
+            window.speechSynthesis.cancel();
+            setIsSpeaking(false);
+
+            if (!isEnabled || !content) return;
+
+            const utterance = new SpeechSynthesisUtterance(stripHtml(content));
+            utterance.rate = 1;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+
+            utterance.onstart = () => setIsSpeaking(true);
+            utterance.onend = () => setIsSpeaking(false);
+            utterance.onerror = () => {
+                setError('An error occurred during speech.');
+                setIsSpeaking(false);
+            };
+
+            window.speechSynthesis.speak(utterance);
+        },
+        [isEnabled]
+    );
+
+    const toggleEnabled = () => {
+        setIsEnabled(prev => {
+            if (prev) {
+                window.speechSynthesis.cancel();
+                setIsSpeaking(false);
+            }
+            return !prev;
+        });
+    };
+
+    useEffect(() => {
+        if (isEnabled && text) speak(text);
+        return () => {
+            window.speechSynthesis.cancel();
+            setIsSpeaking(false);
+        };
+    }, [text, isEnabled, speak]);
+
+    useEffect(() => {
+        return () => {
+            window.speechSynthesis.cancel();
+        };
+    }, []);
+
+    return { isSpeaking, isEnabled, toggleEnabled, error };
+};
+
+/* ======================================================================
+   1. STEPS BAR
+   ====================================================================== */
 
 const steps = [
     'Sign In',
@@ -77,19 +146,29 @@ const StepsBar: FC<StepsBarProps> = ({ currentStepIndex }) => {
     );
 };
 
-// ======================================================================
-// --- 1. ARTICLE COMPONENT: How to use Note Taker (New) ---
-// ======================================================================
+/* ======================================================================
+   2. ARTICLE COMPONENT (WITH READ ALOUD)
+   ====================================================================== */
 
 interface NoteTakerArticleProps {
     onBack: () => void;
 }
 
 const NoteTakerArticle: FC<NoteTakerArticleProps> = ({ onBack }) => {
+    // Plain text we want to read aloud (you can tweak phrasing)
+    const articleTtsText = `
+        This article explains how to use the SpikedAI Note Taker.
+        Step one, connect the meeting using Google Meet, Zoom, or Microsoft Teams.
+        Step two, select or create an AI template that tells the AI what kind of analysis to perform.
+        Step three, analyze and share the insights using the AI assistant panel and export options.
+    `;
+
+    const { isSpeaking, isEnabled, toggleEnabled, error } =
+        useSpeechSynthesis(articleTtsText);
+
     return (
         <div className="flex flex-col h-screen w-full bg-white overflow-hidden text-gray-900">
 
-            {/* Steps Bar for Article View (assume user is at "Review & Share") */}
             <StepsBar currentStepIndex={3} />
 
             <div className="flex flex-1 justify-center">
@@ -118,15 +197,39 @@ const NoteTakerArticle: FC<NoteTakerArticleProps> = ({ onBack }) => {
                                 </p>
                             </div>
 
-                            {/* Read Aloud placeholder button */}
+                            {/* READ ALOUD BUTTON (NOW WIRED) */}
                             <button
-                                className="flex items-center px-3 py-2 text-xs font-medium rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
-                                title="Read this article aloud"
+                                onClick={toggleEnabled}
+                                className={`flex items-center px-3 py-2 text-xs font-medium rounded-full border transition ${
+                                    isEnabled
+                                        ? 'border-red-500 text-red-600 bg-red-50'
+                                        : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                                }`}
+                                title={
+                                    isEnabled
+                                        ? 'Turn off Read Aloud'
+                                        : 'Read this article aloud'
+                                }
                             >
-                                <Volume2 className="w-4 h-4 mr-1" />
-                                Read Aloud
+                                {isEnabled ? (
+                                    <>
+                                        <Volume2 className={`w-4 h-4 mr-1 ${isSpeaking ? 'animate-pulse' : ''}`} />
+                                        {isSpeaking ? 'Speaking…' : 'Voice On'}
+                                    </>
+                                ) : (
+                                    <>
+                                        <VolumeX className="w-4 h-4 mr-1" />
+                                        Voice Off
+                                    </>
+                                )}
                             </button>
                         </div>
+
+                        {error && (
+                            <div className="mb-4 text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+                                ⚠ {error}
+                            </div>
+                        )}
 
                         <hr className="mb-8" />
 
@@ -199,10 +302,9 @@ const NoteTakerArticle: FC<NoteTakerArticleProps> = ({ onBack }) => {
     );
 };
 
-
-// ======================================================================
-// --- 2. MODAL AND DASHBOARD COMPONENTS (Original Code + modifications) ---
-// ======================================================================
+/* ======================================================================
+   3. MODAL + DASHBOARD (unchanged except steps bar + modal UI)
+   ====================================================================== */
 
 interface CreateTemplateModalProps {
     isOpen: boolean;
@@ -233,7 +335,6 @@ const CreateTemplateModal: FC<CreateTemplateModalProps> = ({ isOpen, onClose }) 
     return (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-70 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 transform transition-all duration-300 scale-100">
-                {/* Header */}
                 <div className="flex justify-between items-center p-5 border-b border-gray-200">
                     <h2 className="text-xl font-semibold text-gray-900">Create Custom Template</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -241,9 +342,7 @@ const CreateTemplateModal: FC<CreateTemplateModalProps> = ({ isOpen, onClose }) 
                     </button>
                 </div>
 
-                {/* Body */}
                 <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-                    {/* Template Name */}
                     <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
                             Template Name <span className="text-red-500">*</span>
@@ -255,7 +354,6 @@ const CreateTemplateModal: FC<CreateTemplateModalProps> = ({ isOpen, onClose }) 
                         />
                     </div>
 
-                    {/* Description */}
                     <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
                             Description <span className="text-red-500">*</span>
@@ -267,7 +365,6 @@ const CreateTemplateModal: FC<CreateTemplateModalProps> = ({ isOpen, onClose }) 
                         />
                     </div>
 
-                    {/* Theme Color */}
                     <div>
                         <label className="block text-sm font-medium text-gray-900 mb-3">
                             Theme Color
@@ -293,7 +390,6 @@ const CreateTemplateModal: FC<CreateTemplateModalProps> = ({ isOpen, onClose }) 
                         </div>
                     </div>
 
-                    {/* Analysis Prompt */}
                     <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
                             Analysis Prompt <span className="text-red-500">*</span>
@@ -309,7 +405,6 @@ const CreateTemplateModal: FC<CreateTemplateModalProps> = ({ isOpen, onClose }) 
                     </div>
                 </div>
 
-                {/* Footer */}
                 <div className="flex justify-end space-x-3 p-5 border-t border-gray-200">
                     <button 
                         onClick={onClose} 
@@ -369,12 +464,10 @@ const DashboardDemo: FC<{ onViewArticle: () => void }> = ({ onViewArticle }) => 
     
     return (
         <div className="flex flex-col h-screen w-full bg-gray-100 overflow-hidden text-gray-900">
-            
-            {/* Steps Bar for Dashboard (assume they are at Select Template step) */}
             <StepsBar currentStepIndex={2} />
 
             <div className="flex flex-1">
-                {/* 1. LEFT SIDEBAR: AI Templates / Custom Goals */}
+                {/* LEFT SIDEBAR */}
                 <div className="w-72 bg-white border-r border-gray-200 flex flex-col p-4 shadow-md">
                     <div className="flex items-center mb-6">
                         <button 
@@ -388,7 +481,6 @@ const DashboardDemo: FC<{ onViewArticle: () => void }> = ({ onViewArticle }) => 
                     
                     <h2 className="text-lg font-semibold text-gray-800 mb-4">AI Templates</h2>
                     
-                    {/* Create Custom Template Button */}
                     <button 
                         onClick={() => setIsModalOpen(true)}
                         className="flex items-center p-3 mb-6 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-red-700 font-medium text-sm transition"
@@ -397,7 +489,6 @@ const DashboardDemo: FC<{ onViewArticle: () => void }> = ({ onViewArticle }) => 
                         Create Custom Template
                     </button>
                     
-                    {/* Custom Goals List */}
                     <div className="mb-6">
                         <div className="flex items-center justify-between cursor-pointer mb-2">
                             <p className="text-xs font-semibold text-gray-500 uppercase">
@@ -412,7 +503,6 @@ const DashboardDemo: FC<{ onViewArticle: () => void }> = ({ onViewArticle }) => 
                         </div>
                     </div>
 
-                    {/* Prebuilt Templates Section */}
                     <div>
                         <div className="flex items-center justify-between cursor-pointer mb-2">
                             <p className="text-xs font-semibold text-gray-500 uppercase">
@@ -432,7 +522,7 @@ const DashboardDemo: FC<{ onViewArticle: () => void }> = ({ onViewArticle }) => 
                     </div>
                 </div>
                 
-                {/* 2. CENTER PANEL: Live Transcription */}
+                {/* CENTER */}
                 <div className="flex-grow flex flex-col p-6 bg-gray-50 border-r border-gray-200">
                     <h1 className="text-xl font-semibold mb-1">Live Transcription</h1>
                     <p className="text-sm text-gray-500 mb-8">Real-time meeting notes</p>
@@ -444,7 +534,7 @@ const DashboardDemo: FC<{ onViewArticle: () => void }> = ({ onViewArticle }) => 
                     </div>
                 </div>
                 
-                {/* 3. RIGHT SIDEBAR: AI Assistant */}
+                {/* RIGHT SIDEBAR */}
                 <div className="w-80 bg-white flex flex-col border-l border-gray-200 shadow-md">
                     <div className="flex items-center justify-between p-4 border-b border-gray-200">
                         <h2 className="text-lg font-semibold text-gray-800 flex items-center">
@@ -490,10 +580,9 @@ const DashboardDemo: FC<{ onViewArticle: () => void }> = ({ onViewArticle }) => 
     );
 };
 
-
-// ======================================================================
-// --- 3. ROOT APP COMPONENT (MODIFIED) ---
-// ======================================================================
+/* ======================================================================
+   4. ROOT APP
+   ====================================================================== */
 
 const NoteTakerApp: FC = () => {
     const [view, setView] = useState<'dashboard' | 'article'>('dashboard');

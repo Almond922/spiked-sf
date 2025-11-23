@@ -1289,6 +1289,10 @@ useEffect(() => {
             console.log("Starting SSE connections...");
             await establishSseConnections(newBotId);
 
+            // 🌟 ADDED POP-UP LOGIC HERE 🌟
+            alert("The bot has started and transcription is active. Click the 'Analyser' button (Notebook 📝 symbol) at the top right of the website to view real-time analysis."); 
+            // 🌟 ------------------------ 🌟
+
             setTimeout(() => {
                 fetchSentimentDataStaggered();
             }, 5000);

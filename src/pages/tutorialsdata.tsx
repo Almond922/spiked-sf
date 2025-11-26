@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import style from 'react-syntax-highlighter/dist/esm/styles/hljs/a11y-dark';
 
 interface SubQuestion {
-  id: string;
+  id: string;     
   question: string;
   answer: string;
 }
@@ -16,6 +16,8 @@ interface Question {
   description: string;
   details?: string;
   subQuestions?: SubQuestion[];
+  content?: ContentBlock[];     // We added our new property and made it OPTIONAL
+
 }
 
 interface Item {
@@ -38,163 +40,146 @@ interface Topics {
   [key: string]: Topic;
 }
 
+// PASTE THIS AT THE TOP OF THE FILE
+
+// Defines a heading block
+interface HeadingBlock {
+  type: 'heading';
+  text: string;
+    anchorId?: string; // We've added this optional property
+
+}
+
+// Defines a paragraph block
+interface ParagraphBlock {
+  type: 'paragraph';
+  text: string;
+}
+
+// Defines an image layout block
+interface ImageLayoutBlock {
+  type: 'imageLayout';
+  htmlContent: string;
+  imgSrc: string;
+  altText: string;
+}
+
+// Add this new interface
+interface TableOfContentsBlock {
+  type: 'toc';
+  links: { id: string; text: string }[];
+}
+
+// Add it to the list of possible blocks
+export type ContentBlock = HeadingBlock | ParagraphBlock | ImageLayoutBlock | TableOfContentsBlock;
+
+// This is a master type that can be any of our content blocks
+
 export const topics: Topics = {
   gettingStarted: {
     cardId: 'card-getting-started',
     cardTitle: 'Getting Started',
-    cardDescription: 'Set up your spikedAI workspace — personalize your AI, upload essential documents, and prepare your environment before starting your first meeting.',
+    cardDescription: 'Set up your SpikedAI workspace — personalize your AI, upload essential documents, and prepare your environment before starting your first meeting.',
     icon: <Rocket style={{ width: '20px', height: '20px' }} />,
     emoji: '🚀',
     items: [
       {
   id: 'signup',
   title: 'Sign Up',
-  description: 'Create your spikedAI account and start exploring personalized meeting insights.',
-  questions: [
-    {
-      id: 'signup-flow',
-      title: 'Sign Up Process',
-      emoji: '🆕',
-      description: 'Simple steps to create your spikedAI account.',
-      subQuestions: [
-        {
-          id: 'signup-process',
-          question: 'How do I sign up for spikedAI?',
-          answer: `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;line-height:1.8;color:#374151;font-size:15px;">
-              <div style="display:flex;flex-direction:column;justify-content:center;">
-                <p style="margin:0 0 20px 0;">The sign-up process in <strong>spikedAI</strong> is quick and straightforward. Follow these steps:</p>
-                
-                <ol style="margin:0 0 20px 0;padding-left:20px;">
-                  <li style="margin:0 0 12px 0;">Navigate to the <strong>Sign Up</strong> page</li>
-                  <li style="margin:0 0 12px 0;">Fill in your details: First Name, Last Name, Email, and Password</li>
-                  <li style="margin:0 0 12px 0;">Click <strong>Create Account</strong></li>
-                  <li style="margin:0 0 12px 0;">Check your inbox for a verification email</li>
-                  <li style="margin:0;">Click <strong>Verify Email</strong> to activate</li>
-                </ol>
+  description: 'Create your SpikedAI account and start exploring personalized meeting insights.',
+  // PASTE THIS NEW CODE IN ITS PLACE:
+questions: [
+  {
+    id: 'signup-flow',
+    title: 'Sign Up Process',
+    emoji: '👋',
+    description: 'Simple steps to create your SpikedAI account.',
+    // We are replacing 'subQuestions' with our new 'content' array.
+    content: [
+      {
+        type: 'toc', // 'toc' stands for Table of Contents
+        links: [
+        { id: 'signup-process', text: 'How do I sign up for SpikedAI?' },
+        { id: 'signup-verify', text: 'How do I verify my email after signing up?' },
+        { id: 'signup-password', text: 'What are the password requirements?' },
+        { id: 'signup-not-received', text: "I didn't receive my verification email. What should I do?" },
+        { id: 'signup-email-reuse', text: 'Can I create multiple accounts with the same email?' }
+        ]
+      },
 
-                <p style="margin:0;">After verification, you can immediately log in to your workspace.</p>
-              </div>
-              
-              <div style="display:flex;justify-content:center;align-items:start;">
-                <img 
-                  src="/tutorial/signup.png" 
-                  alt="Sign Up Screenshot" 
-                  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-                />
-              </div>
-            </div>
-          `
-        },
-        {
-          id: 'signup-verify',
-          question: 'How do I verify my email after signing up?',
-          answer: `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;line-height:1.8;color:#374151;font-size:15px;">
-              <div style="display:flex;flex-direction:column;justify-content:center;">
-                <p style="margin:0 0 20px 0;">Email verification activates your spikedAI account:</p>
-                
-                <ol style="margin:0 0 20px 0;padding-left:20px;">
-                  <li style="margin:0 0 12px 0;">Open the email from <strong>spikedAI</strong> (arrives within 1-2 minutes)</li>
-                  <li style="margin:0 0 12px 0;">Click the <strong>Verify Email</strong> button</li>
-                  <li style="margin:0;">Your account activates instantly</li>
-                </ol>
+      {
+        type: 'heading',
+        text: 'How do I sign up for SpikedAI?',
+        anchorId: 'signup-process' // ADDED
 
-                <p style="margin:0;padding:12px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                  <strong>Tip:</strong> Check your <strong>Spam</strong> or <strong>Promotions</strong> folder if you don't see it.
-                </p>
-              </div>
-              
-              <div style="display:flex;justify-content:center;align-items:start;">
-                <img 
-                  src="/tutorial/verificationmail.png" 
-                  alt="Email Verification Screenshot" 
-                  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-                />
-              </div>
-            </div>
-          `
-        },
-        {
-          id: 'signup-password',
-          question: 'What are the password requirements?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin:0 0 20px 0;"><strong>spikedAI</strong> allows flexible passwords, but we recommend following security best practices:</p>
-              
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:0 0 20px 0;">
-                <div>
-                  <p style="margin:0 0 12px 0;font-weight:600;">Recommended guidelines:</p>
-                  <ul style="margin:0;padding-left:20px;">
-                    <li style="margin:0 0 8px 0;">Minimum <strong>8 characters</strong></li>
-                    <li style="margin:0 0 8px 0;">Upper & lowercase letters</li>
-                    <li style="margin:0 0 8px 0;">Include numbers</li>
-                    <li style="margin:0;">Special characters (!@#$%)</li>
-                  </ul>
-                </div>
-                <div>
-                  <p style="margin:0 0 12px 0;font-weight:600;">Examples:</p>
-                  <ul style="margin:0;padding-left:0;list-style:none;">
-                    <li style="margin:0 0 8px 0;font-family:monospace;">✓ SpikedAI2025! — <span style="color:#059669;">Strong</span></li>
-                    <li style="margin:0 0 8px 0;font-family:monospace;">✓ Sales#Track24 — <span style="color:#059669;">Strong</span></li>
-                    <li style="margin:0;font-family:monospace;">✗ password123 — <span style="color:#dc2626;">Weak</span></li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          `
-        },
-        {
-          id: 'signup-not-received',
-          question: 'I didn\'t receive my verification email. What should I do?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin:0 0 20px 0;">If the verification email hasn't arrived, try these steps:</p>
-              
-              <ol style="margin:0 0 20px 0;padding-left:20px;">
-                <li style="margin:0 0 10px 0;">Check <strong>Spam</strong>, <strong>Junk</strong>, or <strong>Promotions</strong> folders</li>
-                <li style="margin:0 0 10px 0;">Click <strong>Resend Verification Email</strong> on the login page</li>
-                <li style="margin:0 0 10px 0;">Verify your email address was entered correctly</li>
-                <li style="margin:0;">Contact <strong>support@spiked.ai</strong> if still not received</li>
-              </ol>
+      },
+      {
+        type: 'paragraph',
+        text: 'The sign-up process is quick and straightforward. Follow these steps:'
+      },
+      {
+        type: 'imageLayout',
+        htmlContent: '<ol><li>1. Navigate to the <strong>Sign Up</strong> page</li><li>2. Fill in your details: First Name, Last Name, Email, and Password</li><li>3. Click <strong>Create Account</strong></li><li>4. Check your inbox for a verification email</li><li>5. Click <strong>Verify Email</strong> to activate</li></ol><p style="margin-top:16px;">After verification, you can immediately log in to your workspace.</p>',
+        imgSrc: '/tutorial/signup.png',
+        altText: 'Sign Up Screenshot'
+      },
+      {
+        type: 'heading',
+        text: 'How do I verify my email after signing up?',
+            anchorId: 'signup-verify' // ADDED
 
-              <p style="margin:0;padding:12px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Note:</strong> Emails typically arrive within <strong>1-2 minutes</strong>.
-              </p>
-            </div>
-          `
-        },
-        {
-          id: 'signup-email-reuse',
-          question: 'Can I create multiple accounts with the same email?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin:0 0 20px 0;"><strong>No</strong>, each email can only link to <strong>one spikedAI account</strong> for security.</p>
+      },
+      {
+        type: 'imageLayout',
+        htmlContent: '<p>Email verification activates your SpikedAI account.</p><ol><li>An email from <strong>SpikedAI</strong> (arrives within 1-2 minutes)</li><li>Open the email</li><li>Click the <strong>Verify Email</strong> button</li><li>Your account activates instantly</li></ol>',
+        imgSrc: '/tutorial/verificationmail.png',
+        altText: 'Email Verification Screenshot'
+      },
+      {
+        type: 'heading',
+        text: 'What are the password requirements?',
+            anchorId: 'signup-password' // ADDED
 
-              <p style="margin:0 0 12px 0;font-weight:600;">Alternative options:</p>
-              <ul style="margin:0;padding-left:20px;">
-                <li style="margin:0 0 8px 0;">Use a different personal email</li>
-                <li style="margin:0 0 8px 0;">Create a new email account</li>
-                <li style="margin:0;">Use your work email</li>
-              </ul>
-            </div>
-          `
-        }
-      ]
-    }
-  ]
+      },
+      {
+        type: 'paragraph',
+        text: 'While SpikedAI allows flexible passwords, we recommend following security best practices. <br/><br/> <strong>Recommended guidelines:</strong> <ul><li>Minimum <strong>8 characters</strong></li><li>Upper & lowercase letters</li><li>Include numbers</li><li>Special characters (!@#$%)</li></ul>'
+      },
+      {
+        type: 'heading',
+        text: "I didn't receive my verification email. What should I do?",
+            anchorId: 'signup-not-received' // ADDED
+
+      },
+      {
+        type: 'paragraph',
+        text: "If the verification email hasn't arrived, try these steps:<ol><li>Check <strong>Spam</strong>, <strong>Junk</strong>, or <strong>Promotions</strong> folders</li><li>Click <strong>Resend Verification Email</strong> on the login page</li><li>Verify your email address was entered correctly</li><li>Contact <strong>support@spiked.ai</strong> if still not received</li></ol>"
+      },
+      {
+        type: 'heading',
+        text: 'Can I create multiple accounts with the same email?',
+            anchorId: 'signup-email-reuse' // ADDED
+
+      },
+      {
+        type: 'paragraph',
+        text: 'No, each email can only link to <strong>one SpikedAI account</strong> for security.<br/><br/><strong>Alternative options:</strong><ul><li>Use a different personal email</li><li>Create a new email account</li><li>Use your work email</li></ul>'
+      }
+    ]
+  }
+]
 },
 
 {
   id: 'signin',
   title: 'Sign In',
-  description: 'Learn how to access your spikedAI account securely and quickly.',
+  description: 'Learn how to access your SpikedAI account securely and quickly.',
   questions: [
     {
       id: 'signin-main',
       title: 'Sign In Process',
       emoji: '🔐',
-      description: 'Everything you need to know about logging in to spikedAI.',
+      description: 'Everything you need to know about logging in to SpikedAI.',
       subQuestions: [
         {
           id: 'signin-email',
@@ -202,7 +187,7 @@ export const topics: Topics = {
           answer: `
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;line-height:1.8;color:#374151;font-size:15px;">
               <div style="display:flex;flex-direction:column;justify-content:center;">
-                <p style="margin:0 0 20px 0;">Access your spikedAI workspace with your credentials:</p>
+                <p style="margin:0 0 20px 0;">Access your SpikedAI workspace with your credentials:</p>
                 
                 <ol style="margin:0 0 20px 0;padding-left:20px;">
                   <li style="margin:0 0 12px 0;">Navigate to the <strong>Sign In</strong> page</li>
@@ -298,7 +283,7 @@ export const topics: Topics = {
               </ol>
 
               <p style="margin:0;padding:12px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Still need help?</strong> Contact <strong>support@spiked.ai</strong>
+                <strong>Still need help?</strong> Contact <strong>support@Spiked.ai</strong>
               </p>
             </div>
           `
@@ -346,7 +331,7 @@ export const topics: Topics = {
             <div style="line-height:1.8;color:#374151;font-size:15px;">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;margin:0 0 20px 0;">
                 <div>
-                  <p style="margin:0 0 20px 0;">Updating your name in spikedAI is simple and takes just a few seconds:</p>
+                  <p style="margin:0 0 20px 0;">Updating your name in SpikedAI is simple and takes just a few seconds:</p>
                   
                   <ol style="margin:0;padding-left:20px;">
                     <li style="margin:0 0 12px 0;">Go to <strong>Settings → Profile</strong></li>
@@ -366,7 +351,7 @@ export const topics: Topics = {
                 </div>
               </div>
 
-              <p style="margin:0;">Your updated name will be reflected immediately across your spikedAI workspace and in all future meetings.</p>
+              <p style="margin:0;">Your updated name will be reflected immediately across your SpikedAI workspace and in all future meetings.</p>
             </div>
           `
         },
@@ -375,7 +360,7 @@ export const topics: Topics = {
           question: 'Can I change my email address?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin:0 0 20px 0;">Your registered email address is permanently linked to your spikedAI account for security purposes and cannot be changed directly through the settings.</p>
+              <p style="margin:0 0 20px 0;">Your registered email address is permanently linked to your SpikedAI account for security purposes and cannot be changed directly through the settings.</p>
               
               <p style="margin:0 0 12px 0;font-weight:600;">To update your email address:</p>
               <ol style="margin:0 0 20px 0;padding-left:20px;">
@@ -590,7 +575,7 @@ export const topics: Topics = {
             <div style="line-height:1.8;color:#374151;font-size:15px;">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;margin:0 0 20px 0;">
                 <div>
-                  <p style="margin:0 0 20px 0;"><strong>Meeting Focus</strong> is one of the most critical features in spikedAI. It tells your AI what to prioritize and track during the meeting.</p>
+                  <p style="margin:0 0 20px 0;"><strong>Meeting Focus</strong> is one of the most critical features in SpikedAI. It tells your AI what to prioritize and track during the meeting.</p>
                   
                   <div style="padding:16px;background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:8px;margin:0 0 20px 0;">
                     <p style="margin:0;font-weight:600;color:#92400E;font-size:14px;">⚠️ IMPORTANT</p>
@@ -848,7 +833,7 @@ export const topics: Topics = {
           question: 'Where can I upload my documents?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">You can access and upload documents from <strong>two different locations</strong> in spikedAI:</p>
+              <p style="margin-bottom:20px;">You can access and upload documents from <strong>two different locations</strong> in SpikedAI:</p>
               
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
                 
@@ -911,7 +896,7 @@ export const topics: Topics = {
           question: 'What file types can I upload?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">spikedAI supports a variety of document formats to accommodate different types of business materials:</p>
+              <p style="margin-bottom:20px;">SpikedAI supports a variety of document formats to accommodate different types of business materials:</p>
               
               <p style="margin-bottom:12px;font-weight:600;">Supported File Formats:</p>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
@@ -1326,7 +1311,7 @@ export const topics: Topics = {
                 <li style="margin-bottom:12px;padding-left:8px;"><strong>Try a different browser</strong> – Test if the issue is browser-specific</li>
                 <li style="margin-bottom:12px;padding-left:8px;"><strong>Disable browser extensions</strong> – Some extensions can interfere with themes</li>
                 <li style="margin-bottom:12px;padding-left:8px;"><strong>Log out and log back in</strong> – This refreshes your session</li>
-                <li style="margin-bottom:0;padding-left:8px;">If the issue persists, contact <strong>support@spiked.ai</strong></li>
+                <li style="margin-bottom:0;padding-left:8px;">If the issue persists, contact <strong>support@Spiked.ai</strong></li>
               </ol>
 
               <div style="padding:20px;background:#FEF2F2;border-left:4px solid #EF4444;border-radius:8px;">
@@ -1362,7 +1347,7 @@ export const topics: Topics = {
         },
         {
           id: 'two-factor',
-          question: 'Does spikedAI support two-factor authentication?',
+          question: 'Does SpikedAI support two-factor authentication?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
               <p style="margin-bottom:20px;">Two-factor authentication (2FA) is coming soon as part of our advanced security update.</p>
@@ -1515,7 +1500,7 @@ console: {
               </div>
 
               <p style="margin:0;padding:16px;background:#FEE2E2;border-left:3px solid #DC2626;border-radius:4px;font-size:14px;">
-                <strong>Still having issues?</strong> Try refreshing your Console page and reconnecting, or contact support at <strong>support@spiked.ai</strong> for assistance.
+                <strong>Still having issues?</strong> Try refreshing your Console page and reconnecting, or contact support at <strong>support@Spiked.ai</strong> for assistance.
               </p>
             </div>
           `
@@ -7878,4 +7863,4 @@ notetaker: {
 }  ]
 },
 
-  };
+};

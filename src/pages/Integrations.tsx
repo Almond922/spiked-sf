@@ -11,6 +11,7 @@ const Integrations = () => {
   const { isDarkMode } = useTheme();
   const { session } = useAuth();
   const [connectingJira, setConnectingJira] = useState(false);
+  const [connectingHubSpot, setConnectingHubSpot] = useState(false);
 
   const handleJiraConnect = async () => {
     try {
@@ -24,13 +25,31 @@ const Integrations = () => {
       }
 
       const data = await response.json();
-      
-      // Redirect to Atlassian OAuth
       window.location.href = data.auth_url;
     } catch (error) {
       console.error('Error connecting to Jira:', error);
       alert('Failed to connect to Jira. Please try again.');
       setConnectingJira(false);
+    }
+  };
+
+  const handleHubSpotConnect = async () => {
+    try {
+      setConnectingHubSpot(true);
+      const response = await fetch(`${BASE_URL}/integrations/hubspot/auth/initiate`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to initiate HubSpot OAuth');
+      }
+
+      const data = await response.json();
+      window.location.href = data.auth_url;
+    } catch (error) {
+      console.error('Error connecting to HubSpot:', error);
+      alert('Failed to connect to HubSpot. Please try again.');
+      setConnectingHubSpot(false);
     }
   };
 
@@ -73,6 +92,47 @@ const Integrations = () => {
               className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
               {connectingJira ? (
+                <>
+                  <Loader className="w-4 h-4 animate-spin" />
+                  <span>Connecting...</span>
+                </>
+              ) : (
+                <span>Connect</span>
+              )}
+            </button>
+          </div>
+
+          {/* HubSpot Card */}
+          <div
+            className={`p-6 rounded-xl border-2 transition-all ${
+              isDarkMode
+                ? 'bg-slate-800 border-slate-700'
+                : 'bg-white border-gray-200'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <img
+                src="https://cdn.worldvectorlogo.com/logos/hubspot.svg"
+                alt="HubSpot"
+                className="w-12 h-12"
+              />
+              <Puzzle className="w-6 h-6 text-orange-500" />
+            </div>
+            
+            <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              HubSpot
+            </h3>
+            
+            <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Track deals during sales meetings with MEDPIC analysis and sync insights automatically.
+            </p>
+            
+            <button
+              onClick={handleHubSpotConnect}
+              disabled={connectingHubSpot}
+              className="w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+            >
+              {connectingHubSpot ? (
                 <>
                   <Loader className="w-4 h-4 animate-spin" />
                   <span>Connecting...</span>

@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown";
 import { useForm, ValidationError } from "@formspree/react";
 import { useTheme } from "../ThemeContext";
 import TutorialsHub from "./TutorialsHub";
+import HelpChatWidget from "./HelpChatWidget";
 
 import {
   ArrowLeft,
@@ -2285,6 +2286,7 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 font-sans text-gray-800 dark:text-gray-200">
+      <HelpChatWidget />
       {showStartMeetingModal && (
         <StartMeetingModal onClose={() => setShowStartMeetingModal(false)} />
       )}

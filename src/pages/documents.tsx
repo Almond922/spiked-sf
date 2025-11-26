@@ -4,7 +4,7 @@ import React, {
   useRef,
   useCallback,
   memo,
-  useContext,
+  useMemo, // Added useMemo
 } from "react";
 import {
   Search,
@@ -30,15 +30,27 @@ import {
   Wrench,
   RefreshCw,
   ExternalLink,
+  Users, // Added for Answer Config
+  Bot, // Added for Answer Config
+  Tag, // Added for Business Rules
+  Target, // Added for Business Rules
+  SlidersHorizontal, // Added for Vector Config
+  Filter, // Added for Retrieval
+  LayoutGrid, // Added for Search Results
+  Info, // Added for prompts
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../AuthContext";
+import { useAuth } from "../AuthContext"; // --- CORRECTED IMPORT ---
 import { saveAs } from "file-saver";
 
 // --- CONFIGURATION ---
 const API_BASE_URL =
   "https://spikedai-production-application-409019309412.us-central1.run.app";
-const BEARER_TOKEN = "";
+// const BEARER_TOKEN = ""; // This was already commented out, which is good practice.
+
+// --- MOCK AUTH HOOK ---
+// REMOVED MOCK useAuth HOOK
+// --- END MOCK AUTH HOOK ---
 
 // --- TYPESCRIPT INTERFACES ---
 type IngestionStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
@@ -59,6 +71,32 @@ interface Chunk {
   content: string;
   created_at: string;
 }
+
+// --- NEW ---
+// Model for settings, based on settings.tsx
+interface SettingsModel {
+  botName: string;
+  selectedPersona: string;
+  selectedAnswerStyles: string[];
+  customPrompt: string;
+  meetingDomains: string[];
+  questionPrompt: string;
+}
+
+// Interfaces from settings.tsx
+interface CustomerPersona {
+  id: string;
+  name: string;
+  description: string;
+  prompt: string;
+}
+interface AnswerStyle {
+  id: string;
+  name: string;
+  description: string;
+  prompt: string;
+}
+// --- END NEW ---
 
 // --- API HELPER MODULE (Corrected for Authentication) ---
 const api = {
@@ -178,6 +216,45 @@ const api = {
     if (!response.ok) throw new Error("Failed to fetch chunks for source.");
     return response.json();
   },
+
+  // --- NEW ---
+  // API functions from settings.tsx
+  fetchSettings: async (token: string | undefined): Promise<SettingsModel> => {
+    const response = await fetch(`${API_BASE_URL}/settings`, {
+      headers: api.getHeaders(token),
+    });
+    if (!response.ok) {
+      // Handle 404/initial setup by returning a default object
+      if (response.status === 404) {
+        return {
+          botName: "SpikedAI",
+          selectedPersona: "balanced",
+          selectedAnswerStyles: [],
+          customPrompt: "",
+          meetingDomains: [],
+          questionPrompt: "Analyze the user's message. If it is a direct question, a request for information, or implies a lack of knowledge, classify it as 'QUESTION'. Otherwise, classify it as 'STATEMENT'.",
+        };
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    // Ensure new field has a default if missing from backend
+    if (!data.questionPrompt) {
+        data.questionPrompt = "Analyze the user's message. If it is a direct question, a request for information, or implies a lack of knowledge, classify it as 'QUESTION'. Otherwise, classify it as 'STATEMENT'.";
+    }
+    return data;
+  },
+  saveSettings: async (settings: SettingsModel, token: string | undefined) => {
+    const response = await fetch(`${API_BASE_URL}/settings`, {
+      method: "POST",
+      headers: api.getHeaders(token),
+      body: JSON.stringify(settings),
+    });
+    if (!response.ok)
+      throw new Error(`HTTP error! status: ${response.status}`);
+    return response.json();
+  },
+  // --- END NEW ---
 };
 
 // --- UI HELPER ---
@@ -199,8 +276,34 @@ const getSpaceColor = (space: string) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
+// --- NEW TOAST COMPONENT ---
+const Toast: React.FC<{
+  message: string;
+  type: "success" | "error";
+  onDismiss: () => void;
+}> = ({ message, type, onDismiss }) => {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 3000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
+  const isSuccess = type === "success";
+  const bgColor = isSuccess ? "bg-green-600" : "bg-red-600";
+  const Icon = isSuccess ? CheckCircle : AlertCircle;
+
+  return (
+    <div
+      className={`fixed top-24 right-6 z-50 flex items-center p-4 rounded-lg text-white shadow-lg animate-fade-in-down ${bgColor}`}
+    >
+      <Icon className="w-5 h-5 mr-3" />
+      <span>{message}</span>
+    </div>
+  );
+};
+
+
 // --- CHILD COMPONENTS ---
-type SectionKey = "content" | "index" | "responses" | "devTools";
+type SectionKey = "content" | "index" | "responses"; // Removed "devTools"
 
 const Sidebar = memo(
   ({
@@ -222,7 +325,7 @@ const Sidebar = memo(
       content: true,
       index: true,
       responses: true,
-      devTools: true,
+      // devTools: true, // Removed
     });
 
     const toggleSection = (section: SectionKey) =>
@@ -243,28 +346,28 @@ const Sidebar = memo(
         title: "INDEX",
         items: [
           { id: "browse", label: "Browse Chunks", icon: FileSearch },
-          { id: "vectorconfig", label: "Vector Configuration", icon: Settings },
+          { id: "vectorconfig", label: "Vector Configuration", icon: SlidersHorizontal }, // Changed icon
         ],
       },
       {
         section: "responses" as SectionKey,
         title: "RESPONSES",
         items: [
-          { id: "retrieval", label: "Retrieval", icon: Database },
-          { id: "businessrules", label: "Business Rules", icon: Settings },
+          { id: "retrieval", label: "Retrieval", icon: Filter }, // Changed icon
+          { id: "businessrules", label: "Business Rules", icon: Target }, // Changed icon
           {
             id: "answerconfig",
             label: "Answer Configuration",
             icon: MessageSquare,
           },
-          { id: "searchresults", label: "Search Results", icon: BarChart3 },
+          // { id: "searchresults", label: "Search Results", icon: LayoutGrid }, // Changed icon
         ],
       },
-      {
-        section: "devTools" as SectionKey,
-        title: "DEV TOOLS",
-        items: [{ id: "toolkit", label: "Toolkit", icon: Wrench }],
-      },
+      // { // SECTION REMOVED
+      //   section: "devTools" as SectionKey,
+      //   title: "DEV TOOLS",
+      //   items: [{ id: "toolkit", label: "Toolkit", icon: Wrench }],
+      // },
     ];
 
     return (
@@ -360,10 +463,18 @@ const Layout = memo(
     children,
     title,
     description,
+    showSave = false,
+    onSave,
+    isSaving,
+    isDirty,
   }: {
     children: React.ReactNode;
     title: string;
     description?: string;
+    showSave?: boolean;
+    onSave?: () => void;
+    isSaving?: boolean;
+    isDirty?: boolean;
   }) => (
     <div className="flex-1 flex flex-col overflow-hidden">
       <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 px-6 py-5 flex-shrink-0 h-20 flex items-center justify-between">
@@ -382,6 +493,20 @@ const Layout = memo(
             )}
           </div>
         </div>
+        {showSave && (
+          <button
+            onClick={onSave}
+            disabled={isSaving || !isDirty}
+            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-500 flex items-center transition-colors shadow-sm disabled:cursor-not-allowed"
+          >
+            {isSaving ? (
+              <Loader className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <CheckCircle className="w-4 h-4 mr-2" />
+            )}
+            {isSaving ? "Saving..." : "Save Changes"}
+          </button>
+        )}
       </header>
       <main className="flex-1 p-6 overflow-y-auto bg-gray-50/50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto">{children}</div>
@@ -608,16 +733,33 @@ const DocumentUploadModal = ({
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // --- MODIFIED ---
   const handleFileSelect = (selectedFiles: FileList | null) => {
     if (selectedFiles && selectedFiles.length > 0) {
-      setFile(selectedFiles[0]);
-      setError(null);
+      const selectedFile = selectedFiles[0];
+      const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+
+      if (selectedFile.size > MAX_FILE_SIZE) {
+        setError("File size cannot exceed 50 MB.");
+        setFile(null);
+        // Clear the file input so the user can re-select
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      } else {
+        setFile(selectedFile);
+        setError(null);
+      }
     }
   };
+  // --- END MODIFIED ---
 
   const handleSubmit = async () => {
     if (!file) {
-      setError("Please select a file.");
+      // Error state is already set by handleFileSelect if it was a size issue
+      if (!error) {
+        setError("Please select a file.");
+      }
       return;
     }
     setIsUploading(true);
@@ -655,7 +797,11 @@ const DocumentUploadModal = ({
         </div>
         <div className="p-6 space-y-5">
           <div
-            className="border-2 border-dashed rounded-xl p-8 text-center transition-colors border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 cursor-pointer"
+            className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+              error // --- NEW ---
+                ? "border-red-400 bg-red-50/50 dark:border-red-500 dark:bg-red-900/20"
+                : "border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/20"
+            } cursor-pointer`} // --- END NEW ---
             onClick={() => fileInputRef.current?.click()}
           >
             <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -668,7 +814,7 @@ const DocumentUploadModal = ({
               or drag and drop
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              PDF, DOC, TXT, etc.
+              PDF, DOC, TXT, etc. (Max 50 MB) {/* --- MODIFIED --- */}
             </p>
             <input
               ref={fileInputRef}
@@ -676,7 +822,7 @@ const DocumentUploadModal = ({
               onChange={(e) => handleFileSelect(e.target.files)}
               className="hidden"
             />
-            {file && (
+            {file && ( // --- MODIFIED (show file info even if error, to show what was rejected) ---
               <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border dark:border-gray-600 text-left">
                 <div className="text-sm text-gray-800 dark:text-gray-200 font-medium">
                   {file.name}
@@ -721,7 +867,7 @@ const DocumentUploadModal = ({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={isUploading || !file}
+            disabled={isUploading || !file} 
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center transition-colors shadow-sm"
           >
             {isUploading && <Loader className="w-4 h-4 mr-2 animate-spin" />}{" "}
@@ -770,6 +916,7 @@ const EditableField = ({
       setIsEditing(false);
     } catch (error) {
       console.error("Failed to save:", error);
+      // Optionally: show a toast or error message to the user
     }
   };
 
@@ -882,7 +1029,7 @@ const EditableSpaces = ({
       onUpdate({ ...source, spaces });
     } catch (error) {
       console.error("Failed to save spaces:", error);
-      setSpaces(source.spaces || []);
+      setSpaces(source.spaces || []); // Revert on error
     }
   };
 
@@ -897,7 +1044,8 @@ const EditableSpaces = ({
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isEditing, spaces]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing, spaces]); // Added spaces to deps to ensure handleSave has latest state
 
   return (
     <div ref={containerRef} className="group">
@@ -979,6 +1127,7 @@ const SourceCard = ({
   const handleDownload = async () => {
     if (!token) {
       console.error("No auth token provided for download.");
+      // Use a non-blocking notification if possible, but alert is a fallback
       alert("Authentication error. Cannot download file.");
       return;
     }
@@ -1006,7 +1155,7 @@ const SourceCard = ({
       }
 
       // --- PDF logic ---
-      if (filename.toLowerCase().endsWith(".pdf")) {
+      if (filename.toLowerCase().endsWith(".pdf") && blob.type === "application/pdf") {
         const pdfUrl = URL.createObjectURL(blob);
         window.open(pdfUrl, "_blank");
         // Optionally revoke after some time
@@ -1153,22 +1302,45 @@ const SourcesListPage = ({
       )
   );
 
+  // --- NEW ---
+  const SOURCE_LIMIT = 10;
+  const limitReached = sources.length >= SOURCE_LIMIT;
+  const countLabel = type === "document" ? "Documents" : "Web Crawls";
+  // --- END NEW ---
+
   return (
     <>
       <div className="flex items-center justify-between mb-6">
-        <div className="relative">
-          <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder={`Search ${type}s...`}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-11 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg w-80 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white dark:bg-gray-800 dark:text-gray-200"
-          />
+        {/* --- MODIFIED (wrapped search and count) --- */}
+        <div className="flex items-center space-x-4">
+          <div className="relative">
+            <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder={`Search ${type}s...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-11 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg w-80 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white dark:bg-gray-800 dark:text-gray-200"
+            />
+          </div>
+          {/* --- NEW (count display) --- */}
+          <div className="font-medium text-sm text-gray-600 dark:text-gray-400">
+            {countLabel}:{" "}
+            <span className="font-bold text-gray-800 dark:text-gray-200">
+              {sources.length}
+            </span>
+            <span className="text-gray-500"> / {SOURCE_LIMIT}</span>
+          </div>
+          {/* --- END NEW --- */}
         </div>
+        {/* --- END MODIFIED --- */}
+
         <button
           onClick={onAdd}
-          className="inline-flex items-center px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium text-sm"
+          // --- MODIFIED (added disabled logic) ---
+          disabled={limitReached}
+          className="inline-flex items-center px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium text-sm disabled:bg-gray-400 dark:disabled:bg-gray-500 disabled:cursor-not-allowed"
+          // --- END MODIFIED ---
         >
           <Plus className="w-5 h-5 mr-2 -ml-1" />
           {type === "document" ? "Upload Document" : "Add Website"}
@@ -1240,7 +1412,10 @@ const useSources = (
       setSources([]);
       return;
     }
-    setIsLoading(true);
+    // Don't set loading to true if it's just a background refresh
+    if (sources.length === 0) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       const data = await fetcher(session.access_token);
@@ -1250,13 +1425,18 @@ const useSources = (
     } finally {
       setIsLoading(false);
     }
-  }, [fetcher, session]);
+  }, [fetcher, session, sources.length]);
+
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchData]); // Only run on mount (fetchData is memoized)
+
 
   useEffect(() => {
+    if (pollInterval === 0) return; // Allow disabling polling
+
     const interval = setInterval(async () => {
       const sourcesToUpdate = sources.filter(
         (s) => s.status === "PENDING" || s.status === "PROCESSING"
@@ -1304,17 +1484,18 @@ const DocumentsPage = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
 
   const handleDelete = async (docToDelete: Source) => {
+    // A non-blocking confirm would be better, but this is functional
     if (
-      !window.confirm(
+      window.confirm(
         `Are you sure you want to delete "${docToDelete.filename}"?`
       )
-    )
-      return;
-    try {
-      await api.deleteSource(docToDelete.id, session?.access_token);
-      deleteSource(docToDelete.id);
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
+    ) {
+        try {
+          await api.deleteSource(docToDelete.id, session?.access_token);
+          deleteSource(docToDelete.id);
+        } catch (err: any) {
+          alert(`Error: ${err.message}`);
+        }
     }
   };
 
@@ -1357,16 +1538,16 @@ const WebsitesPage = () => {
 
   const handleDelete = async (siteToDelete: Source) => {
     if (
-      !window.confirm(
+      window.confirm(
         `Are you sure you want to delete "${siteToDelete.filename}"?`
       )
-    )
-      return;
-    try {
-      await api.deleteSource(siteToDelete.id, session?.access_token);
-      deleteSource(siteToDelete.id);
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
+    ) {
+      try {
+        await api.deleteSource(siteToDelete.id, session?.access_token);
+        deleteSource(siteToDelete.id);
+      } catch (err: any) {
+        alert(`Error: ${err.message}`);
+      }
     }
   };
 
@@ -1374,6 +1555,7 @@ const WebsitesPage = () => {
     // This feature seems to have been removed from the backend,
     // so we'll just log it for now.
     console.log("Recrawl functionality not currently implemented in backend.");
+    alert("Recrawl functionality is not currently available.");
   };
 
   return (
@@ -2021,20 +2203,735 @@ const ConnectorsPage = () => {
   );
 };
 
+
+// --- ================================================= ---
+// --- NEW SETTINGS PAGES START HERE ---
+// --- ================================================= ---
+
+// --- REUSABLE SETTINGS COMPONENTS ---
+
+const SettingsCard = ({
+  title,
+  description,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+}) => (
+  <section className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
+    <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center space-x-3">
+        <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/40 rounded-lg flex items-center justify-center">
+          <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {title}
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {description}
+          </p>
+        </div>
+      </div>
+    </div>
+    <div className="p-6">{children}</div>
+  </section>
+);
+
+const FormLabel = ({
+  htmlFor,
+  children,
+}: {
+  htmlFor?: string;
+  children: React.ReactNode;
+}) => (
+  <label
+    htmlFor={htmlFor}
+    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+  >
+    {children}
+  </label>
+);
+
+const Slider = ({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  step,
+}: {
+  label: string;
+  value: number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  min: number;
+  max: number;
+  step: number;
+}) => (
+  <div>
+    <div className="flex justify-between items-center mb-1">
+      <FormLabel>{label}</FormLabel>
+      <span className="text-sm font-medium text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 px-2.5 py-0.5 rounded-md">
+        {value}
+      </span>
+    </div>
+    <input
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      onChange={onChange}
+      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+    />
+  </div>
+);
+
+const Select = ({
+  label,
+  value,
+  onChange,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  children: React.ReactNode;
+}) => (
+  <div>
+    <FormLabel htmlFor={label}>{label}</FormLabel>
+    <select
+      id={label}
+      value={value}
+      onChange={onChange}
+      className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+    >
+      {children}
+    </select>
+  </div>
+);
+
+const RadioGroup = ({
+  label,
+  options,
+  selectedValue,
+  onChange,
+}: {
+  label: string;
+  options: { value: string; label: string }[];
+  selectedValue: string;
+  onChange: (value: string) => void;
+}) => (
+  <div>
+    <FormLabel>{label}</FormLabel>
+    <div className="flex flex-wrap gap-2">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          onClick={() => onChange(option.value)}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            selectedValue === option.value
+              ? "bg-blue-600 text-white shadow-sm"
+              : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  </div>
+);
+
+const CheckboxGroup = ({
+  label,
+  options,
+  selectedValues,
+  onChange,
+}: {
+  label: string;
+  options: { value: string; label: string }[];
+  selectedValues: string[];
+  onChange: (value: string) => void;
+}) => (
+  <div>
+    <FormLabel>{label}</FormLabel>
+    <div className="space-y-3">
+      {options.map((option) => (
+        <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={selectedValues.includes(option.value)}
+            onChange={() => onChange(option.value)}
+            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+          />
+          <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
+        </label>
+      ))}
+    </div>
+  </div>
+);
+
+// --- NEW PAGE: VectorConfigPage ---
+const VectorConfigPage = () => {
+  const [topK, setTopK] = useState(5);
+  const [chunkSize, setChunkSize] = useState(512);
+  const [model, setModel] = useState("text-embedding-3-small");
+  const [overlap, setOverlap] = useState("small");
+
+  // In a real app, you'd fetch initial state and set 'isDirty'
+  // const [isDirty, setIsDirty] = useState(false);
+  // const [isSaving, setIsSaving] = useState(false);
+  // const handleSave = () => { setIsSaving(true); ... }
+
+  return (
+    <div className="space-y-6">
+      <SettingsCard
+        title="Vector Configuration"
+        description="Settings for how content is chunked and vectorized."
+        icon={SlidersHorizontal}
+      >
+        <div className="space-y-6">
+          <Slider
+            label="Top K Results"
+            value={topK}
+            onChange={(e) => setTopK(Number(e.target.value))}
+            min={1}
+            max={20}
+            step={1}
+          />
+          <Slider
+            label="Chunk Size (Tokens)"
+            value={chunkSize}
+            onChange={(e) => setChunkSize(Number(e.target.value))}
+            min={128}
+            max={2048}
+            step={128}
+          />
+          <Select
+            label="Vector Embedding Model"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+          >
+            <option value="intfloat/en5-large-v2">intfloat/en5-large-v2 (Default)</option>
+          </Select>
+          <RadioGroup
+            label="Chunk Overlap"
+            options={[
+              { value: "none", label: "None" },
+              { value: "small", label: "Small (10%)" },
+              { value: "medium", label: "Medium (20%)" },
+            ]}
+            selectedValue={overlap}
+            onChange={setOverlap}
+          />
+        </div>
+      </SettingsCard>
+    </div>
+  );
+};
+
+// --- NEW PAGE: RetrievalPage ---
+const RetrievalPage = () => {
+  const [retrievalMode, setRetrievalMode] = useState("hybrid");
+  const [threshold, setThreshold] = useState(0.75);
+  const [filtering, setFiltering] = useState(["enable"]);
+
+  // In a real app, you'd fetch initial state and set 'isDirty'
+  // const [isDirty, setIsDirty] = useState(false);
+  // const [isSaving, setIsSaving] = useState(false);
+  // const handleSave = () => { setIsSaving(true); ... }
+
+  const handleFilterChange = (value: string) => {
+    setFiltering(prev =>
+      prev.includes(value)
+        ? prev.filter(v => v !== value)
+        : [...prev, value]
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <SettingsCard
+        title="Retrieval Settings"
+        description="Customize how the system fetches relevant information."
+        icon={Filter}
+      >
+        <div className="space-y-6">
+          <RadioGroup
+            label="Retrieval Mode"
+            options={[
+              { value: "vector", label: "Vector Search" },
+              { value: "hybrid", label: "Hybrid Search (Default)" },
+              { value: "keyword", label: "Keyword Search" },
+            ]}
+            selectedValue={retrievalMode}
+            onChange={setRetrievalMode}
+          />
+          <Slider
+            label="Similarity Threshold"
+            value={threshold}
+            onChange={(e) => setThreshold(Number(e.target.value))}
+            min={0.5}
+            max={1.0}
+            step={0.01}
+          />
+          <CheckboxGroup
+            label="Data Source Filtering"
+            options={[
+              { value: "enable", label: "Enable Data Source Filtering" },
+              { value: "use_spaces", label: "Use 'Spaces' for fine-grained filtering" },
+            ]}
+            selectedValues={filtering}
+            onChange={handleFilterChange}
+          />
+        </div>
+      </SettingsCard>
+    </div>
+  );
+};
+
+// --- NEW PAGE: BusinessRulesPage ---
+
+// Copied from settings.tsx
+const MeetingDomainInput = ({
+  meetingDomains,
+  setMeetingDomains,
+} : {
+  meetingDomains: string[];
+  setMeetingDomains: (domains: string[]) => void;
+}) => {
+  const [inputValue, setInputValue] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const allSuggestions = useMemo(() => ["SaaS Pricing Models", "Cloud Security", "AWS Services", "Enterprise Software", "B2B Marketing", "Financial Projections", "Technical Due Diligence", "API Integration", "Supply Chain Logistics"], []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+    if (value) {
+      const filtered = allSuggestions.filter((suggestion) => suggestion.toLowerCase().includes(value.toLowerCase()) && !meetingDomains.includes(suggestion));
+      setSuggestions(filtered);
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  const addDomain = (domain: string) => {
+    const trimmedDomain = domain.trim();
+    if (trimmedDomain && !meetingDomains.includes(trimmedDomain)) {
+      setMeetingDomains([...meetingDomains, trimmedDomain]);
+    }
+    setInputValue("");
+    setSuggestions([]);
+  };
+
+  const removeDomain = (domainToRemove: string) => {
+    setMeetingDomains(meetingDomains.filter((domain) => domain !== domainToRemove));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addDomain(inputValue);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <div className={`flex flex-wrap gap-2 rounded-xl p-2 min-h-[48px] border focus-within:border-blue-500 focus-within:ring-2 transition-all duration-200 bg-gray-50 border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:focus-within:ring-blue-800 focus-within:ring-blue-200`}>
+        {meetingDomains.map((domain, index) => (
+          <div key={index} className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm font-medium bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-100`}>
+            {domain}
+            <button onClick={() => removeDomain(domain)} className={`p-0.5 rounded-full hover:bg-gray-300 dark:hover:bg-gray-500`}><X className="w-3.5 h-3.5" /></button>
+          </div>
+        ))}
+        <input type="text" value={inputValue} onChange={handleInputChange} onKeyDown={handleKeyDown} className="flex-grow bg-transparent p-1 focus:outline-none min-w-[120px]" placeholder="Add a topic..." />
+      </div>
+      {suggestions.length > 0 && (
+        <div className={`absolute z-10 w-full mt-2 rounded-lg shadow-lg border overflow-hidden bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-600`}>
+          <ul className="max-h-40 overflow-y-auto">
+            {suggestions.map((suggestion, index) => (<li key={index} onClick={() => addDomain(suggestion)} className={`px-4 py-2 cursor-pointer text-sm hover:bg-gray-100 dark:hover:bg-gray-700`}>{suggestion}</li>))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+// --- REPLACEMENT FOR DUMMY BusinessRulesPage ---
+// --- This component is now fully controlled by props ---
+const BusinessRulesPage = ({
+  settings,
+  setSettings,
+}: {
+  settings: SettingsModel | null;
+  setSettings: React.Dispatch<React.SetStateAction<SettingsModel | null>>;
+}) => {
+
+  const handleDomainsChange = (domains: string[]) => {
+    setSettings(prev => prev ? { ...prev, meetingDomains: domains } : null);
+  };
+  
+  const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newPrompt = e.target.value;
+    setSettings(prev => prev ? { ...prev, questionPrompt: newPrompt } : null);
+  };
+
+  if (!settings) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <SettingsCard
+        title="Meeting Focus"
+        description="Add topics to focus the AI Question detection"
+        icon={Tag}
+      >
+        <MeetingDomainInput 
+          meetingDomains={settings.meetingDomains}
+          setMeetingDomains={handleDomainsChange}
+        />
+      </SettingsCard>
+
+      <SettingsCard
+        title="Question Detection Logic"
+        description="Customize the system prompt used to identify questions during meetings."
+        icon={Bot}
+      >
+        <FormLabel htmlFor="question-prompt">System Prompt for Question Detection</FormLabel>
+        <textarea
+          id="question-prompt"
+          value={settings.questionPrompt}
+          onChange={handlePromptChange}
+          rows={6}
+          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm leading-relaxed"
+          placeholder="Enter prompt logic..."
+        />
+      </SettingsCard>
+    </div>
+  );
+};
+
+// --- NEW PAGE: AnswerConfigPage ---
+// --- REPLACEMENT FOR DUMMY AnswerConfigPage ---
+// --- This component is now fully controlled by props ---
+const AnswerConfigPage = ({
+  settings,
+  setSettings,
+}: {
+  settings: SettingsModel | null;
+  setSettings: React.Dispatch<React.SetStateAction<SettingsModel | null>>;
+}) => {
+  // Data copied from settings.tsx
+  const customerPersonas: CustomerPersona[] = [
+    { id: "balanced", name: "Balanced (Default)", description: "Versatile profile for general business users in B2B settings", prompt: "" },
+    { id: "technical", name: "Technical", description: "Deep technical, jargon-friendly (CTO, VP Engineering, Tech Lead, Solution Architect)", prompt: "You are speaking to a technical decision maker — such as a CTO, VP Engineering, Tech Lead, or Solution Architect. Use deep technical language and industry-specific terminology where appropriate. Focus on topics like backend architecture, API/SDK availability, developer documentation, scalability, latency benchmarks, data residency, encryption standards, CI/CD compatibility, and how the solution fits into their existing stack. Provide detailed, technically sound answers, and be prepared to back claims with architecture diagrams or benchmarks." },
+    { id: "finance", name: "Financial", description: "ROI-driven, cost-benefit analysis (CFO, Financial Controller, Budget Owner)", prompt: "You are speaking to a finance executive — such as a CFO, Controller, or Procurement Lead. Your tone should be ROI-driven, concise, and focused on financial impact. Emphasize cost-efficiency, pricing model clarity, return on investment (ROI), total cost of ownership (TCO), and how the investment aligns with budget cycles. Support claims with financial data, comparisons, or break-even analysis. Avoid fluff — every point should speak to value and resource optimization." },
+    { id: "executive", name: "Business Executives", description: "Layman, operational clarity, Strategic, high-level impact (CEO, Managing Director, Founder, Business Head)", prompt: "You are speaking to a senior business executive — such as a CEO, Founder, or Managing Director. Use a strategic, visionary tone. Focus on long-term business impact, market differentiation, competitive positioning, growth enablement, and leadership alignment. Emphasize how the solution supports strategic goals, future scalability, and innovation. Speak in terms of outcomes, high-level KPIs, and category leadership. Avoid deep technical or operational detail unless asked." },
+  ];
+
+  const answerStyles: AnswerStyle[] = [
+    { id: "concise", name: "Concise Answer", description: "Give a short, high-level answer suitable for quick consumption or alerts", prompt: "Provide a quick summary or one-sentence insight. Avoid depth. Designed for immediate clarity without elaboration."},
+    { id: "in_depth", name: "In-Depth Response", description: "Comprehensive, structured answer with examples, comparisons, and rich detail", prompt: "Offer a full breakdown of the topic. Include contextual background, examples, benefits, challenges, and comparisons. Prioritize clarity, completeness, and readability."},
+    { id: "points_format", name: "Answer in Points", description: "Structure responses as bullet points", prompt: "Structure all responses as clear, concise bullet points. Use numbered lists or bullet points to organize information. Make each point actionable and easy to scan. Avoid long paragraphs and break down complex information into digestible points."},
+    { id: "with_analogy", name: "Use Analogy", description: "Use real-world analogies or metaphors to explain technical concepts", prompt: "Explain the topic using a familiar metaphor or analogy. Ensure the analogy simplifies the concept without distorting the meaning. Clarify both the analogy and its real-world mapping."},
+    { id: "technical_terms", name: "Define Technical Terms", description: "Include brief, clear definitions of key technical concepts used in the answer", prompt: "Where relevant, define technical terms in plain language. Format as 'Term: Definition'. Keep explanations short and understandable."},
+    { id: "sales_points", name: "Sales Points", description: "Present benefits as persuasive selling points", prompt: "Highlight key advantages of the product/service in a way that resonates with buyer pain points. Focus on ROI, usability, efficiency, and ease of integration."},
+    { id: "key_statistics", name: "Key Statistics", description: "Include impactful, quantitative data points", prompt: "Insert 3-7 high-impact stats or KPIs that reinforce the argument. Format cleanly. Prioritize relevance and credibility."},
+    { id: "case_study", name: "Case Study Summary", description: "Use a real or hypothetical success story to illustrate impact", prompt: "Summarize a real-world scenario using SPSR: Situation, Problem, Solution, Result. Keep each section concise but informative."},
+    { id: "competitive_comparison", name: "Competitive Comparison", description: "Provide a side-by-side comparison of your solution and others", prompt: "Use a table or bullets to compare your solution with alternatives across multiple criteria (features, integration, pricing, support, etc.). Highlight clear advantages."},
+    { id: "customer_queries", name: "Anticipated Customer Questions", description: "Predict what the customer might ask next", prompt: "List common follow-up questions a customer or stakeholder might ask. Use these to guide future responses or FAQs."},
+    { id: "information_gap", name: "Information Gap", description: "Call out missing or unclear information the user should consider", prompt: "Identify what is *not* yet known or shared and what further information could enhance the analysis or decision-making."},
+    { id: "pricing_summary", name: "Pricing Overview", description: "Offer an overview of pricing models, tiers, or TCO", prompt: "Summarize the pricing structure, customization options, and overall value proposition. Highlight flexibility or TCO advantages where relevant."},
+  ];
+
+  const handlePersonaSelect = (personaId: string) => {
+    // When persona changes, auto-generate the new prompt
+    const personaPrompt = customerPersonas.find((p) => p.id === personaId)?.prompt || "";
+    const stylePrompts = settings?.selectedAnswerStyles
+      .map((id) => answerStyles.find((s) => s.id === id)?.prompt)
+      .filter(Boolean)
+      .join("\n\n") || "";
+    const newPrompt = [personaPrompt, stylePrompts].filter(Boolean).join("\n\n").trim();
+
+    setSettings(prev => prev ? { 
+      ...prev, 
+      selectedPersona: personaId, 
+      customPrompt: newPrompt 
+    } : null);
+  };
+
+  const handleAnswerStyleToggle = (styleId: string) => {
+    if (!settings) return;
+    
+    const newStyles = settings.selectedAnswerStyles.includes(styleId) 
+      ? settings.selectedAnswerStyles.filter((id) => id !== styleId) 
+      : [...settings.selectedAnswerStyles, styleId];
+
+    // Auto-generate new prompt based on new style list
+    const personaPrompt = customerPersonas.find((p) => p.id === settings.selectedPersona)?.prompt || "";
+    const stylePrompts = newStyles
+      .map((id) => answerStyles.find((s) => s.id === id)?.prompt)
+      .filter(Boolean)
+      .join("\n\n");
+    const newPrompt = [personaPrompt, stylePrompts].filter(Boolean).join("\n\n").trim();
+
+    setSettings(prev => prev ? { 
+      ...prev, 
+      selectedAnswerStyles: newStyles, 
+      customPrompt: newPrompt 
+    } : null);
+  };
+  
+  const handleCustomPromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    // When manually editing, just update the prompt
+    const newPrompt = e.target.value;
+    setSettings(prev => prev ? { ...prev, customPrompt: newPrompt } : null);
+  };
+  
+  if (!settings) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 space-y-6">
+        <SettingsCard
+          title="Customer Persona"
+          description="Choose one persona to affect the AI's tone, depth, and focus."
+          icon={Users}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {customerPersonas.map((persona) => (
+              <button 
+                key={persona.id} 
+                onClick={() => handlePersonaSelect(persona.id)} 
+                className={`p-5 rounded-xl border-2 text-left transition-all duration-200 hover:shadow-md ${
+                  settings.selectedPersona === persona.id
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-500"
+                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                }`}
+              >
+                <h3 className="font-semibold mb-1 text-gray-900 dark:text-gray-100">{persona.name}</h3>
+                <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">{persona.description}</p>
+              </button>
+            ))}
+          </div>
+        </SettingsCard>
+
+        <SettingsCard
+          title="Answer Styles"
+          description="Select multiple styles to customize responses."
+          icon={MessageSquare}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {answerStyles.map((style) => (
+              <button 
+                key={style.id} 
+                onClick={() => handleAnswerStyleToggle(style.id)} 
+                className={`p-5 rounded-xl border-2 text-left transition-all duration-200 hover:shadow-md ${
+                  settings.selectedAnswerStyles.includes(style.id)
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-500"
+                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                }`}
+              >
+                <h3 className="font-semibold mb-1 text-gray-900 dark:text-gray-100">{style.name}</h3>
+                <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">{style.description}</p>
+              </button>
+            ))}
+          </div>
+        </SettingsCard>
+      </div>
+
+      <div className="lg:col-span-1">
+        <div className="sticky top-6 space-y-6">
+          <SettingsCard
+            title="System Prompt"
+            description="Customize your AI Copilot."
+            icon={Bot}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <FormLabel htmlFor="system-prompt">Generated System Prompt</FormLabel>
+              <div className="relative group">
+                <Info className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-60 p-2 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  The system prompt is auto-generated, but you can edit it directly.
+                </div>
+              </div>
+            </div>
+            <textarea
+              id="system-prompt"
+              value={settings.customPrompt} // Read from prop
+              onChange={handleCustomPromptChange} // Call prop handler
+              rows={20}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm leading-relaxed"
+              placeholder="Select a persona or style to generate a prompt..."
+            />
+          </SettingsCard>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+// --- NEW PAGE: SearchResultsPage ---
+const SearchResultsPage = () => {
+  const [showOptions, setShowOptions] = useState(["snippet", "score", "filename"]);
+  const [sortOrder, setSortOrder] = useState("relevance");
+  const [highlighting, setHighlighting] = useState(true);
+
+  // In a real app, you'd fetch initial state and set 'isDirty'
+  // const [isDirty, setIsDirty] = useState(false);
+  // const [isSaving, setIsSaving] = useState(false);
+  // const handleSave = () => { setIsSaving(true); ... }
+  
+  const handleShowOptionsChange = (value: string) => {
+    setShowOptions(prev =>
+      prev.includes(value)
+        ? prev.filter(v => v !== value)
+        : [...prev, value]
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <SettingsCard
+        title="Search Result Presentation"
+        description="Configure how search results are displayed to the user."
+        icon={LayoutGrid}
+      >
+        <div className="space-y-6">
+          <CheckboxGroup
+            label="Visible Result Components"
+            options={[
+              { value: "snippet", label: "Show Content Snippet" },
+              { value: "score", label: "Show Relevance Score" },
+              { value: "filename", label: "Show Source Filename" },
+              { value: "url", label: "Show Source URL (if available)" },
+            ]}
+            selectedValues={showOptions}
+            onChange={handleShowOptionsChange}
+          />
+          <RadioGroup
+            label="Default Sort Order"
+            options={[
+              { value: "relevance", label: "Relevance" },
+              { value: "date_desc", label: "Date Added (Newest First)" },
+              { value: "date_asc", label: "Date Added (Oldest First)" },
+            ]}
+            selectedValue={sortOrder}
+            onChange={setSortOrder}
+          />
+          <div>
+            <FormLabel>Search Term Highlighting</FormLabel>
+            <button
+              onClick={() => setHighlighting(!highlighting)}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
+                highlighting ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-700"
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white dark:bg-gray-300 shadow ring-0 transition duration-200 ease-in-out ${
+                  highlighting ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      </SettingsCard>
+    </div>
+  );
+};
+
+// --- ================================================= ---
+// --- END OF NEW SETTINGS PAGES ---
+// --- ================================================= ---
+
+
 // --- MAIN APP COMPONENT ---
 const App: React.FC = () => {
-  const navigate = useNavigate(); // ADD THIS
-  const location = useLocation(); // ADD THIS
+  const { session } = useAuth(); // Use the REAL auth hook
+  const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState(
     () => localStorage.getItem("currentPage") || "documents"
   );
+  
+  // --- NEW SETTINGS STATE ---
+  const [settings, setSettings] = useState<SettingsModel | null>(null);
+  const [initialSettings, setInitialSettings] = useState<SettingsModel | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+  };
+  
+  // Fetch settings on mount
+  useEffect(() => {
+    const fetchInitialSettings = async () => {
+      if (!session) return;
+      try {
+        // Use the REAL session token
+        const data = await api.fetchSettings(session.access_token);
+        setSettings(data);
+        setInitialSettings(data);
+      } catch (error) {
+        console.error("Failed to fetch settings:", error);
+        showToast("Could not load saved settings", "error");
+      }
+    };
+    fetchInitialSettings();
+  }, [session]);
+
+  // Calculate isDirty
+  useEffect(() => {
+    if (!settings || !initialSettings) {
+      setIsDirty(false);
+      return;
+    }
+    const hasChanged = JSON.stringify(settings) !== JSON.stringify(initialSettings);
+    setIsDirty(hasChanged);
+  }, [settings, initialSettings]);
+
+  // Save settings
+  const handleSaveSettings = async () => {
+    if (!settings || !isDirty) return;
+    setIsSaving(true);
+    try {
+      // Use the REAL session token
+      await api.saveSettings(settings, session?.access_token);
+      setInitialSettings(settings); // Set new baseline
+      setIsSaving(false);
+      showToast("Settings saved successfully!");
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+      showToast("Error saving settings", "error");
+      setIsSaving(false);
+    }
+  };
+  // --- END NEW SETTINGS STATE ---
+
 
   useEffect(() => {
     localStorage.setItem("currentPage", currentPage);
   }, [currentPage]);
 
-  // ADD THIS FUNCTION
   const handleBack = () => {
     if (location.state?.from) {
       navigate(location.state.from);
@@ -2052,19 +2949,30 @@ const App: React.FC = () => {
     []
   );
 
-  const ComingSoonPage = memo(({ title }: { title: string }) => (
-    <div className="flex flex-col items-center justify-center h-full text-center">
-      <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6">
-        <Wrench className="w-10 h-10 text-gray-400 dark:text-gray-500" />
-      </div>
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-        {title}
-      </h2>
-      <p className="text-gray-600 dark:text-gray-400 mb-4">
-        This feature is under development and coming soon!
-      </p>
-    </div>
-  ));
+  // Helper to create the component with props
+  const renderPage = (Component: React.FC<any>) => {
+    // These pages are self-contained
+    const contentPages = ["documents", "websites", "connectors", "browse"];
+    if (contentPages.includes(currentPage)) {
+      return <Component />;
+    }
+    
+    // These pages are dummy/local state only
+    const dummyPages = ["vectorconfig", "retrieval", "searchresults"];
+    if (dummyPages.includes(currentPage)) {
+      return <Component />;
+    }
+
+    // These pages need settings
+    const settingsPages = ["businessrules", "answerconfig"];
+    if (settingsPages.includes(currentPage)) {
+      return <Component settings={settings} setSettings={setSettings} />;
+    }
+    
+    // Default fallback
+    return <Component />;
+  };
+
 
   const pageConfig: {
     [key: string]: {
@@ -2096,40 +3004,53 @@ const App: React.FC = () => {
     vectorconfig: {
       title: "Vector Configuration",
       description: "Configure your knowledge base indexing",
-      Component: () => <ComingSoonPage title="Vector Configuration" />,
+      Component: VectorConfigPage, // Replaced
     },
     retrieval: {
       title: "Retrieval",
       description: "Customize content retrieval settings",
-      Component: () => <ComingSoonPage title="Retrieval" />,
+      Component: RetrievalPage, // Replaced
     },
     businessrules: {
       title: "Business Rules",
       description: "Set up conditional processing rules",
-      Component: () => <ComingSoonPage title="Business Rules" />,
+      Component: BusinessRulesPage, // Replaced
     },
     answerconfig: {
       title: "Answer Configuration",
       description: "Fine-tune response generation",
-      Component: () => <ComingSoonPage title="Answer Configuration" />,
+      Component: AnswerConfigPage, // Replaced
     },
     searchresults: {
       title: "Search Results",
       description: "Configure search result presentation",
-      Component: () => <ComingSoonPage title="Search Results" />,
+      Component: SearchResultsPage, // Replaced
     },
-    toolkit: {
-      title: "Developer Toolkit",
-      description: "Advanced tools for development",
-      Component: () => <ComingSoonPage title="Developer Toolkit" />,
-    },
+    // toolkit: { // Removed
+    //   title: "Developer Toolkit",
+    //   description: "Advanced tools for development",
+    //   Component: () => <ComingSoonPage title="Developer Toolkit" />,
+    // },
   };
 
   const { Component, title, description } =
     pageConfig[currentPage] || pageConfig.documents;
 
+  // Check if the current page is one of the new settings pages
+  const isSettingsPage = [
+    "vectorconfig",
+    "retrieval",
+    "businessrules",
+    "answerconfig",
+    "searchresults",
+  ].includes(currentPage);
+  
+  // Specifically, which pages should use the main save button?
+  const usesSharedSave = ["businessrules", "answerconfig"];
+
   return (
     <div className="flex h-screen bg-gray-50 font-sans text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+      {toast && (<Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />)}
       <Sidebar
         currentPage={currentPage}
         onPageChange={handlePageChange}
@@ -2137,8 +3058,15 @@ const App: React.FC = () => {
         onToggleCollapse={handleToggleSidebar}
         onBack={handleBack}
       />
-      <Layout title={title} description={description}>
-        <Component />
+      <Layout 
+        title={title} 
+        description={description}
+        showSave={usesSharedSave.includes(currentPage)} // Show save button for these pages
+        onSave={handleSaveSettings}
+        isSaving={isSaving}
+        isDirty={isDirty}
+      >
+        {renderPage(Component)}
       </Layout>
     </div>
   );

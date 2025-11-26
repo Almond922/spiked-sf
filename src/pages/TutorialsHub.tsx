@@ -2,6 +2,10 @@ import React, { useState, useEffect, useCallback, SVGProps } from 'react';
 import { Book, Settings, FileText, Mic, Layout, ArrowLeft, ChevronDown, Search, Rocket, Zap, Code, Users, Target, NotebookPen, LayoutDashboard, BookOpen, BrainCircuit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { topics } from './tutorialsdata';
+import Heading from '../components/Heading';
+import Paragraph from '../components/Paragraph';
+import ImageLayout from '../components/ImageLayout';
+import TableOfContents from '../components/TableOfContents';
 
 interface Question {
   id: string;
@@ -301,14 +305,7 @@ const TutorialsHub: React.FC = () => {
   const renderArticleContent = () => {
     if (!selectedArticle) {
       return (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          color: '#9ca3af',
-          fontSize: '16px'
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9ca3af', fontSize: '16px' }}>
           Select a topic from the sidebar to get started
         </div>
       );
@@ -321,98 +318,55 @@ const TutorialsHub: React.FC = () => {
 
     if (!article) return null;
 
-    if (article.subQuestions && article.subQuestions.length > 0) {
-      return (
-        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px' }}>
-          <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#111827', marginBottom: '25px', lineHeight: '1.2' }}>
-            {article.title}
-          </h1>
-          
-          <div style={{
-            backgroundColor: '#f9fafb',
-            border: '1px solid #e5e7eb',
-            borderRadius: '10px',
-            padding: '20px',
-            marginBottom: '30px'
-          }}>
-            <h2 style={{
-              fontSize: '13px',
-              fontWeight: 700,
-              color: '#6b7280',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '15px'
-            }}>
-              IN THIS ARTICLE
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {article.subQuestions.map((subQ: SubQuestion) => (
-                <a
-                  key={subQ.id}
-                  href={`#${subQ.id}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    color: '#374151',
-                    textDecoration: 'none',
-                    fontSize: '15px',
-                    transition: 'color 0.2s, transform 0.2s',
-                    fontWeight: 500
-                  }}
-                  onMouseOver={(e) => { e.currentTarget.style.color = '#2563EB'; e.currentTarget.style.transform = 'translateX(3px)'; }}
-                  onMouseOut={(e) => { e.currentTarget.style.color = '#374151'; e.currentTarget.style.transform = 'translateX(0)'; }}
-                >
-                  <span style={{ fontSize: '13px', color: '#9ca3af' }}>#</span>
-                  {subQ.question}
-                </a>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
-            {article.subQuestions.map((subQ: SubQuestion) => (
-              <div key={subQ.id} id={subQ.id} style={{ scrollMarginTop: '100px' }}>
-                <h2 style={{
-                  fontSize: '26px',
-                  fontWeight: 700,
-                  color: '#111827',
-                  marginBottom: '15px',
-                  lineHeight: '1.3'
-                }}>
-                  {subQ.question}
-                </h2>
-                <div
-                  style={{
-                    fontSize: '16px',
-                    lineHeight: '1.7',
-                    color: '#4b5563',
-                  }}
-                  dangerouslySetInnerHTML={{ __html: subQ.answer }}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px' }}>
-        <h1 style={{ fontSize: '36px', fontWeight: 700, color: '#111827', marginBottom: '15px', lineHeight: '1.2' }}>
+        <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#111827', marginBottom: '25px', lineHeight: '1.2' }}>
           {article.title}
         </h1>
-        
-        <div style={{ maxWidth: '800px', lineHeight: '1.7', color: '#374151', fontSize: '17px' }}>
-          
-          <div
-            style={{ fontSize: '16px', lineHeight: '1.7', color: '#4b5563' }}
-            dangerouslySetInnerHTML={{ __html: article.details || '' }}
-          />
-        </div>
+
+        {article.content && article.content.map((block, index) => {
+          switch (block.type) {
+            // NEW: Added the case for our Table of Contents
+            case 'toc':
+              return <TableOfContents key={index} links={block.links} />;
+            
+            case 'heading':
+              // We add an 'id' here so the TOC links can scroll to it
+              return <div id={block.anchorId}><Heading key={index} text={block.text} /></div>;
+            
+            case 'paragraph':
+              // FIXED: Changed 'text' prop to 'htmlContent'
+              return <Paragraph key={index} htmlContent={block.text} />;
+              
+            case 'imageLayout':
+              return (
+                <ImageLayout
+                  key={index}
+                  htmlContent={block.htmlContent}
+                  imgSrc={block.imgSrc}
+                  altText={block.altText}
+                />
+              );
+              
+            default:
+              return null;
+          }
+        })}
+
+        {article.subQuestions && article.subQuestions.map((subQ) => (
+          <div key={subQ.id} id={subQ.id} style={{ scrollMarginTop: '100px', marginBottom: '40px' }}>
+            <h2 style={{ fontSize: '26px', fontWeight: 700, color: '#111827', marginBottom: '15px' }}>
+              {subQ.question}
+            </h2>
+            <div
+              style={{ fontSize: '16px', lineHeight: '1.7', color: '#4b5563' }}
+              dangerouslySetInnerHTML={{ __html: subQ.answer }}
+            />
+          </div>
+        ))}
       </div>
     );
-  };
+};
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
@@ -648,7 +602,7 @@ const TutorialsHub: React.FC = () => {
           </h1>
 
           <p style={{ fontSize: '15px', color: '#6b7280', lineHeight: '1.5', marginBottom: '25px' }}>
-            Learn step-by-step with clean, simple guided tutorials.
+            Learn step-by-step with clean, simple guided tutorials
           </p>
 
           {/* Best Practices and Troubleshooting Buttons - BIGGER */}

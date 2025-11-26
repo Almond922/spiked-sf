@@ -6,8 +6,6 @@ import {
   MessageSquare,
   Bot,
   FileText,
-  Sun,
-  Moon,
   RotateCcw,
   Info,
   Loader2,
@@ -324,11 +322,37 @@ const SpikedAISettings: React.FC = () => {
     updateCustomPrompt(personaId, selectedAnswerStyles);
   };
 
+  // --- CHANGED FUNCTION START ---
   const handleAnswerStyleToggle = (styleId: string) => {
-    const newStyles = selectedAnswerStyles.includes(styleId) ? selectedAnswerStyles.filter((id) => id !== styleId) : [...selectedAnswerStyles, styleId];
+    // Define pairs that cannot coexist
+    const conflicts: Record<string, string> = {
+      concise: "in_depth",
+      in_depth: "concise",
+    };
+
+    let newStyles: string[];
+
+    if (selectedAnswerStyles.includes(styleId)) {
+      // If already selected, just remove it (toggle off)
+      newStyles = selectedAnswerStyles.filter((id) => id !== styleId);
+    } else {
+      // If selecting a new style:
+      // 1. Identify if this style has a conflict (e.g. concise vs in_depth)
+      const conflictingStyle = conflicts[styleId];
+      
+      // 2. Filter out the conflicting style if it exists in the current list
+      const stylesWithoutConflict = selectedAnswerStyles.filter(
+        (id) => id !== conflictingStyle
+      );
+      
+      // 3. Add the new style
+      newStyles = [...stylesWithoutConflict, styleId];
+    }
+
     setSelectedAnswerStyles(newStyles);
     updateCustomPrompt(selectedPersona, newStyles);
   };
+  // --- CHANGED FUNCTION END ---
 
   const handleSave = async () => {
     if (!isDirty) return;

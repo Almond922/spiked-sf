@@ -338,7 +338,7 @@ const Sidebar = memo(
         items: [
           { id: "documents", label: "Documents", icon: FileText },
           { id: "websites", label: "Websites", icon: Globe },
-          { id: "connectors", label: "Connectors", icon: Link2 },
+          // { id: "connectors", label: "Connectors", icon: Link2 }, //
         ],
       },
       {

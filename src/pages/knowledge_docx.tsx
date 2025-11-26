@@ -779,4 +779,4 @@ const AppWalkthroughLayout: FC = () => {
   );
 };
 
-export default SignInLayout;
+export default AppWalkthroughLayout;

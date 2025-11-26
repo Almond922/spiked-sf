@@ -1,469 +1,160 @@
-import React, { useState, FormEvent, FC, useEffect, useCallback } from 'react';
-import { Rocket, Mail, Lock, User, Zap, BookOpen, Settings, CheckCircle, XCircle, Clock, Send, Search, Bell, Menu, Tag, Users, Folder, Inbox, Filter, Cpu, TrendingUp, Briefcase, Volume2, VolumeX } from 'lucide-react';
+import React, { useState, FormEvent, FC, useMemo } from 'react';
+import { 
+    ArrowLeft, Info, RefreshCw, Save, Check, X, Plus, 
+    Cpu, TrendingUp, Briefcase, Users, Zap, Tag, Goal, Settings, Loader2
+} from 'lucide-react';
 
-// --- INTERFACES (Typescript Definitions) ---
+// --- INTERFACES & MOCK DATA ---
 
-interface SubQuestion {
-  id: string;
-  question: string;
-  answer: string;
-  type:'personalization-access-demo' | 'customer-persona-demo' | 'meeting-focus-demo';
+// 1. Meeting Focus
+interface FocusTag {
+    id: string;
+    label: string;
 }
-interface Question { id: string; title: string; emoji: string; description: string; subQuestions?: SubQuestion[]; }
-interface Item { id: string; title: string; description: string; questions: Question[]; }
-interface Topic { cardId: string; cardTitle: string; cardDescription: string; icon: JSX.Element; emoji: string; items: Item[]; }
-interface Topics { [key: string]: Topic; }
+const MOCK_FOCUS_TAGS: FocusTag[] = [
+    { id: 'aws', label: 'AWS' },
+    { id: 'amazon', label: 'Amazon' },
+    { id: 'gcp', label: 'GCP' },
+    { id: 'googlesales', label: 'google sales' },
+    { id: 'nvidia', label: 'nvidia' },
+];
 
-// --- CUSTOM HOOK: useSpeechSynthesis (For Text-to-Speech) ---
+// 2. Customer Persona
+interface Persona {
+    id: string;
+    title: string;
+    description: string;
+    detail: string;
+    icon: JSX.Element;
+    style: string;
+}
+const MOCK_PERSONAS: Persona[] = [
+    { id: 'balanced', title: 'Balanced (Default)', description: 'Versatile profile for general business users in B2B settings', detail: 'Versatile profile for general business users in B2B settings', icon: <Users className="w-5 h-5 text-gray-500" />, style: 'bg-white border-gray-200' },
+    { id: 'technical', title: 'Technical', description: 'Deep technical, jargon-friendly (CTO, VP Engineering, Tech Lead, Solution Architect)', detail: 'You are speaking to a technical decision maker — such as a CTO, VP Engineering, Tech Lead, or Solution Architect. Use deep technical language and industry-specific terminology where appropriate. Focus on topics like backend architecture, API/SDK availability, developer documentation, scalability, latency benchmarks, data residency, encryption standards, CI/CD compatibility, and how the solution fits into their existing stack. Provide...', icon: <Cpu className="w-5 h-5 text-purple-600" />, style: 'bg-purple-50 border-purple-300' },
+    { id: 'financial', title: 'Financial', description: 'ROI-driven, cost-benefit analysis (CFO, Financial Controller, Budget Owner)', detail: 'ROI-driven, cost-benefit analysis (CFO, Financial Controller, Budget Owner)', icon: <TrendingUp className="w-5 h-5 text-yellow-600" />, style: 'bg-yellow-50 border-yellow-300' },
+    { id: 'businessexecutive', title: 'Business Executives', description: 'Layman, operational clarity, Strategic, high-level impact (CEO, Managing Director, Founder, Business Head)', detail: 'Layman, operational clarity, Strategic, high-level impact (CEO, Managing Director, Founder, Business Head)', icon: <Briefcase className="w-5 h-5 text-blue-600" />, style: 'bg-blue-50 border-blue-300' },
+];
 
-const useSpeechSynthesis = (text: string) => {
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isEnabled, setIsEnabled] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+// 3. Answer Styles
+interface AnswerStyle {
+    id: string;
+    title: string;
+    description: string;
+}
+const MOCK_ANSWER_STYLES: AnswerStyle[] = [
+    { id: 'concise', title: 'Concise Answer', description: 'Give a short, high-level answer suitable for quick consumption or alerts' },
+    { id: 'indepth', title: 'In-Depth Response', description: 'Comprehensive, structured answer with examples, comparisons, and rich detail' },
+    { id: 'points', title: 'Answer in Points', description: 'Structure responses as bullet points' },
+    { id: 'analogy', title: 'Use Analogy', description: 'Use real-world analogies or metaphors to explain technical concepts' },
+    { id: 'terms', title: 'Define Technical Terms', description: 'Include brief, clear definitions of key technical concepts used in the answer' },
+    { id: 'sales', title: 'Sales Points', description: 'Present benefits as persuasive selling points' },
+    { id: 'stats', title: 'Key Statistics', description: 'Include impactful, quantitative data points' },
+    { id: 'case', title: 'Case Study Summary', description: 'Use a real or hypothetical successful story to illustrate impact' },
+    { id: 'compare', title: 'Competitive Comparison', description: 'Provide a side-by-side comparison of your solution and others' },
+    { id: 'faq', title: 'Anticipated Customer Questions', description: 'Predict what the customer might ask next' },
+    { id: 'gap', title: 'Information Gap', description: 'Call out missing or unclear information the user should consider' },
+    { id: 'pricing', title: 'Pricing Overview', description: 'Offer an overview of pricing models, tiers, or TCO' },
+];
 
-  // Function to strip HTML for cleaner speech output
-  const stripHtml = (html: string) => {
-    // Replace HTML tags with spaces and normalize whitespace
-    return html.replace(/<[^>]*>/g, ' ').replace(/\s{2,}/g, ' ').trim();
-  };
-
-  const speak = useCallback((content: string) => {
-    if (!('speechSynthesis' in window)) {
-      setError("Text-to-speech not supported in this browser.");
-      return;
-    }
-    
-    // Stop any current speech before starting a new one
-    window.speechSynthesis.cancel();
-    setIsSpeaking(false);
-
-    if (!isEnabled) return; // Don't speak if voice is disabled
-
-    const utterance = new SpeechSynthesisUtterance(stripHtml(content));
-    
-    // Optional: Set voice parameters
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = (event) => {
-      console.error('SpeechSynthesis Utterance Error:', event);
-      setError('An error occurred during speech.');
-      setIsSpeaking(false);
-    };
-
-    window.speechSynthesis.speak(utterance);
-  }, [isEnabled]);
-
-  const toggleEnabled = () => {
-    setIsEnabled(prev => {
-      if (prev) {
-        // If disabling, cancel any current speech
-        window.speechSynthesis.cancel();
-        setIsSpeaking(false);
-      }
-      return !prev;
-    });
-  };
-
-  // Effect to speak when text changes AND speaking is enabled
-  useEffect(() => {
-    if (isEnabled && text) {
-      speak(text);
-    }
-    // Cleanup: Stop speech when component unmounts or text/enabled status changes
-    return () => {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-    };
-  }, [text, isEnabled, speak]); // Re-run when text, enabled status, or speak changes
-
-  // Cleanup on component unmount
-  useEffect(() => {
-    return () => {
-      window.speechSynthesis.cancel();
-    };
-  }, []);
-
-  return { isSpeaking, toggleEnabled, isEnabled, error };
-};
+// 4. Custom Goals
+interface CustomGoal {
+    id: string;
+    title: string;
+    evaluationCriteria: string;
+}
+const MOCK_CUSTOM_GOALS: CustomGoal[] = [
+    { id: 'jira-status', title: 'status of jira', evaluationCriteria: 'know about the jira integration' },
+    { id: 'economic-buyer', title: 'economic buyer', evaluationCriteria: 'who is interested to be a economic buyer' },
+    { id: 'what-dhruv-chirag', title: 'what are dhruv and chirag working on', evaluationCriteria: 'anyone can answer' },
+    { id: 'owner-notetaker', title: 'can you tell who is the owner of notetaker', evaluationCriteria: 'smruthi answer this' },
+    { id: 'mumbai-status', title: 'Check the status of Mumbai', evaluationCriteria: 'To understand how the person enjoys Mumbai' },
+    { id: 'follow-up', title: 'secure a follow meet up', evaluationCriteria: 'send a calender invitation' },
+];
 
 
-// --- DEMO COMPONENT 5: PERSONALIZATION ACCESS ---
+// --- NEW COMPONENT: AddNewGoalModal ---
 
-const PersonalizationAccessDemo: FC = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isPersonalizationClicked, setIsPersonalizationClicked] = useState(false);
-
-  return (
-    <div style={{ aspectRatio: '1.2 / 1', maxWidth: '600px', minWidth: '350px' }} className="w-full h-full bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden relative">
-      <div className="p-4 flex items-center justify-between border-b bg-gray-50">
-        <h1 className="text-lg font-semibold text-gray-900 flex items-center">
-          <span className="text-red-600 font-extrabold text-xl mr-1">!</span>
-          SpikedAI Console
-        </h1>
-        <div className="flex items-center space-x-3">
-          <button className="text-gray-500 hover:text-gray-700"><Bell className="w-5 h-5" /></button>
-          <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-500 hover:text-gray-700">
-            <Settings className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex h-full">
-        {/* Sidebar/Menu Simulation */}
-        <div className="w-1/4 p-4 border-r bg-white space-y-2 relative">
-          <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Navigation</p>
-          {['Dashboard', 'Meetings', 'Library'].map(label => (
-            <div key={label} className="flex items-center p-2 text-sm text-gray-700 rounded-lg hover:bg-indigo-50 cursor-pointer">
-              <Folder className="w-4 h-4 mr-2" />
-              <span>{label}</span>
-            </div>
-          ))}
-          {/* Highlighted Personalization Link */}
-          <div 
-            onClick={() => setIsPersonalizationClicked(true)}
-            className={`flex items-center p-2 text-sm font-semibold rounded-lg cursor-pointer transition-all border-l-4 ${
-              isPersonalizationClicked 
-              ? 'bg-indigo-100 text-indigo-700 border-indigo-600'
-              : 'text-gray-700 hover:bg-indigo-50 border-transparent'
-            }`}
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            <span>Personalization</span>
-          </div>
-          <p className="absolute bottom-4 text-xs text-gray-400">Main Console</p>
-        </div>
-
-        {/* Console Content */}
-        <div className="w-3/4 p-6 bg-gray-50">
-          {!isPersonalizationClicked ? (
-            <div className="text-center p-12 bg-white rounded-lg shadow-inner border border-dashed border-gray-300">
-              <Zap className="w-8 h-8 mx-auto text-red-600 mb-3" />
-              <p className="text-lg font-semibold text-gray-800 mb-1">Ready to Assist</p>
-              <p className="text-sm text-gray-500">
-                Click on **Personalization** in the navigation menu to configure your settings.
-              </p>
-            </div>
-          ) : (
-            <div className="p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-600">
-              <p className="font-bold text-indigo-800 text-sm mb-1">Personalization Settings</p>
-              <p className="text-xs text-indigo-700">
-                You've successfully accessed the settings! Here you can find Customer Persona and Meeting Focus.
-              </p>
-            </div>
-          )}
-          
-          <div className="mt-6 space-y-3">
-            <div className="bg-white p-3 rounded-lg flex justify-between items-center shadow-sm">
-              <span className="text-sm font-medium text-gray-700">Live Transcription</span>
-              <span className="text-xs text-green-600 bg-green-100 p-1 rounded">Active</span>
-            </div>
-            <div className="bg-white p-3 rounded-lg flex justify-between items-center shadow-sm">
-              <span className="text-sm font-medium text-gray-700">Metrics & ROI Dashboard</span>
-              <span className="text-xs text-gray-500">View</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-// --- DEMO COMPONENT 6: CUSTOMER PERSONA & MEETING FOCUS ---
-
-interface PersonaCardProps {
-  icon: JSX.Element;
-  title: string;
-  description: string;
-  isDefault?: boolean;
+interface AddNewGoalModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (title: string, criteria: string) => void;
 }
 
-const PersonaCard: FC<PersonaCardProps> = ({ icon, title, description, isDefault = false }) => (
-  <div className={`p-4 rounded-lg border transition-all ${isDefault ? 'bg-indigo-50 border-indigo-300 shadow-md' : 'bg-white border-gray-200 hover:border-indigo-400 cursor-pointer'}`}>
-    <div className="flex items-center mb-1">
-      {icon}
-      <h4 className={`text-base font-semibold ml-2 ${isDefault ? 'text-indigo-800' : 'text-gray-900'}`}>{title}</h4>
-      {isDefault && <span className="ml-2 text-xs font-medium text-white bg-indigo-600 px-2 py-0.5 rounded-full">Default</span>}
-    </div>
-    <p className="text-sm text-gray-600">{description}</p>
-  </div>
-);
+const AddNewGoalModal: FC<AddNewGoalModalProps> = ({ isOpen, onClose, onSave }) => {
+    const [title, setTitle] = useState('');
+    const [criteria, setCriteria] = useState('');
 
-const CustomerPersonaDemo: FC = () => {
-  const personas: PersonaCardProps[] = [
-    { icon: <Users className="w-4 h-4 text-indigo-500" />, title: 'Balanced', description: 'Versatile profile for general business users in B2B settings.', isDefault: true },
-    { icon: <Cpu className="w-4 h-4 text-purple-500" />, title: 'Technical', description: 'Deep technical jargon-friendly responses for engineering teams.' },
-    { icon: <TrendingUp className="w-4 h-4 text-yellow-600" />, title: 'Financial', description: 'ROI-driven, cost-benefit analysis focused for finance teams.' },
-    { icon: <Briefcase className="w-4 h-4 text-blue-600" />, title: 'Business Executive', description: 'High-impact insights for C-suite executives.' },
-  ];
+    if (!isOpen) return null;
 
-  const meetingFocusOptions = [
-    { label: 'Summarize pricing structure', isSelected: true },
-    { label: 'Track next steps', isSelected: false },
-    { label: 'Identify competition mentions', isSelected: true },
-  ];
-
-  return (
-    <div style={{ maxWidth: '600px', minWidth: '350px' }} className="w-full p-6 bg-white rounded-xl shadow-2xl border border-gray-100">
-      <h3 className="text-xl font-bold text-gray-900 mb-4">Customer Persona Settings</h3>
-      <p className="text-sm text-gray-600 mb-4">
-        Choose the persona that matches your meeting audience. The AI's communication style, depth, and focus will adjust automatically.
-      </p>
-      
-      <div className="space-y-3 mb-8">
-        {personas.map(p => (
-          <PersonaCard key={p.title} {...p} />
-        ))}
-      </div>
-
-      <h3 className="text-xl font-bold text-gray-900 mb-4">Meeting Focus</h3>
-      <p className="text-sm text-gray-600 mb-4">
-        Define the key objectives and topics to prioritize and track during the meeting.
-      </p>
-      
-      <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border">
-        {meetingFocusOptions.map((item, index) => (
-          <span 
-            key={index}
-            className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${
-              item.isSelected 
-              ? 'bg-red-600 text-white' 
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer'
-            }`}
-          >
-            {item.label}
-          </span>
-        ))}
-        <input type="text" placeholder="Add custom topic..." className="text-xs px-3 py-1 bg-white border rounded-full w-32" />
-      </div>
-    </div>
-  );
-};
-
-
-// --- TOPICS DATA STRUCTURE (Updated to include Personalization) ---
-export const topics: Topics = {
-  // --- NEW PERSONALIZATION TOPIC ---
-  personalization: {
-    cardId: 'card-personalization',
-    cardTitle: 'Personalization',
-    cardDescription: 'Customize your AI\'s behavior for optimal meeting results.',
-    icon: <Settings style={{ width: '20px', height: '20px' }} />,
-    emoji: '⚙️',
-    items: [
-      {
-        id: 'settings',
-        title: 'AI Configuration',
-        description: 'Adjust your AI\'s persona and focus before a meeting.',
-        questions: [
-          {
-            id: 'personalization-settings',
-            title: 'Personalization Access',
-            emoji: '🧭',
-            description: 'Locating the AI configuration settings.',
-            subQuestions: [
-              {
-                id: 'access-settings',
-                question: 'Where do I find the Personalization settings?',
-                type: 'personalization-access-demo',
-                answer: `
-                  <div style="line-height:1.8;color:#374151;font-size:15px;text-align: left;">
-                    <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #1f2937;">Accessing Personalization Settings</h2>
-                    <p style="margin:0 0 20px 0;">Personalization settings are located in the <strong>Main Console</strong> and must be configured <strong>before starting a meeting</strong>. These settings control your AI's communication style and meeting objectives.</p>
-                    
-                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 12px; color: #1f2937;">How to access:</h3>
-                    <ol style="margin:0 0 20px 0;padding-left:20px;list-style-type:decimal;">
-                      <li style="margin:0 0 12px 0;">Go to the <strong>Main Console</strong>.</li>
-                      <li style="margin:0 0 12px 0;">Click on <strong>Personalization</strong> in the navigation menu (see demo on the right).</li>
-                      <li style="margin:0;">Configure your settings before joining or starting a meeting.</li>
-                    </ol>
-
-                    <p style="margin:0;padding:12px;background:#fefce8;border-left:3px solid #eab308;border-radius:4px;font-size:14px;">
-                      <strong>Important:</strong> Changes here only apply to meetings started <strong>after</strong> configuration.
-                    </p>
-                  </div>
-                `
-              },
-              {
-                id: 'choose-persona',
-                question: 'How do I choose a Customer Persona?',
-                type: 'customer-persona-demo',
-                answer: `
-                  <div style="line-height:1.8;color:#374151;font-size:15px;text-align: left;">
-                    <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #1f2937;">Choosing Your AI's Customer Persona</h2>
-                    <p style="margin:0 0 20px 0;">The Customer Persona determines your AI's communication style, depth, and focus during meetings. Choose the persona that best matches your audience.</p>
-                    
-                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 12px; color: #1f2937;">Available Personas:</h3>
-                    <ul style="margin:0 0 20px 0;padding-left:0;list-style:none;">
-                      <li style="margin:0 0 8px 0;"><span style="font-weight:600;">Balanced:</span> Versatile profile for general business users in B2B settings.</li>
-                      <li style="margin:0 0 8px 0;"><span style="font-weight:600;">Technical:</span> Deep technical jargon-friendly responses for engineering teams.</li>
-                      <li style="margin:0 0 8px 0;"><span style="font-weight:600;">Financial:</span> ROI-driven, cost-benefit analysis focused for finance teams.</li>
-                      <li style="margin:0;"> <span style="font-weight:600;">Business Executive:</span> High-impact insights for C-suite executives.</li>
-                    </ul>
-
-                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 12px; color: #1f2937;">How to set your persona:</h3>
-                    <ol style="margin:0;padding-left:20px;list-style-type:decimal;">
-                      <li style="margin:0 0 12px 0;">Navigate to <strong>Personalization → Customer Persona</strong>.</li>
-                      <li style="margin:0;">Select the persona that matches your meeting audience. The AI will automatically adjust its tone and depth accordingly.</li>
-                    </ol>
-                  </div>
-                `
-              },
-              {
-                id: 'meeting-focus',
-                question: 'What is Meeting Focus and why is it important?',
-                type: 'meeting-focus-demo',
-                answer: `
-                  <div style="line-height:1.8;color:#374151;font-size:15px;text-align: left;">
-                    <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #1f2937;">Meeting Focus: Prioritizing Key Objectives</h2>
-                    <p style="margin:0 0 20px 0;"><strong>Meeting Focus</strong> is one of the most critical features in spikedAI. It tells your AI what to <strong>prioritize and track</strong> during the meeting.</p>
-                    
-                    <div style="padding:12px;background:#fffbe0;border-left:3px solid #f59e0b;border-radius:4px;font-size:14px;margin-bottom:20px;">
-                      <p style="margin:0 0 5px 0;font-weight:600;"><span style="color:#f59e0b;">&#9888; IMPORTANT:</span> Meeting Focus must be set <strong>before starting a meeting</strong>.</p>
-                    </div>
-
-                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 12px; color: #1f2937;">Why it matters:</h3>
-                    <ul style="margin:0 0 20px 0;padding-left:20px;">
-                      <li style="margin:0 0 8px 0;">Directs your AI's attention to what matters most</li>
-                      <li style="margin:0 0 8px 0;">Ensures relevant insights are captured</li>
-                      <li style="margin:0 0 8px 0;">Improves post-meeting reports quality</li>
-                      <li style="margin:0;">Tracks specific objectives automatically</li>
-                    </ul>
-
-                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 12px; color: #1f2937;">How to set:</h3>
-                    <ol style="margin:0;padding-left:20px;list-style-type:decimal;">
-                      <li style="margin:0 0 12px 0;">Go to <strong>Personalization → Meeting Focus</strong>.</li>
-                      <li style="margin:0 0 12px 0;">Define what the meeting is about.</li>
-                      <li style="margin:0 0 12px 0;">Specify key topics to track.</li>
-                      <li style="margin:0;">Save before joining the meeting.</li>
-                    </ol>
-                  </div>
-                `
-              }
-            ],
-          },
-        ],
-      },
-    ],
-  },
-};
-
-// --- MAIN APP COMPONENT ---
-
-const App: FC = () => {
-    // Collect all sub-questions for the tabs, mapping the structure to a flat array
-    const allSubQuestions = Object.values(topics).flatMap(topic => 
-        topic.items.flatMap(item => 
-            item.questions.flatMap(question => 
-                question.subQuestions || []
-            )
-        )
-    );
-    
-    // Set initial state to the first personalization article
-    const initialArticleId = 'access-settings'; 
-    const [currentArticleId, setCurrentArticleId] = useState<string>(initialArticleId);
-
-    // Find the current topic data based on the ID
-    const topicData = allSubQuestions.find(sq => sq.id === currentArticleId);
-
-    if (!topicData) {
-        return <div className="p-10 text-center text-red-600">Article not found!</div>;
-    }
-
-    const textContent = topicData.answer;
-
-    // --- VOICE INTEGRATION ---
-    const { isSpeaking, toggleEnabled, isEnabled, error } = useSpeechSynthesis(textContent);
-
-    // Conditionally render the correct interactive component
-    const RightSideComponent = () => {
-        if (topicData.type === 'personalization-access-demo') return <PersonalizationAccessDemo />;
-        // CustomerPersonaDemo will cover both Customer Persona and Meeting Focus articles
-        if (topicData.type === 'customer-persona-demo' || topicData.type === 'meeting-focus-demo') return <CustomerPersonaDemo />; 
-        return null;
+    const handleSave = () => {
+        if (title.trim() && criteria.trim()) {
+            onSave(title.trim(), criteria.trim());
+            setTitle('');
+            setCriteria('');
+        }
+        onClose();
     };
 
     return (
-        <div className="p-6 md:p-10 bg-gray-50 min-h-screen font-inter">
-            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 max-w-6xl mx-auto">
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-6">Add New Goal</h2>
                 
-                <h1 className="text-2xl font-bold mb-4 text-gray-900 flex items-center justify-between">
-                  Article: {topicData.question}
-                  
-                  {/* Voice Control Button */}
-                  <button 
-                    onClick={toggleEnabled} 
-                    className={`p-2 rounded-full transition-all flex items-center text-sm font-medium ${
-                      isEnabled 
-                        ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                    title={isEnabled ? 'Disable Voice Playback' : 'Enable Voice Playback'}
-                  >
-                    {isEnabled ? (
-                      isSpeaking ? (
-                        <>
-                          <Volume2 className="w-5 h-5 mr-1 animate-pulse" />
-                          Speaking...
-                        </>
-                      ) : (
-                        <>
-                          <Volume2 className="w-5 h-5 mr-1" />
-                          Voice On
-                        </>
-                      )
-                    ) : (
-                      <>
-                        <VolumeX className="w-5 h-5 mr-1" />
-                        Voice Off
-                      </>
-                    )}
-                  </button>
-                </h1>
-
-                {/* Article Selector (Tabs for easy switching) */}
-                <div className="flex border-b border-gray-200 mb-6 overflow-x-auto whitespace-nowrap">
-                    <BookOpen className="w-5 h-5 text-gray-400 mr-2 self-center flex-shrink-0" />
-                    {allSubQuestions.map((q) => (
-                        <button
-                            key={q.id}
-                            onClick={() => setCurrentArticleId(q.id)}
-                            className={`py-2 px-4 text-sm font-medium flex-shrink-0 transition-all border-b-2 ${
-                                q.id === currentArticleId 
-                                ? 'border-indigo-600 text-indigo-600'
-                                : 'text-gray-500 border-transparent hover:text-gray-700'
-                            }`}
-                        >
-                            {q.question}
-                        </button>
-                    ))}
+                {/* Emoji Selection (Simplified for Demo) */}
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Emoji</label>
+                    <div className="mt-1">
+                        <div className="w-12 h-12 flex items-center justify-center border-2 border-indigo-400 rounded-lg cursor-pointer bg-white shadow-inner">
+                            <span className="text-2xl">🎯</span>
+                        </div>
+                    </div>
                 </div>
-                
-                {/* Voice Error Notification */}
-                {error && (
-                    <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg mb-4 text-sm">
-                        ⚠️ **Error:** {error}
-                    </div>
-                )}
-                
-                {/* Two-Column Layout (Instructions on Left, Interactive Demo on Right) */}
-                <div 
-                    style={{padding: '20px 0'}} 
-                    className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start"
-                >
-                    {/* LEFT COLUMN: Instructions (from data structure) */}
-                    <div dangerouslySetInnerHTML={{ __html: textContent }} />
-                    
-                    {/* RIGHT COLUMN: Interactive Demo (Conditionally Rendered) */}
-                    <div className="flex justify-center md:justify-end">
-                        <RightSideComponent />
-                    </div>
+
+                {/* Goal Description */}
+                <div className="mb-4">
+                    <label htmlFor="goal-description" className="block text-sm font-medium text-gray-700">Goal Description</label>
+                    <textarea
+                        id="goal-description"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="e.g., Secure a follow-up meeting with the CTO"
+                        rows={3}
+                        className="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    />
+                </div>
+
+                {/* Evaluation Criteria */}
+                <div className="mb-8">
+                    <label htmlFor="evaluation-criteria" className="block text-sm font-medium text-gray-700">Evaluation Criteria</label>
+                    <textarea
+                        id="evaluation-criteria"
+                        value={criteria}
+                        onChange={(e) => setCriteria(e.target.value)}
+                        placeholder="e.g., A calendar invitation is sent and accepted."
+                        rows={3}
+                        className="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-3">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        disabled={!title.trim() || !criteria.trim()}
+                        className={`px-4 py-2 text-white font-medium rounded-lg transition-colors ${
+                            title.trim() && criteria.trim()
+                                ? 'bg-indigo-600 hover:bg-indigo-700'
+                                : 'bg-gray-400 cursor-not-allowed'
+                        }`}
+                    >
+                        Save Goal
+                    </button>
                 </div>
             </div>
         </div>
@@ -471,4 +162,335 @@ const App: FC = () => {
 };
 
 
-export default App;
+// --- MODIFIED CustomGoalsStep Component ---
+
+const CustomGoalsStep: FC<{ goals: CustomGoal[], onAddGoal: (goal: CustomGoal) => void }> = ({ goals, onAddGoal }) => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const handleSaveGoal = (title: string, criteria: string) => {
+        onAddGoal({
+            id: `custom-${Date.now()}`,
+            title: title,
+            evaluationCriteria: criteria,
+        });
+    };
+
+    return (
+      <>
+        <div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full">
+            <div className="flex items-center justify-between text-lg font-semibold text-gray-900 mb-4">
+                <div className="flex items-center">
+                    <Goal className="w-5 h-5 mr-2 text-red-500" />
+                    Custom Goals
+                </div>
+                <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 disabled:bg-indigo-300"
+                >
+                    <Plus className="w-4 h-4 mr-1" /> Add New Goal
+                </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">Define key objectives for your meetings to track success.</p>
+            
+            {/* Render Existing Goals */}
+            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+            {goals.map((goal) => (
+                <div key={goal.id} className="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                <div className="flex items-start">
+                    <Goal className="w-5 h-5 mt-0.5 mr-3 text-red-500 flex-shrink-0" />
+                    <div className="flex-grow">
+                    <div className="font-semibold text-base text-gray-800 mb-1">{goal.title}</div>
+                    <div className="text-xs text-gray-500 space-y-0.5">
+                        <span className="uppercase font-medium tracking-wider">Evaluation Criteria</span>
+                        <p className="text-sm text-gray-700">{goal.evaluationCriteria}</p>
+                    </div>
+                    </div>
+                </div>
+                </div>
+            ))}
+            </div>
+            {/* The input form fields are now replaced by the modal trigger button above */}
+        </div>
+        
+        {/* The Modal itself */}
+        <AddNewGoalModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSave={handleSaveGoal}
+        />
+      </>
+    );
+};
+
+
+// --- Interactive Guide Panel and Other Steps (Retained for completeness) ---
+
+interface GuidePanelProps {
+    currentStep: number;
+    stepsLength: number;
+}
+
+const InteractiveGuidePanel: FC<GuidePanelProps> = ({ currentStep, stepsLength }) => {
+    const guideSteps = [
+        "Review the Bot Configuration and System Prompt.",
+        "Complete Step 1: Meeting Focus (Requires > 0 tags).",
+        "Complete Step 2: Customer Persona (Requires 1 selection).",
+        "Complete Step 3: Answer Styles (Requires > 0 styles).",
+        "Complete Step 4: Custom Goals (Optional).",
+        "Click 'Save Changes' on the last step (4/4).",
+    ];
+
+    return (
+        <div className="p-6 bg-white rounded-xl shadow-md border border-gray-100">
+            <h3 className="flex items-center text-lg font-bold text-gray-900 mb-4">
+                <Info className="w-5 h-5 mr-2 text-green-600" />
+                Interactive Demo Guide
+            </h3>
+            <ol className="space-y-3 text-sm">
+                {guideSteps.map((guideStep, index) => {
+                    let isStepComplete = false;
+                    let isActive = false;
+                    
+                    if (index === 0) {
+                        isStepComplete = currentStep > 0;
+                        isActive = currentStep === 0;
+                    } else if (index >= 1 && index <= stepsLength) { 
+                        isStepComplete = currentStep > index;
+                        isActive = currentStep === index;
+                    } else if (index === stepsLength + 1) {
+                        isStepComplete = currentStep > stepsLength;
+                        isActive = currentStep === stepsLength;
+                    }
+
+                    return (
+                        <li key={index} className={`flex items-start transition-colors ${isStepComplete ? 'text-gray-500' : (isActive ? 'text-indigo-600' : 'text-gray-800')}`}>
+                            {isStepComplete ? (
+                                <Check className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
+                            ) : (
+                                <Loader2 className={`w-4 h-4 mr-2 mt-0.5 text-indigo-500 flex-shrink-0 ${isActive ? 'animate-spin' : ''}`} />
+                            )}
+                            <span className={isStepComplete ? 'line-through' : (isActive ? 'font-semibold' : '')}>
+                                {guideStep}
+                            </span>
+                        </li>
+                    );
+                })}
+            </ol>
+        </div>
+    );
+};
+
+// Placeholder components (copied from previous turn for completeness)
+const MeetingFocusStep: FC<{ selectedTags: FocusTag[], onTagToggle: (tag: FocusTag) => void, onAddDomain: (domain: string) => void }> = ({ selectedTags, onTagToggle, onAddDomain }) => {
+    const [newDomain, setNewDomain] = useState('');
+    const handleAdd = (e: FormEvent) => { e.preventDefault(); if (newDomain.trim()) { onAddDomain(newDomain.trim()); setNewDomain(''); } };
+    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Tag className="w-5 h-5 mr-2 text-indigo-600" />Meeting Focus<Info className="w-4 h-4 ml-2 text-gray-400 cursor-pointer" /></div><p className="text-sm text-gray-600 mb-4">Add topics to focus the AI on. (Requires at least **one tag**)</p><div className="border border-gray-300 p-4 rounded-lg bg-gray-50 space-y-3"><div className="flex flex-wrap gap-2 mb-3">{MOCK_FOCUS_TAGS.map(tag => {const isSelected = selectedTags.some(t => t.id === tag.id); return (<button key={tag.id} onClick={() => onTagToggle(tag)} className={`flex items-center text-sm px-3 py-1 rounded-full transition-colors ${isSelected ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{tag.label}{isSelected && <X className="w-3 h-3 ml-1" />}</button>);} )}</div><form onSubmit={handleAdd} className="w-full"><input type="text" value={newDomain} onChange={(e) => setNewDomain(e.target.value)} placeholder="Add a domain (e.g., 'Databricks')" className="w-full px-3 py-2 text-sm border-b border-gray-300 focus:border-indigo-500 focus:ring-0 outline-none transition-colors"/>{newDomain && (<button type="submit" className="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium"><Plus className="w-3 h-3 inline-block mr-1" /> Add "{newDomain}"</button>)}</form></div></div>);
+};
+  
+const CustomerPersonaStep: FC<{ selectedPersona: Persona | null, onSelect: (persona: Persona) => void }> = ({ selectedPersona, onSelect }) => {
+    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Users className="w-5 h-5 mr-2 text-indigo-600" />Customer Persona</div><p className="text-sm text-gray-600 mb-4">Choose **one** persona to affect the AI's tone, depth, and focus. (Requires **one selection**)</p><div className="grid grid-cols-2 gap-4">{MOCK_PERSONAS.map(persona => {const isSelected = selectedPersona?.id === persona.id; return (<div key={persona.id} onClick={() => onSelect(persona)} className={`p-4 rounded-xl border-2 transition-all cursor-pointer min-h-[120px] relative ${isSelected ? 'border-indigo-600 bg-indigo-50 shadow-lg' : 'border-gray-200 hover:border-indigo-400 bg-white'}`}><div className="flex justify-between items-start mb-2"><h4 className="font-semibold text-base">{persona.title}</h4>{isSelected && <Check className="w-5 h-5 text-indigo-600" />}</div><p className="text-xs text-gray-600">{persona.description}</p>{persona.id === 'technical' && isSelected && (<div className="absolute inset-0 border-4 border-purple-600 rounded-xl pointer-events-none"></div>)}</div>);})}</div><h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">System Prompt</h3><div className="p-4 bg-gray-50 border border-gray-300 rounded-lg h-40 overflow-y-auto text-sm text-gray-700">{selectedPersona ? selectedPersona.detail : "Select a persona to see the corresponding system prompt/instruction that guides the AI's output."}</div></div>);
+};
+  
+const AnswerStylesStep: FC<{ selectedStyles: string[], onStyleToggle: (styleId: string) => void }> = ({ selectedStyles, onStyleToggle }) => {
+    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Zap className="w-5 h-5 mr-2 text-indigo-600" />Answer Styles</div><p className="text-sm text-gray-600 mb-4">Select **multiple** styles to customize responses. (Requires at least **one selection**)</p><div className="grid grid-cols-3 gap-3">{MOCK_ANSWER_STYLES.map(style => {const isSelected = selectedStyles.includes(style.id); return (<div key={style.id} onClick={() => onStyleToggle(style.id)} className={`p-3 rounded-lg border transition-all cursor-pointer min-h-[100px] relative ${isSelected ? 'border-green-600 bg-green-50 shadow-inner' : 'border-gray-200 hover:border-green-300 bg-white'}`}><div className="flex items-start mb-1"><h4 className="font-semibold text-sm text-gray-900">{style.title}</h4><div className={`w-3 h-3 rounded-full ml-auto mt-0.5 border ${isSelected ? 'bg-green-600 border-white' : 'bg-gray-200 border-gray-400'}`}></div></div><p className="text-xs text-gray-500">{style.description}</p></div>);})}</div></div>);
+};
+
+
+// --- MAIN PERSONALIZATION PAGE COMPONENT ---
+
+const PersonalizationPage: FC = () => {
+    // 0. State for the User Journey
+    const STEPS = ['Meeting Focus', 'Customer Persona', 'Answer Styles', 'Custom Goals'];
+    const [currentStep, setCurrentStep] = useState(0); 
+
+    // 1. State for Personalization Data 
+    const initialAnswerStyles = MOCK_ANSWER_STYLES.map(s => s.id);
+    const [meetingFocus, setMeetingFocus] = useState<FocusTag[]>(MOCK_FOCUS_TAGS);
+    const [customerPersona, setCustomerPersona] = useState<Persona | null>(MOCK_PERSONAS.find(p => p.id === 'technical') || MOCK_PERSONAS[0]);
+    const [answerStyles, setAnswerStyles] = useState<string[]>(initialAnswerStyles);
+    const [customGoals, setCustomGoals] = useState<CustomGoal[]>(MOCK_CUSTOM_GOALS);
+    const [botName, setBotName] = useState('SpikedAI');
+
+    // Handlers
+    const handleTagToggle = (tag: FocusTag) => { setMeetingFocus(prev => prev.some(t => t.id === tag.id) ? prev.filter(t => t.id !== tag.id) : [...prev, tag]); };
+    const handleAddDomain = (domain: string) => { const newTag: FocusTag = { id: domain.toLowerCase().replace(/\s/g, '-'), label: domain }; if (!meetingFocus.some(t => t.id === newTag.id)) { setMeetingFocus(prev => [...prev, newTag]); } };
+    const handleStyleToggle = (styleId: string) => { setAnswerStyles(prev => prev.includes(styleId) ? prev.filter(id => id !== styleId) : [...prev, styleId]); };
+    const handleAddGoal = (goal: CustomGoal) => { setCustomGoals(prev => [...prev, goal]); };
+
+
+    // --- Navigation Logic ---
+    const isCurrentStepValid = useMemo(() => {
+        switch (currentStep) {
+            case 0: return meetingFocus.length > 0;
+            case 1: return customerPersona !== null;
+            case 2: return answerStyles.length > 0;
+            case 3: return true;
+            default: return false;
+        }
+    }, [currentStep, meetingFocus, customerPersona, answerStyles]);
+
+    const handleNext = () => {
+        if (currentStep < STEPS.length - 1 && isCurrentStepValid) {
+            setCurrentStep(prev => prev + 1);
+        } else if (currentStep === STEPS.length - 1 && isCurrentStepValid) {
+            setTimeout(() => {
+                setCurrentStep(STEPS.length); 
+            }, 500);
+        }
+    };
+
+    const handleBack = () => {
+        if (currentStep > 0) {
+            setCurrentStep(prev => prev - 1);
+        }
+    };
+    
+    // --- Conditional Rendering of Step Content ---
+    const renderStepContent = () => {
+        switch (currentStep) {
+            case 0: return <MeetingFocusStep selectedTags={meetingFocus} onTagToggle={handleTagToggle} onAddDomain={handleAddDomain} />;
+            case 1: return <CustomerPersonaStep selectedPersona={customerPersona} onSelect={setCustomerPersona} />;
+            case 2: return <AnswerStylesStep selectedStyles={answerStyles} onStyleToggle={handleStyleToggle} />;
+            case 3: return <CustomGoalsStep goals={customGoals} onAddGoal={handleAddGoal} />;
+            case 4: return (
+                <div className="p-10 bg-green-50 rounded-xl border-2 border-green-300 text-center flex flex-col items-center justify-center h-full">
+                    <Check className="w-10 h-10 text-green-600 mb-4" />
+                    <h2 className="text-2xl font-bold text-green-800">Setup Complete!</h2>
+                    <p className="text-lg text-green-700">Your AI Copilot is now fully personalized and changes are saved.</p>
+                    <button onClick={() => setCurrentStep(0)} className="mt-4 text-indigo-600 font-medium hover:text-indigo-800">
+                        Start Over
+                    </button>
+                </div>
+            );
+            default: return <div className="p-10 text-center text-red-600">Error: Invalid Step</div>;
+        }
+    };
+
+    const isSaveMode = currentStep === STEPS.length - 1;
+    const isCompleted = currentStep === STEPS.length;
+
+
+    return (
+        <div className="bg-gray-50 min-h-screen font-sans">
+            
+            {/* Header and Controls - Full Width Black Bar */}
+            <div className="w-full bg-gray-900 shadow-2xl">
+                <div className="max-w-7xl mx-auto p-4 md:p-6"> {/* Centered content container */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                            <button onClick={handleBack} disabled={currentStep === 0 || isCompleted} className="p-2 rounded-full text-white hover:bg-gray-700 disabled:opacity-50">
+                                <ArrowLeft className="w-5 h-5" />
+                            </button>
+                            <h1 className="text-xl md:text-2xl font-bold text-white flex items-center">
+                                <Settings className="w-6 h-6 mr-2 text-indigo-400" /> 
+                                Personalisation
+                            </h1>
+                            <span className="text-gray-400 text-lg hidden md:inline">Configure your AI sales copilot</span> 
+                        </div>
+                        
+                        <div className="flex space-x-3">
+                            <button className="flex items-center px-4 py-2 bg-white text-gray-800 border border-gray-700 rounded-lg hover:bg-gray-100 disabled:opacity-50" disabled={isCompleted}>
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                Undo
+                            </button>
+                            <button 
+                                onClick={handleNext} 
+                                disabled={!isCurrentStepValid && !isSaveMode || isCompleted}
+                                className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+                                    isCurrentStepValid || isSaveMode
+                                        ? 'bg-indigo-400 text-gray-900 font-semibold hover:bg-indigo-300' 
+                                        : 'bg-indigo-600 opacity-50 text-white cursor-not-allowed'
+                                }`}
+                            >
+                                {isCompleted ? (
+                                    <>Setup Complete!</>
+                                ) : isSaveMode ? (
+                                    <><Save className="w-4 h-4 mr-2" /> Save Changes</>
+                                ) : (
+                                    <>Next Step ({currentStep + 1}/{STEPS.length})</>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content Area */}
+            <div className="max-w-7xl mx-auto px-4 md:px-6 pt-6 pb-10"> 
+                
+                {/* Progress Indicator - Now aligned with main content */}
+                <div className="mb-8"> 
+                    <div className="flex justify-between text-xs font-medium text-gray-500 mb-1">
+                        {STEPS.map((step, index) => (
+                            <span key={index} className={index === currentStep ? 'text-indigo-600 font-bold' : (index < currentStep ? 'text-green-600' : 'text-gray-500')}>
+                                {index + 1}. {step}
+                            </span>
+                        ))}
+                    </div>
+                    {/* Progress Bar Track */}
+                    <div className="h-2 bg-gray-700 rounded-full"> 
+                        <div 
+                            style={{ width: `${((currentStep) / STEPS.length) * 100}%` }} 
+                            className="h-2 bg-indigo-400 rounded-full transition-all duration-500" 
+                        ></div>
+                    </div>
+                </div>
+
+                {/* Main Step Content (3-column layout) */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[500px]">
+                    
+                    {/* LEFT COLUMN: Bot Configuration and Guide */}
+                    <div className="lg:col-span-1 space-y-6">
+                        
+                        {/* Interactive Guide Panel */}
+                        <InteractiveGuidePanel currentStep={currentStep} stepsLength={STEPS.length} />
+
+                        {/* Bot Configuration */}
+                        <div className="p-6 bg-white rounded-xl shadow-md border border-gray-100">
+                            <div className="flex items-center text-lg font-semibold text-gray-900 mb-3">
+                                <Settings className="w-5 h-5 mr-2 text-red-600" />
+                                Bot Configuration
+                            </div>
+                            <input
+                                type="text"
+                                value={botName}
+                                onChange={(e) => setBotName(e.target.value)}
+                                className="w-full p-2 border border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-indigo-500"
+                            />
+                        </div>
+                        
+                        {/* System Prompt Display */}
+                        <div className="p-6 bg-white rounded-xl shadow-md border border-gray-100">
+                            <div className="flex items-center text-lg font-semibold text-gray-900 mb-3">
+                                <Info className="w-5 h-5 mr-2 text-orange-600" />
+                                System Prompt
+                            </div>
+                            <p className="text-sm text-gray-600 mb-2">The instruction set guiding the AI's core behavior.</p>
+                            <textarea
+                                value={customerPersona?.detail || "Select a persona to load the System Prompt..."}
+                                readOnly
+                                className="w-full p-3 border border-gray-300 rounded-lg text-sm text-gray-700 bg-gray-50 h-48 focus:border-indigo-500 focus:ring-indigo-500"
+                            />
+                        </div>
+                    </div>
+
+                    {/* MIDDLE/RIGHT COLUMN: Current Step Content */}
+                    <div className="lg:col-span-2">
+                        {renderStepContent()}
+                        
+                        {/* Display validation warning if needed */}
+                        {!isCurrentStepValid && !isCompleted && (
+                            <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm flex items-center">
+                                <X className="w-4 h-4 mr-2" />
+                                Please complete the current step before proceeding: **{STEPS[currentStep]}** requires selection/input.
+                            </div>
+                        )}
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default PersonalizationPage;

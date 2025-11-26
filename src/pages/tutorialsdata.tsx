@@ -1393,8 +1393,18 @@ console: {
                 <li style="margin-bottom:12px;padding-left:8px;">In your meeting platform, you'll receive a request to <strong>admit the SpikedAI bot</strong></li>
                 <li style="margin-bottom:0;padding-left:8px;">Click <strong>Admit</strong> to allow the bot to join</li>
               </ol>
+              <img 
+  src="/tutorial/meeting link.png" 
+  alt="Meeting Link Screenshot" 
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
 
-             
+
+              <img 
+  src="/tutorial/admit bot.png" 
+  alt="Admit Bot Screenshot" 
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
 
               <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">⏱️ QUICK START</p>
@@ -1404,6 +1414,8 @@ console: {
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
                 <strong>Pro Tip:</strong> Connect your bot before the meeting starts to ensure it captures the entire conversation from the beginning.
               </p>
+             
+
             </div>
           `
         },
@@ -1656,6 +1668,11 @@ console: {
                 <li style="margin-bottom:12px;padding-left:8px;">Select the meeting you want to review</li>
                 <li style="margin-bottom:0;padding-left:8px;">View the complete transcription with timestamps and speaker identification</li>
               </ol>
+<img 
+  src="/tutorial/live transcription view.png" 
+  alt="Live Transcription View Screenshot" 
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
 
               <p style="margin-bottom:12px;font-weight:600;">What you can do with transcriptions:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -1712,6 +1729,9 @@ console: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Ask Beyond:</strong> Access web information when answers aren't in your documents</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Track History:</strong> Review past questions and answers with toggle history</li>
               </ul>
+              <img 
+  
+
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
                 <strong>Pro Tip:</strong> The AI Copilot gets smarter as you add more documents and conduct more meetings.
@@ -1733,6 +1753,11 @@ console: {
                 <li style="margin-bottom:12px;padding-left:8px;">Type your question in the input field</li>
                 <li style="margin-bottom:0;padding-left:8px;">The AI will search your documents and transcriptions to provide an answer</li>
               </ol>
+              <img 
+  src="/tutorial/ask documents.png" 
+  alt="Ask Documents Screenshot"
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
 
               <p style="margin-bottom:12px;font-weight:600;">Method 2: Meeting Questions (Smart Suggestions)</p>
               <ol style="margin:0 0 24px 0;padding-left:24px;">
@@ -1742,6 +1767,12 @@ console: {
                 <li style="margin-bottom:12px;padding-left:8px;">Click on any question to automatically get an answer</li>
                 <li style="margin-bottom:0;padding-left:8px;">The AI searches your documents and provides relevant information</li>
               </ol>
+              <img 
+  src="/tutorial/meeting questions.png" 
+  alt="Meeting Questions Screenshot"
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
+
 
               <p style="margin-bottom:12px;font-weight:600;">Method 3: Transcription-Based Questions</p>
               <ol style="margin:0 0 24px 0;padding-left:24px;">
@@ -1750,7 +1781,11 @@ console: {
                 <li style="margin-bottom:0;padding-left:8px;">The AI analyzes the conversation and answers any questions that were asked in the meeting but not captured in Meeting Questions</li>
               </ol>
 
-              
+              <img 
+  src="/tutorial/question locate.png" 
+  alt="Question Locate Screenshot"
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
 
               <div style="padding:20px;background:#EFF6FF;border-left:4px solid #2563EB;border-radius:8px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:14px;">💡 Smart Integration</p>
@@ -1808,7 +1843,12 @@ console: {
                 <li style="margin-bottom:0;padding-left:8px;">The AI will search the web and provide an answer with web access enabled</li>
               </ol>
 
-              
+              <img 
+  src="/tutorial/ask beyond.png" 
+  alt="Ask Beyond Screenshot"
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
+
               <p style="margin-bottom:12px;font-weight:600;">When to use Ask Beyond:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;">When information is not available in your documents</li>
@@ -1850,7 +1890,9 @@ console: {
                 <strong>Pro Tip:</strong> Use toggle history to review previous answers and build on earlier conversations.
               </p>
             </div>
+            
           `
+          
         },
         {
           id: 'transcription-questions',
@@ -1954,7 +1996,11 @@ console: {
                 <li style="margin-bottom:0;padding-left:8px;">Click any question to get instant answers from your documents</li>
               </ol>
 
-              
+              <img 
+  src="/tutorial/meeting questions.png" 
+  alt="Meeting Questions Screenshot"
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
 
               <p style="margin-bottom:12px;font-weight:600;">Key features:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -2014,7 +2060,11 @@ console: {
                 <li style="margin-bottom:10px;padding-left:8px;">Helps identify client concerns and information needs</li>
                 <li style="margin-bottom:0;padding-left:8px;">Useful for follow-up and ensuring all client queries are addressed</li>
               </ul>
-
+<img 
+  src="/tutorial/client questions.png" 
+  alt="Client Questions Screenshot"
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
               <p style="margin-bottom:12px;font-weight:600;">User Questions:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;">Questions asked by you or your team members during the meeting</li>
@@ -2022,6 +2072,11 @@ console: {
                 <li style="margin-bottom:0;padding-left:8px;">Identify areas where additional documentation may be needed</li>
               </ul>
 
+<img 
+  src="/tutorial/user questions.png" 
+  alt="User Questions Screenshot"
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
               
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
@@ -2453,7 +2508,11 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Pain Points:</strong> Problems and challenges the prospect is facing</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Champion:</strong> Internal advocate supporting your solution</li>
               </ul>
-
+<img 
+  src="/tutorial/medpic list.png" 
+  alt="Medpic List Screenshot"
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
               <p style="margin-bottom:12px;font-weight:600;">How it works:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;">Bot joins the meeting and starts recording transcriptions</li>
@@ -2462,6 +2521,7 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;">Generate summary button provides detailed insights for each category</li>
                 <li style="margin-bottom:0;padding-left:8px;">Information updates automatically during the meeting</li>
               </ul>
+              
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
                 <strong>Example:</strong> If someone mentions "Sundar Pichai is our champion at Google," Playbook Analysis will record this in the Champion category, mark it as "Discussed," and generate a summary explaining why this was identified.
@@ -2595,7 +2655,11 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Not Discussed:</strong> The topic hasn't been covered in the meeting yet</li>
               </ul>
 
-              
+              <img 
+  src="/tutorial/medpic analyzed.png" 
+  alt="Medpic Analyzed Screenshot"
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
 
               <p style="margin-bottom:12px;font-weight:600;">How to use status indicators:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -2678,7 +2742,12 @@ livePlaybook: {
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Continuous monitoring:</strong> Works throughout the entire meeting</li>
               </ul>
 
-             
+             <img 
+  src="/tutorial/goal analysis settings.png" 
+  alt="Goal Settings Screenshot" 
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
+
 
               <p style="margin-bottom:12px;font-weight:600;">Using the refresh button:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -2800,6 +2869,12 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;">"I'd like to discuss pricing"</li>
                 <li style="margin-bottom:0;padding-left:8px;">"Can you send over the contract?"</li>
               </ul>
+              <img 
+  src="/tutorial/buying signals.png" 
+  alt="Buying Signals Screenshot" 
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
+
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
                 <strong>How it works:</strong> When a prospect says something like "I am finalizing the product," Buying Signals detects this, assigns points (e.g., 25 points), and generates an AI summary explaining why this indicates buying intent.
@@ -3160,62 +3235,7 @@ livePlaybook: {
             </div>
           `
         },
-        {
-          id: 'goal-analysis-tracking',
-          question: 'How does goal analysis tracking work?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">As your meeting transcription is recorded, the AI continuously detects whether your custom goals are being discussed and analyzed. You can see which goals have been addressed and which are still pending.</p>
-              
-              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
-                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🔍 INTELLIGENT DETECTION</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">The AI monitors your transcription in real-time, identifying when topics related to your custom goals are being discussed and providing analysis.</p>
-              </div>
-
-              
-
-              <p style="margin-bottom:12px;font-weight:600;">How tracking works:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Continuous monitoring:</strong> AI watches transcription for goal-related content</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Automatic detection:</strong> Identifies when a goal is being addressed</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Status indicators:</strong> Shows which goals have been analyzed vs pending</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Context extraction:</strong> Captures relevant conversation segments</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Real-time updates:</strong> Analysis refreshes as conversation progresses</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Progress visibility:</strong> Clear indication of goal completion status</li>
-              </ul>
-
-              <p style="margin-bottom:12px;font-weight:600;">Analysis indicators:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Analyzed:</strong> Goal has been detected and analyzed in the conversation</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Pending:</strong> Goal hasn't been addressed yet or analysis is in progress</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Partial:</strong> Some aspects of the goal discussed, others pending</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Active count:</strong> Total number of goals being tracked</li>
-              </ul>
-
-              <p style="margin-bottom:12px;font-weight:600;">What gets analyzed:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Relevant discussions:</strong> Conversation segments matching your goal</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Key points:</strong> Important statements related to the objective</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Decisions made:</strong> Conclusions or action items for the goal</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Context:</strong> Surrounding conversation for better understanding</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Completion status:</strong> Whether goal was fully addressed</li>
-              </ul>
-
-              <p style="margin-bottom:12px;font-weight:600;">Tracking benefits:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Stay on track:</strong> Know which goals still need attention</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Save time:</strong> No manual note-taking for specific objectives</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Better focus:</strong> Ensure all planned topics are covered</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Accountability:</strong> Clear record of what was discussed</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Follow-up:</strong> Easy identification of unaddressed goals</li>
-              </ul>
-
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Important:</strong> Goal tracking happens in real-time as transcription occurs, so ensure Live Transcription is active for goals to be analyzed.
-              </p>
-            </div>
-          `
-        },
+        
         {
           id: 'ai-generated-summaries',
           question: 'What are AI-generated summaries for Custom Goals?',
@@ -3238,6 +3258,11 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Context:</strong> Situational information for better understanding</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Completeness:</strong> Assessment of whether goal was fully addressed</li>
               </ul>
+              <img 
+  src="/tutorial/custom goals with status.png" 
+  alt="Custom Goals With Status Screenshot"
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
 
               <p style="margin-bottom:12px;font-weight:600;">Getting summaries:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -3359,6 +3384,12 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Include exact quotes:</strong> Add verbatim excerpts from transcription</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Additional instructions:</strong> Provide custom requirements for AI analysis</li>
               </ul>
+              <img 
+  src="/tutorial/goal analysis settings.png" 
+  alt="Goal Settings Screenshot" 
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
+
 
               <p style="margin-bottom:12px;font-weight:600;">Time interval configuration:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -3580,6 +3611,11 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Mute controls:</strong> Mic button to mute specific participants</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Recommended actions:</strong> AI-suggested responses based on sentiment</li>
               </ul>
+<img 
+  src="/tutorial/sentimental analysis.png" 
+  alt="Sentimental Analysis Screenshot" 
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
 
               <p style="margin-bottom:12px;font-weight:600;">What you can see:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -3909,6 +3945,12 @@ notetaker: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Executive Briefing:</strong> Generate executive-level summaries and briefs</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Participant Analysis:</strong> Individual analysis for each meeting participant</li>
               </ul>
+
+<img 
+  src="/tutorial/prebuilt templates.png" 
+  alt="Prebuilt Templates Screenshot"
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
 
               <p style="margin-bottom:12px;font-weight:600;">Benefits of Pre-built Templates:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -5543,7 +5585,11 @@ notetaker: {
                 <li style="margin-bottom:0;padding-left:8px;">Wait for processing, then download your PDF</li>
               </ol>
 
-             
+             <img 
+  src="/tutorial/save pdf.png" 
+  alt="Save PDF Screenshot"
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
 
               <p style="margin-bottom:12px;font-weight:600;">Template selection options:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -5588,7 +5634,11 @@ notetaker: {
                 <li style="margin-bottom:0;padding-left:8px;">Add recipients and send</li>
               </ol>
 
-
+<img 
+  src="/tutorial/share pdf.png" 
+  alt="Share PDF Screenshot"
+  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
+/>
               <p style="margin-bottom:12px;font-weight:600;">Email signature options:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Default Signature:</strong> "Powered by Spiked AI" branding</li>

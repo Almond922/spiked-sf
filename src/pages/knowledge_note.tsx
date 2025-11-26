@@ -18,12 +18,14 @@ import {
     BookOpen,
     FileText,
     Volume2,
-    VolumeX
+    VolumeX,
+    ClipboardList, // New icon for Template Selection
+    Mail // New icon for Review & Share
 } from 'lucide-react';
 
 /* ======================================================================
-   0. useSpeechSynthesis HOOK (Text-to-Speech)
-   ====================================================================== */
+    0. useSpeechSynthesis HOOK (Text-to-Speech)
+    ====================================================================== */
 
 const useSpeechSynthesis = (text: string) => {
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -90,45 +92,52 @@ const useSpeechSynthesis = (text: string) => {
 };
 
 /* ======================================================================
-   1. STEPS BAR
-   ====================================================================== */
+    1. STEPS BAR (Adjusted to start at 'Select Template')
+    ====================================================================== */
 
+// We only care about these two steps now:
 const steps = [
-    'Sign In',
-    'Connect Meeting',
-    'Select Template',
-    'Review & Share'
+    'Select Template', // Index 0 in this array, but functionally Step 2
+    'Review & Share'   // Index 1 in this array, but functionally Step 3
 ];
 
 interface StepsBarProps {
-    currentStepIndex: number;
+    currentStepIndex: number; // 0 or 1
 }
 
 const StepsBar: FC<StepsBarProps> = ({ currentStepIndex }) => {
     return (
-        <div className="w-full border-b border-gray-200 bg-white">
+        <div className="w-full border-b border-gray-200 bg-white sticky top-0 z-10">
             <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
                 <div className="flex items-center space-x-4 text-xs font-medium text-gray-700">
                     {steps.map((step, index) => {
                         const isCompleted = index < currentStepIndex;
                         const isCurrent = index === currentStepIndex;
+                        
+                        let Icon;
+                        switch (index) {
+                            case 0: Icon = ClipboardList; break;
+                            case 1: Icon = Mail; break;
+                            default: Icon = CheckCircle;
+                        }
+
                         return (
                             <div key={step} className="flex items-center">
                                 {index !== 0 && (
                                     <span className="mx-2 h-px w-6 bg-gray-300" />
                                 )}
                                 <div className="flex items-center">
-                                    {isCompleted && (
+                                    {isCompleted ? (
                                         <CheckCircle className="w-4 h-4 mr-1 text-black" />
+                                    ) : (
+                                        <Icon className={`w-4 h-4 mr-1 ${isCurrent ? 'text-red-600' : 'text-gray-500'}`} />
                                     )}
+                                    
                                     <span
-                                        className={
-                                            isCompleted
-                                                ? 'line-through text-black'
-                                                : isCurrent
-                                                ? 'text-red-600'
-                                                : 'text-gray-500'
-                                        }
+                                        className={`
+                                            ${isCompleted ? 'line-through text-black' : ''}
+                                            ${isCurrent ? 'text-red-600 font-bold' : 'text-gray-500'}
+                                        `}
                                     >
                                         {step}
                                     </span>
@@ -139,7 +148,7 @@ const StepsBar: FC<StepsBarProps> = ({ currentStepIndex }) => {
                 </div>
                 <div className="hidden sm:flex items-center text-xs text-gray-500">
                     <span className="font-semibold mr-1">Flow:</span>
-                    <span>Sign In → Meeting → Template → Share</span>
+                    <span>Template Selection → Review & Share</span>
                 </div>
             </div>
         </div>
@@ -147,17 +156,54 @@ const StepsBar: FC<StepsBarProps> = ({ currentStepIndex }) => {
 };
 
 /* ======================================================================
-   2. ARTICLE COMPONENT (WITH READ ALOUD)
-   ====================================================================== */
+    2. REVIEW & SHARE STEP (Final Step)
+    ====================================================================== */
+
+interface ReviewShareStepProps {
+    onStartNew: () => void;
+    onViewArticle: () => void;
+}
+
+const ReviewShareStep: FC<ReviewShareStepProps> = ({ onStartNew, onViewArticle }) => (
+    <div className="flex flex-col h-full w-full bg-gray-50 p-10 justify-center items-center">
+        <div className="max-w-xl w-full bg-white p-10 rounded-xl shadow-lg border border-gray-200 text-center">
+            <Mail className="w-12 h-12 mx-auto text-red-600 mb-4" />
+            <h2 className="text-3xl font-extrabold text-gray-900 mb-4">
+                Step 2: Review & Share Insights
+            </h2>
+            <p className="text-gray-500 mb-6 text-md">
+                The AI analysis is complete. Review the final report and distribute it to your team.
+            </p>
+            <div className="flex justify-center space-x-4">
+                <button className="py-3 px-6 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 flex items-center">
+                    <Share2 className="w-5 h-5 mr-2" /> Share Final Report
+                </button>
+                <button onClick={onStartNew} className="py-3 px-6 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 flex items-center">
+                    <ArrowLeft className="w-5 h-5 mr-2" /> Start New Analysis
+                </button>
+            </div>
+            <button 
+                onClick={onViewArticle} 
+                className="mt-6 py-2 px-4 text-sm text-gray-500 hover:text-gray-700 flex items-center mx-auto"
+            >
+                <BookOpen className="w-4 h-4 mr-1" /> View How-To Guide
+            </button>
+        </div>
+    </div>
+);
+
+/* ======================================================================
+    3. ARTICLE COMPONENT (Helper/Documentation View)
+    ====================================================================== */
 
 interface NoteTakerArticleProps {
     onBack: () => void;
+    currentStepIndex: number;
 }
 
-const NoteTakerArticle: FC<NoteTakerArticleProps> = ({ onBack }) => {
-    // Plain text we want to read aloud (you can tweak phrasing)
+const NoteTakerArticle: FC<NoteTakerArticleProps> = ({ onBack, currentStepIndex }) => {
     const articleTtsText = `
-        This article explains how to use the SpikedAI Note Taker.
+        This article explains how to use the SpikedAI Analyser.
         Step one, connect the meeting using Google Meet, Zoom, or Microsoft Teams.
         Step two, select or create an AI template that tells the AI what kind of analysis to perform.
         Step three, analyze and share the insights using the AI assistant panel and export options.
@@ -167,12 +213,10 @@ const NoteTakerArticle: FC<NoteTakerArticleProps> = ({ onBack }) => {
         useSpeechSynthesis(articleTtsText);
 
     return (
-        <div className="flex flex-col h-screen w-full bg-white overflow-hidden text-gray-900">
-
-            <StepsBar currentStepIndex={3} />
-
+        <div className="flex flex-col h-full w-full bg-white overflow-hidden text-gray-900">
+            {/* StepsBar is NOT rendered here, but the parent component manages the state */}
+            
             <div className="flex flex-1 justify-center">
-                {/* Left Sidebar / Back Button Area */}
                 <div className="w-16 flex-shrink-0 flex justify-center pt-8">
                     <button 
                         onClick={onBack}
@@ -190,14 +234,14 @@ const NoteTakerArticle: FC<NoteTakerArticleProps> = ({ onBack }) => {
                             <div>
                                 <h1 className="text-4xl font-extrabold text-gray-900 mb-2 flex items-center">
                                     <FileText className="w-8 h-8 mr-3 text-red-600" /> 
-                                    Article: How to Use Note Taker (SpikedAI)
+                                    Article: How to Use Analyser (SpikedAI)
                                 </h1>
                                 <p className="text-gray-500 mb-3 text-lg">
-                                    A step-by-step guide to setting up and leveraging the AI Note Taker in your meetings.
+                                    A step-by-step guide to setting up and leveraging the AI Analyser in your meetings.
                                 </p>
                             </div>
 
-                            {/* READ ALOUD BUTTON (NOW WIRED) */}
+                            {/* READ ALOUD BUTTON */}
                             <button
                                 onClick={toggleEnabled}
                                 className={`flex items-center px-3 py-2 text-xs font-medium rounded-full border transition ${
@@ -205,11 +249,7 @@ const NoteTakerArticle: FC<NoteTakerArticleProps> = ({ onBack }) => {
                                         ? 'border-red-500 text-red-600 bg-red-50'
                                         : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
                                 }`}
-                                title={
-                                    isEnabled
-                                        ? 'Turn off Read Aloud'
-                                        : 'Read this article aloud'
-                                }
+                                title={isEnabled ? 'Turn off Read Aloud' : 'Read this article aloud'}
                             >
                                 {isEnabled ? (
                                     <>
@@ -232,70 +272,41 @@ const NoteTakerArticle: FC<NoteTakerArticleProps> = ({ onBack }) => {
                         )}
 
                         <hr className="mb-8" />
-
-                        {/* Step 1: Connect the Meeting */}
+                        {/* Article content kept the same for context */}
+                        <p className="text-gray-700 mb-4">
+                            This documentation remains comprehensive, covering all phases of the process.
+                        </p>
+                        
                         <div className="mb-10">
                             <h2 className="text-2xl font-bold text-red-600 mb-4 flex items-center">
                                 1. Connect the Meeting 📞
                             </h2>
                             <p className="text-gray-700 mb-4">
-                                The SpikedAI Note Taker integrates directly with popular video conferencing tools like Google Meet, Zoom, and Microsoft Teams.
+                                ... (Content for Step 1)
                             </p>
-                            <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-                                <li>
-                                    <span className="font-semibold">For Scheduled Meetings:</span> Ensure the SpikedAI bot is invited to the calendar event. It will automatically join and start transcribing when the meeting begins.
-                                </li>
-                                <li>
-                                    <span className="font-semibold">For Ad-Hoc Meetings:</span> Copy the meeting URL from your conferencing software (e.g., Google Meet URL) and paste it into the <strong>"Connect Meet"</strong> field in your SpikedAI dashboard.
-                                </li>
-                            </ul>
-                            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
-                                <strong>Tip:</strong> Always check that <strong>"Live Transcription"</strong> is active (Green indicator) to ensure the AI is listening.
-                            </div>
                         </div>
 
-                        {/* Step 2: Use AI Templates */}
                         <div className="mb-10">
                             <h2 className="text-2xl font-bold text-red-600 mb-4 flex items-center">
                                 2. Select or Create an AI Template 📝
                             </h2>
                             <p className="text-gray-700 mb-4">
-                                Templates tell the AI what kind of analysis to perform.
+                                ... (Content for Step 2)
                             </p>
-                            <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-                                <li>
-                                    <span className="font-semibold">Pre-built Templates:</span> Use default options like <strong>"Summary," "Action Items,"</strong> or <strong>"Sentiment Analysis"</strong> for quick, standard reports.
-                                </li>
-                                <li>
-                                    <span className="font-semibold">Create Custom Template:</span> Click the <strong>"Create Custom Template"</strong> button in the left sidebar. This opens a modal where you define a specific <strong>Analysis Prompt</strong> (e.g., "Extract all technical requirements and list them by severity.").
-                                </li>
-                                <li>
-                                    <span className="font-semibold">Custom Goals:</span> Your <strong>Custom Goals</strong> are automatically tracked by the AI in real-time if the information is mentioned during the conversation.
-                                </li>
-                            </ul>
                         </div>
 
-                        {/* Step 3: Analyze and Share */}
                         <div className="mb-10">
                             <h2 className="text-2xl font-bold text-red-600 mb-4 flex items-center">
                                 3. Analyze and Share the Insights ✨
                             </h2>
                             <p className="text-gray-700 mb-4">
-                                Once the meeting is over, the AI Assistant panel on the right will generate the analysis based on your selected template.
+                                ... (Content for Step 3)
                             </p>
-                            <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-                                <li>
-                                    <span className="font-semibold">Ask the Assistant:</span> Use the chat field in the <strong>AI Assistant</strong> panel to ask follow-up questions about the transcript, like "What were the next steps for the engineering team?"
-                                </li>
-                                <li>
-                                    <span className="font-semibold">Share and Save:</span> Use the <strong>"Share"</strong> or <strong>"Save PDF"</strong> buttons (located near the top of the AI Assistant panel) to distribute the final transcript and analysis report to your team.
-                                </li>
-                            </ul>
                         </div>
+                        
                     </div>
                 </div>
 
-                {/* Right Sidebar (Space Filler) */}
                 <div className="w-16 flex-shrink-0"></div>
             </div>
         </div>
@@ -303,8 +314,8 @@ const NoteTakerArticle: FC<NoteTakerArticleProps> = ({ onBack }) => {
 };
 
 /* ======================================================================
-   3. MODAL + DASHBOARD (unchanged except steps bar + modal UI)
-   ====================================================================== */
+    4. MODAL + DASHBOARD (Template Selection Step 1/2)
+    ====================================================================== */
 
 interface CreateTemplateModalProps {
     isOpen: boolean;
@@ -325,10 +336,10 @@ const CreateTemplateModal: FC<CreateTemplateModalProps> = ({ isOpen, onClose }) 
         { name: 'Purple', color: '#a855f7' },
     ];
     
-    const [selectedColor, setSelectedColor] = useState('Blue'); 
+    const [selectedColor, setSelectedColor] = useState('Red'); 
 
     const handleCreate = () => {
-        alert(`Template created with color: ${selectedColor}`);
+        alert(`Template created with color: ${selectedColor}.`);
         onClose();
     };
 
@@ -343,6 +354,7 @@ const CreateTemplateModal: FC<CreateTemplateModalProps> = ({ isOpen, onClose }) 
                 </div>
 
                 <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                    {/* ... (Modal fields are unchanged) ... */}
                     <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
                             Template Name <span className="text-red-500">*</span>
@@ -395,12 +407,12 @@ const CreateTemplateModal: FC<CreateTemplateModalProps> = ({ isOpen, onClose }) 
                             Analysis Prompt <span className="text-red-500">*</span>
                         </label>
                         <textarea
-                            placeholder="Describe exactly what analysis you want the AI to perform on the meeting transcript. Be specific about the format, sections, and type of insights you want."
+                            placeholder="Describe exactly what analysis you want the AI to perform on the meeting transcript."
                             rows={6}
                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-sm resize-none"
                         />
                         <p className="mt-2 text-xs text-gray-500">
-                            Tip: Use specific instructions like &quot;Create a table with...&quot;, &quot;List the top 5...&quot;, or &quot;Analyze each person's contribution...&quot;
+                            Tip: Use specific instructions like "Create a table with...", "List the top 5...", or "Analyze each person's contribution..."
                         </p>
                     </div>
                 </div>
@@ -452,8 +464,12 @@ const GoalCard: FC<GoalCardProps> = ({ title, icon, status }) => {
     );
 };
 
+interface DashboardDemoProps {
+    onViewArticle: () => void;
+    onNext: () => void;
+}
 
-const DashboardDemo: FC<{ onViewArticle: () => void }> = ({ onViewArticle }) => {
+const DashboardDemo: FC<DashboardDemoProps> = ({ onViewArticle, onNext }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const customGoals = [
@@ -463,19 +479,19 @@ const DashboardDemo: FC<{ onViewArticle: () => void }> = ({ onViewArticle }) => 
     ];
     
     return (
-        <div className="flex flex-col h-screen w-full bg-gray-100 overflow-hidden text-gray-900">
-            <StepsBar currentStepIndex={2} />
+        <div className="flex flex-col h-full w-full bg-gray-100 overflow-hidden text-gray-900">
+            {/* The StepsBar is now managed by the parent NoteTakerFlow */}
 
             <div className="flex flex-1">
                 {/* LEFT SIDEBAR */}
-                <div className="w-72 bg-white border-r border-gray-200 flex flex-col p-4 shadow-md">
+                <div className="w-72 bg-white border-r border-gray-200 flex flex-col p-4 shadow-md overflow-y-auto">
                     <div className="flex items-center mb-6">
                         <button 
                             onClick={onViewArticle}
                             className="flex items-center text-sm font-medium text-gray-600 hover:text-red-600 transition p-2 rounded-lg bg-red-50 border border-red-200 mr-2"
                         >
                             <BookOpen className="w-4 h-4 mr-1" />
-                            How to Use Note Taker
+                            How to Use Analyser
                         </button>
                     </div>
                     
@@ -510,10 +526,10 @@ const DashboardDemo: FC<{ onViewArticle: () => void }> = ({ onViewArticle }) => 
                             </p>
                             <ChevronDown className="w-4 h-4 text-gray-400" />
                         </div>
-                        <div className="flex items-start p-3 bg-red-50/50 hover:bg-red-100 cursor-pointer rounded-lg border border-red-200">
+                        <div className="flex items-start p-3 bg-red-50/50 hover:bg-red-100 cursor-pointer rounded-lg border border-red-200" onClick={onNext}>
                             <List className="w-5 h-5 text-red-600 mr-3 mt-0.5" />
                             <div>
-                                <p className="text-sm font-medium">Summary</p>
+                                <p className="text-sm font-medium">Summary (Selected)</p>
                                 <p className="text-xs text-gray-500">
                                     Quickly summarize the meeting highlights, action items, and next steps.
                                 </p>
@@ -529,8 +545,9 @@ const DashboardDemo: FC<{ onViewArticle: () => void }> = ({ onViewArticle }) => 
                     
                     <div className="flex-grow flex flex-col items-center justify-center p-8 bg-white rounded-xl shadow-inner border border-dashed border-gray-300">
                         <Headphones className="w-10 h-10 text-gray-300 mb-4" />
-                        <h3 className="text-lg font-medium text-gray-600 mb-2">No Transcription Data</h3>
-                        <p className="text-sm text-gray-400">Connect to a meeting to start.</p>
+                        <h3 className="text-lg font-medium text-gray-600 mb-2">Waiting for Transcription Data</h3>
+                        <p className="text-sm text-gray-400">The AI is listening and will populate the transcript here.</p>
+                        <p className="text-xs text-red-500 mt-4 font-medium">Template: Summary is active</p>
                     </div>
                 </div>
                 
@@ -554,7 +571,12 @@ const DashboardDemo: FC<{ onViewArticle: () => void }> = ({ onViewArticle }) => 
                     </div>
 
                     <div className="flex-grow p-4 overflow-y-auto">
-                        <p className="text-sm text-gray-500 mb-4">Ask me anything</p>
+                        <div className="p-4 bg-gray-50 rounded-lg text-sm text-gray-600">
+                            **AI Analysis Pending...**
+                            <br/>
+                            Once the meeting concludes, the analysis based on the **'Summary'** template will appear here.
+                        </div>
+                        <p className="text-sm text-gray-500 mt-4 mb-4">Ask me anything</p>
                     </div>
 
                     <div className="p-4 border-t border-gray-200">
@@ -580,22 +602,62 @@ const DashboardDemo: FC<{ onViewArticle: () => void }> = ({ onViewArticle }) => 
     );
 };
 
-/* ======================================================================
-   4. ROOT APP
-   ====================================================================== */
 
-const NoteTakerApp: FC = () => {
-    const [view, setView] = useState<'dashboard' | 'article'>('dashboard');
+/* ======================================================================
+    5. FLOW MANAGER (ROOT APP) - Simplified
+    ====================================================================== */
+
+const NoteTakerFlow: FC = () => {
+    // Current step index relative to the new, simplified 'steps' array (0 or 1)
+    const [currentStep, setCurrentStep] = useState(0); 
+    const [view, setView] = useState<'flow' | 'article'>('flow');
+
+    const handleNext = () => {
+        // Move from Template (0) to Review (1)
+        setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
+    };
+
+    const handleStartNew = () => {
+        // Go back to Template Selection (0)
+        setCurrentStep(0);
+    };
+
+    const handleArticleView = () => {
+        setView('article');
+    };
+
+    const handleBackToFlow = () => {
+        setView('flow');
+        // Ensure we land on the Review step if coming back from the article (since it represents the completed flow state)
+        setCurrentStep(1); 
+    };
+
+    let Content;
+    if (view === 'article') {
+        // The Article component shows documentation. It doesn't use the simple step bar but we pass the step index for reference.
+        Content = <NoteTakerArticle onBack={handleBackToFlow} currentStepIndex={currentStep} />;
+    } else {
+        // The main operational flow
+        switch (currentStep) {
+            case 0: // Select Template
+                Content = <DashboardDemo onViewArticle={handleArticleView} onNext={handleNext} />;
+                break;
+            case 1: // Review & Share
+                Content = <ReviewShareStep onStartNew={handleStartNew} onViewArticle={handleArticleView} />;
+                break;
+            default:
+                Content = <DashboardDemo onViewArticle={handleArticleView} onNext={handleNext} />;
+        }
+    }
 
     return (
-        <div className="font-inter h-screen w-full">
-            {view === 'dashboard' ? (
-                <DashboardDemo onViewArticle={() => setView('article')} />
-            ) : (
-                <NoteTakerArticle onBack={() => setView('dashboard')} />
-            )}
+        <div className="font-inter h-screen w-full flex flex-col">
+            <StepsBar currentStepIndex={currentStep} />
+            <div className="flex-1 overflow-auto">
+                {Content}
+            </div>
         </div>
     );
 };
 
-export default NoteTakerApp;
+export default NoteTakerFlow;

@@ -284,7 +284,7 @@ const InteractiveGuidePanel: FC<GuidePanelProps> = ({ currentStep, stepsLength }
 const MeetingFocusStep: FC<{ selectedTags: FocusTag[], onTagToggle: (tag: FocusTag) => void, onAddDomain: (domain: string) => void }> = ({ selectedTags, onTagToggle, onAddDomain }) => {
     const [newDomain, setNewDomain] = useState('');
     const handleAdd = (e: FormEvent) => { e.preventDefault(); if (newDomain.trim()) { onAddDomain(newDomain.trim()); setNewDomain(''); } };
-    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Tag className="w-5 h-5 mr-2 text-indigo-600" />Meeting Focus<Info className="w-4 h-4 ml-2 text-gray-400 cursor-pointer" /></div><p className="text-sm text-gray-600 mb-4">Add topics to focus the AI on. (Requires at least **one tag**)</p><div className="border border-gray-300 p-4 rounded-lg bg-gray-50 space-y-3"><div className="flex flex-wrap gap-2 mb-3">{MOCK_FOCUS_TAGS.map(tag => {const isSelected = selectedTags.some(t => t.id === tag.id); return (<button key={tag.id} onClick={() => onTagToggle(tag)} className={`flex items-center text-sm px-3 py-1 rounded-full transition-colors ${isSelected ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{tag.label}{isSelected && <X className="w-3 h-3 ml-1" />}</button>);})}</div><form onSubmit={handleAdd} className="w-full"><input type="text" value={newDomain} onChange={(e) => setNewDomain(e.target.value)} placeholder="Add a domain (e.g., 'Databricks')" className="w-full px-3 py-2 text-sm border-b border-gray-300 focus:border-indigo-500 focus:ring-0 outline-none transition-colors"/>{newDomain && (<button type="submit" className="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium"><Plus className="w-3 h-3 inline-block mr-1" /> Add "{newDomain}"</button>)}</form></div></div>);
+    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Tag className="w-5 h-5 mr-2 text-indigo-600" />Meeting Focus<Info className="w-4 h-4 ml-2 text-gray-400 cursor-pointer" /></div><p className="text-sm text-gray-600 mb-4">Add topics to focus the AI on. (Requires at least **one tag**)</p><div className="border border-gray-300 p-4 rounded-lg bg-gray-50 space-y-3"><div className="flex flex-wrap gap-2 mb-3">{MOCK_FOCUS_TAGS.map(tag => {const isSelected = selectedTags.some(t => t.id === tag.id); return (<button key={tag.id} onClick={() => onTagToggle(tag)} className={`flex items-center text-sm px-3 py-1 rounded-full transition-colors ${isSelected ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{tag.label}{isSelected && <X className="w-3 h-3 ml-1" />}</button>);} )}</div><form onSubmit={handleAdd} className="w-full"><input type="text" value={newDomain} onChange={(e) => setNewDomain(e.target.value)} placeholder="Add a domain (e.g., 'Databricks')" className="w-full px-3 py-2 text-sm border-b border-gray-300 focus:border-indigo-500 focus:ring-0 outline-none transition-colors"/>{newDomain && (<button type="submit" className="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium"><Plus className="w-3 h-3 inline-block mr-1" /> Add "{newDomain}"</button>)}</form></div></div>);
 };
   
 const CustomerPersonaStep: FC<{ selectedPersona: Persona | null, onSelect: (persona: Persona) => void }> = ({ selectedPersona, onSelect }) => {
@@ -371,65 +371,72 @@ const PersonalizationPage: FC = () => {
 
 
     return (
-        <div className="p-6 md:p-10 bg-gray-50 min-h-screen font-sans">
-            <div className="max-w-7xl mx-auto">
-                
-                {/* Header and Controls */}
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center space-x-3">
-                        <button onClick={handleBack} disabled={currentStep === 0 || isCompleted} className="p-2 rounded-full text-gray-700 hover:bg-gray-200 disabled:opacity-50">
-                            <ArrowLeft className="w-5 h-5" />
-                        </button>
-                        <h1 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center">
-                            <Settings className="w-6 h-6 mr-2 text-indigo-600" />
-                            Personalisation
-                        </h1>
-                        <span className="text-gray-500 text-lg hidden md:inline">Configure your AI sales copilot</span>
-                    </div>
-                    
-                    <div className="flex space-x-3">
-                        <button className="flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50" disabled={isCompleted}>
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            Undo
-                        </button>
-                        <button 
-                            onClick={handleNext} 
-                            disabled={!isCurrentStepValid && !isSaveMode || isCompleted}
-                            className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
-                                isCurrentStepValid || isSaveMode
-                                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                    : 'bg-indigo-300 text-white cursor-not-allowed'
-                            }`}
-                        >
-                            {isCompleted ? (
-                                <>Setup Complete!</>
-                            ) : isSaveMode ? (
-                                <><Save className="w-4 h-4 mr-2" /> Save Changes</>
-                            ) : (
-                                <>Next Step ({currentStep + 1}/{STEPS.length})</>
-                            )}
-                        </button>
+        <div className="bg-gray-50 min-h-screen font-sans">
+            
+            {/* Header and Controls - Full Width Black Bar */}
+            <div className="w-full bg-gray-900 shadow-2xl">
+                <div className="max-w-7xl mx-auto p-4 md:p-6"> {/* Centered content container */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                            <button onClick={handleBack} disabled={currentStep === 0 || isCompleted} className="p-2 rounded-full text-white hover:bg-gray-700 disabled:opacity-50">
+                                <ArrowLeft className="w-5 h-5" />
+                            </button>
+                            <h1 className="text-xl md:text-2xl font-bold text-white flex items-center">
+                                <Settings className="w-6 h-6 mr-2 text-indigo-400" /> 
+                                Personalisation
+                            </h1>
+                            <span className="text-gray-400 text-lg hidden md:inline">Configure your AI sales copilot</span> 
+                        </div>
+                        
+                        <div className="flex space-x-3">
+                            <button className="flex items-center px-4 py-2 bg-white text-gray-800 border border-gray-700 rounded-lg hover:bg-gray-100 disabled:opacity-50" disabled={isCompleted}>
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                Undo
+                            </button>
+                            <button 
+                                onClick={handleNext} 
+                                disabled={!isCurrentStepValid && !isSaveMode || isCompleted}
+                                className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+                                    isCurrentStepValid || isSaveMode
+                                        ? 'bg-indigo-400 text-gray-900 font-semibold hover:bg-indigo-300' 
+                                        : 'bg-indigo-600 opacity-50 text-white cursor-not-allowed'
+                                }`}
+                            >
+                                {isCompleted ? (
+                                    <>Setup Complete!</>
+                                ) : isSaveMode ? (
+                                    <><Save className="w-4 h-4 mr-2" /> Save Changes</>
+                                ) : (
+                                    <>Next Step ({currentStep + 1}/{STEPS.length})</>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                {/* Progress Indicator */}
-                <div className="mb-8">
+            {/* Main Content Area */}
+            <div className="max-w-7xl mx-auto px-4 md:px-6 pt-6 pb-10"> 
+                
+                {/* Progress Indicator - Now aligned with main content */}
+                <div className="mb-8"> 
                     <div className="flex justify-between text-xs font-medium text-gray-500 mb-1">
                         {STEPS.map((step, index) => (
-                            <span key={index} className={index === currentStep ? 'text-indigo-600 font-bold' : (index < currentStep ? 'text-green-600' : '')}>
+                            <span key={index} className={index === currentStep ? 'text-indigo-600 font-bold' : (index < currentStep ? 'text-green-600' : 'text-gray-500')}>
                                 {index + 1}. {step}
                             </span>
                         ))}
                     </div>
-                    <div className="h-2 bg-gray-200 rounded-full">
+                    {/* Progress Bar Track */}
+                    <div className="h-2 bg-gray-700 rounded-full"> 
                         <div 
                             style={{ width: `${((currentStep) / STEPS.length) * 100}%` }} 
-                            className="h-2 bg-indigo-600 rounded-full transition-all duration-500"
+                            className="h-2 bg-indigo-400 rounded-full transition-all duration-500" 
                         ></div>
                     </div>
                 </div>
 
-                {/* Main Content (3-column layout) */}
+                {/* Main Step Content (3-column layout) */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[500px]">
                     
                     {/* LEFT COLUMN: Bot Configuration and Guide */}

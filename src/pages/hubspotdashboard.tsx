@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle, Loader, AlertCircle, RefreshCw, XCircle, Calendar, DollarSign, Filter, X, Grid3x3, List, TrendingUp } from 'lucide-react';
+import { CheckCircle, Loader, AlertCircle, RefreshCw, XCircle, Calendar, DollarSign, Filter, X, Grid3x3, List, TrendingUp, Clock, User, ChevronUp, ChevronDown } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { useTheme } from '../ThemeContext';
 
@@ -24,6 +24,27 @@ const HubSpotDashboard = () => {
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [expandedDealId, setExpandedDealId] = useState<string | null>(null);
+  const [dealTasks, setDealTasks] = useState<Record<string, HubSpotTask[]>>({});
+  const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({});
+  const [selectedTaskMap, setSelectedTaskMap] = useState<Record<string, HubSpotTask>>({}); 
+  const [taskFilters, setTaskFilters] = useState({
+    priority: 'all',
+    assignee: '', // This will now store the Name, not the ID
+    dueDate: ''
+  });
+
+  interface HubSpotTask {
+    task_id: string;
+    title: string;
+    description: string;
+    status: string;
+    priority: string;
+    due_date: string | null;
+    assignee_id: string | null;
+    assignee_name: string | null; // Added field for Name
+    deal_id: string;
+  }
 
   useEffect(() => {
     const oauthError = searchParams.get('error');
@@ -40,6 +61,68 @@ const HubSpotDashboard = () => {
       fetchDeals();
     }
   }, [searchParams, connected]);
+
+  const fetchTasksForDeal = async (dealId: string) => {
+    if (dealTasks[dealId]) {
+      setExpandedDealId(expandedDealId === dealId ? null : dealId);
+      return;
+    }
+
+    setLoadingTasks(prev => ({ ...prev, [dealId]: true }));
+    setExpandedDealId(dealId);
+
+    try {
+      const response = await fetch(`${BASE_URL}/integrations/hubspot/deals/${dealId}/tasks`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` }
+      });
+      const data = await response.json();
+      setDealTasks(prev => ({ ...prev, [dealId]: data.tasks || [] }));
+    } catch (error) {
+      console.error("Error fetching tasks", error);
+    } finally {
+      setLoadingTasks(prev => ({ ...prev, [dealId]: false }));
+    }
+  };
+
+  const toggleTaskSelection = (task: HubSpotTask) => {
+    setSelectedTaskMap(prev => {
+      const newMap = { ...prev };
+      if (newMap[task.task_id]) {
+        delete newMap[task.task_id];
+      } else {
+        newMap[task.task_id] = task;
+      }
+      return newMap;
+    });
+  };
+
+  const getFilteredTasks = (tasks: HubSpotTask[]) => {
+    return tasks.filter(task => {
+      const matchPriority = taskFilters.priority === 'all' || (task.priority || 'LOW').toUpperCase() === taskFilters.priority;
+      
+      // Filter by Name now, not ID
+      const matchAssignee = !taskFilters.assignee || (task.assignee_name === taskFilters.assignee);
+      
+      let matchDate = true;
+      if (taskFilters.dueDate && task.due_date) {
+        const filterDate = new Date(taskFilters.dueDate).getTime();
+        const taskDate = new Date(task.due_date).getTime();
+        matchDate = taskDate <= filterDate; 
+      }
+
+      return matchPriority && matchAssignee && matchDate;
+    });
+  };
+
+  // Helper to get unique assignee names for the current list of tasks
+  const getUniqueAssignees = (tasks: HubSpotTask[]) => {
+    if (!tasks) return [];
+    const names = new Set<string>();
+    tasks.forEach(t => {
+      if (t.assignee_name) names.add(t.assignee_name);
+    });
+    return Array.from(names).sort();
+  };
 
   const checkConnection = async () => {
     try {
@@ -92,6 +175,72 @@ const HubSpotDashboard = () => {
     }
   };
 
+  const trackSelectedDealsAndTasks = async () => {
+    if (syncing) return;
+  
+    if (selectedDealIds.length === 0 && Object.keys(selectedTaskMap).length === 0) {
+      alert('Please select at least one deal or task to track');
+      return;
+    }
+  
+    setSyncing(true);
+    setError(null);
+  
+    try {
+      let dealsTracked = 0;
+      let tasksTracked = 0;
+  
+      if (selectedDealIds.length > 0) {
+        const dealsResponse = await fetch(`${BASE_URL}/integrations/hubspot/deals/select`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.access_token}`
+          },
+          body: JSON.stringify({ deal_ids: selectedDealIds })
+        });
+  
+        if (!dealsResponse.ok) {
+          const errorText = await dealsResponse.text();
+          throw new Error(`Failed to track deals: ${errorText}`);
+        }
+        dealsTracked = selectedDealIds.length;
+      }
+  
+      if (Object.keys(selectedTaskMap).length > 0) {
+        const tasksToSave = Object.values(selectedTaskMap);
+        const tasksResponse = await fetch(`${BASE_URL}/integrations/hubspot/tasks/select-batch`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.access_token}`
+          },
+          body: JSON.stringify({ tasks: tasksToSave })
+        });
+  
+        if (!tasksResponse.ok) {
+          const errorText = await tasksResponse.text();
+          throw new Error(`Failed to track tasks: ${errorText}`);
+        }
+        tasksTracked = tasksToSave.length;
+      }
+  
+      alert(`✓ Successfully tracked!\n${dealsTracked} deal(s)\n${tasksTracked} task(s)`);
+  
+      setSelectedDealIds([]);
+      setSelectedTaskMap({});
+      navigate('/');
+      await fetchDeals();
+  
+    } catch (error) {
+      console.error('=== TRACKING ERROR ===', error);
+      setError(error instanceof Error ? error.message : 'Failed to track selection');
+      alert(`Error: ${error instanceof Error ? error.message : 'Failed to track selection'}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
+  
   const handleConnect = async () => {
     try {
       const response = await fetch(`${BASE_URL}/integrations/hubspot/auth/initiate`, {
@@ -114,34 +263,6 @@ const HubSpotDashboard = () => {
     setSelectedDealIds(prev =>
       prev.includes(dealId) ? prev.filter(id => id !== dealId) : [...prev, dealId]
     );
-  };
-
-  const handleTrackSelected = async () => {
-    try {
-      setSyncing(true);
-      setError(null);
-      
-      const response = await fetch(`${BASE_URL}/integrations/hubspot/deals/select`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({ deal_ids: selectedDealIds })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to select deals');
-      }
-      
-      alert(`✓ ${selectedDealIds.length} deals selected for MEDPIC tracking`);
-      navigate('/');
-    } catch (error) {
-      console.error('Error selecting deals:', error);
-      setError('Failed to save deal selection. Please try again.');
-    } finally {
-      setSyncing(false);
-    }
   };
 
   const getUniqueStages = (): string[] => {
@@ -395,46 +516,74 @@ const HubSpotDashboard = () => {
           </div>
         </div>
 
-        {/* Selection Bar */}
-        {selectedDealIds.length > 0 && (
-          <div className={`mb-6 p-4 rounded-xl flex items-center justify-between ${
-            isDarkMode ? 'bg-blue-900/20 border border-blue-500/30' : 'bg-blue-50 border border-blue-200'
+        {/* Selection Summary */}
+        {(selectedDealIds.length > 0 || Object.keys(selectedTaskMap).length > 0) && (
+          <div className={`mb-6 p-5 rounded-xl border-2 ${
+            isDarkMode ? 'bg-slate-800 border-blue-500/50' : 'bg-blue-50 border-blue-500/50'
           }`}>
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="w-5 h-5 text-blue-500" />
-              <span className={`font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-                {selectedDealIds.length} {selectedDealIds.length === 1 ? 'deal' : 'deals'} selected for MEDPIC tracking
-              </span>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => setSelectedDealIds([])}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  isDarkMode
-                    ? 'bg-slate-800 text-gray-300 hover:bg-slate-700'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Clear
-              </button>
-              <button
-                onClick={handleTrackSelected}
-                disabled={syncing}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-              >
-                {syncing ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin" />
-                    <span>Saving...</span>
-                  </>
-                ) : (
-                  <>
-                    <TrendingUp className="w-4 h-4" />
-                    <span>Track Selected</span>
-                  </>
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                {selectedDealIds.length > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="w-5 h-5 text-blue-500" />
+                    <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {selectedDealIds.length} deal{selectedDealIds.length !== 1 ? 's' : ''} selected
+                    </span>
+                  </div>
                 )}
-              </button>
+                {Object.keys(selectedTaskMap).length > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {Object.keys(selectedTaskMap).length} task{Object.keys(selectedTaskMap).length !== 1 ? 's' : ''} selected
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedDealIds([]);
+                    setSelectedTaskMap({});
+                  }}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    isDarkMode
+                      ? 'bg-slate-700 text-white hover:bg-slate-600'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                  }`}
+                >
+                  Clear
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    trackSelectedDealsAndTasks();
+                  }}
+                  disabled={syncing}
+                  className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 shadow-lg ${
+                    syncing
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white'
+                  }`}
+                >
+                  {syncing ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin pointer-events-none" />
+                      <span className="pointer-events-none">Tracking...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4 pointer-events-none" />
+                      <span className="pointer-events-none">Track Selection</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -617,6 +766,112 @@ const HubSpotDashboard = () => {
                           </span>
                         </div>
                       </div>
+                      {/* TASKS SECTION FOOTER */}
+                      <div onClick={(e) => e.stopPropagation()} className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <button 
+                          onClick={() => fetchTasksForDeal(deal.deal_id)}
+                          className={`flex items-center space-x-2 text-sm font-medium transition-colors ${
+                            expandedDealId === deal.deal_id ? 'text-blue-500' : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          {expandedDealId === deal.deal_id ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
+                          <span>
+                             {loadingTasks[deal.deal_id] ? 'Loading Tasks...' : 'Show Tasks'}
+                          </span>
+                        </button>
+
+                        {/* EXPANDED TASK LIST & FILTERS */}
+                        {expandedDealId === deal.deal_id && (
+                          <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200 cursor-default">
+                            
+                            {/* Task Filters */}
+                            <div className={`p-3 mb-3 rounded-lg text-xs grid grid-cols-3 gap-2 ${
+                               isDarkMode ? 'bg-slate-800' : 'bg-gray-50'
+                            }`}>
+                               {/* Priority Filter */}
+                               <select 
+                                 className={`p-1 rounded border bg-transparent ${isDarkMode ? 'border-gray-600 text-gray-200 [&>option]:bg-slate-800' : 'border-gray-300 text-gray-800'}`}
+                                 value={taskFilters.priority}
+                                 onChange={(e) => setTaskFilters(prev => ({...prev, priority: e.target.value}))}
+                               >
+                                 <option value="all">Priority</option>
+                                 <option value="HIGH">High</option>
+                                 <option value="MEDIUM">Medium</option>
+                                 <option value="LOW">Low</option>
+                               </select>
+
+                               {/* Assignee Filter - NOW A DROPDOWN */}
+                               <select 
+                                   className={`p-1 rounded border bg-transparent ${isDarkMode ? 'border-gray-600 text-gray-200 [&>option]:bg-slate-800' : 'border-gray-300 text-gray-800'}`}
+                                   value={taskFilters.assignee}
+                                   onChange={(e) => setTaskFilters(prev => ({...prev, assignee: e.target.value}))}
+                                 >
+                                   <option value="">All Assignees</option>
+                                   {getUniqueAssignees(dealTasks[deal.deal_id]).map(name => (
+                                     <option key={name} value={name}>{name}</option>
+                                   ))}
+                               </select>
+
+                               {/* Due Date Filter */}
+                               <div className={`flex items-center border rounded px-1 ${isDarkMode ? 'bg-slate-700 border-gray-600' : 'bg-white border-gray-300'}`}>
+                                 <Clock className="w-3 h-3 mr-1 opacity-50"/>
+                                 <input 
+                                   type="date"
+                                   className="w-full bg-transparent outline-none p-1 text-xs"
+                                   value={taskFilters.dueDate}
+                                   onChange={(e) => setTaskFilters(prev => ({...prev, dueDate: e.target.value}))}
+                                 />
+                               </div>
+                            </div>
+
+                            {/* Tasks List */}
+                            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                              {dealTasks[deal.deal_id] && dealTasks[deal.deal_id].length > 0 ? (
+                                getFilteredTasks(dealTasks[deal.deal_id]).map((task) => (
+                                  <div 
+                                    key={task.task_id}
+                                    onClick={() => toggleTaskSelection(task)}
+                                    className={`p-2 rounded border cursor-pointer flex items-center justify-between text-xs transition-colors ${
+                                      selectedTaskMap[task.task_id] 
+                                        ? 'bg-green-50 border-green-500 dark:bg-green-900/30' 
+                                        : 'bg-white border-gray-100 hover:bg-gray-50 dark:bg-slate-700 dark:border-slate-600'
+                                    }`}
+                                  >
+                                    <div className="flex-1">
+                                       <p className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                                         {task.title}
+                                       </p>
+                                       <div className="flex items-center space-x-2 mt-1 text-gray-500">
+                                          <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                                            task.priority === 'HIGH' ? 'bg-red-100 text-red-700' : 'bg-gray-100'
+                                          }`}>
+                                            {task.priority || 'NORMAL'}
+                                          </span>
+                                          <span>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No date'}</span>
+                                          {/* Show assignee name if available */}
+                                          {task.assignee_name && task.assignee_name !== 'Unassigned' && (
+                                              <span className="flex items-center">
+                                                  <User className="w-3 h-3 mr-0.5" />
+                                                  {task.assignee_name}
+                                              </span>
+                                          )}
+                                       </div>
+                                    </div>
+                                    
+                                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                                       selectedTaskMap[task.task_id] ? 'bg-green-500 border-green-500' : 'border-gray-300'
+                                    }`}>
+                                       {selectedTaskMap[task.task_id] && <CheckCircle className="w-3 h-3 text-white" />}
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-xs text-center text-gray-500 py-2">No tasks found matching filters.</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -629,4 +884,4 @@ const HubSpotDashboard = () => {
   );
 };
 
-export default HubSpotDashboard;
+export default HubSpotDashboard;  

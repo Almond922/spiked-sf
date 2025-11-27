@@ -657,12 +657,13 @@ const SpikedAISettings: React.FC = () => {
                   <div>
                     <h2 className="text-2xl font-semibold">Meeting Focus</h2>
                     <p className={`text-sm mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>Add topics to focus the AI</p>
+                    <p className={`text-xs mt-1 ${isDarkMode ? "text-red-400" : "text-red-600"}`}>Note: Only focuses set before the meeting will be used.</p>
                   </div>
                 </div>
                 <div className="relative group">
                   <Info className="w-5 h-5 text-gray-500" />
                   <div className={`absolute bottom-full right-0 mb-2 w-64 p-3 rounded-lg text-sm text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none ${isDarkMode ? "bg-gray-700" : "bg-gray-800"}`}>
-                    Specify meeting topics like 'AWS' or 'SaaS Pricing' to improve analysis accuracy.
+                    Specify meeting topics like 'AWS' or 'SaaS Pricing' to improve question detection accuracy.
                   </div>
                 </div>
               </div>

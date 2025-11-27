@@ -6803,44 +6803,9 @@ const refreshAllMedpicSummaries = async () => {
             </button>
           </div>
           <div className="flex items-center space-x-2">
-            <div
-              className={`flex items-center space-x-2 px-4 py-2 rounded-xl ${
-                isTranscribing
-                  ? "bg-red-pantone/10 border border-red-pantone/30"
-                  : "bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/30"
-              }`}
-            >
-              {isTranscribing ? (
-                <Mic className="w-4 h-4 text-red-pantone animate-pulse" />
-              ) : (
-                <MicOff className="w-4 h-4 text-slate-400" />
-              )}
-              <span
-                className={`text-sm font-medium ${
-                  isTranscribing
-                    ? "text-red-pantone"
-                    : "text-slate-500 dark:text-slate-400"
-                }`}
-              >
-                {isTranscribing ? "Recording" : "Paused"}
-              </span>
-            </div>
+            
 
-            <button
-              onClick={toggleTranscription}
-              disabled={!isConnected}
-              className={`p-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 ${
-                isTranscribing
-                  ? "bg-gradient-to-r from-red-pantone to-red-500 text-white hover:from-red-500 hover:to-red-pantone shadow-lg"
-                  : "bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 shadow-lg"
-              }`}
-            >
-              {isTranscribing ? (
-                <Pause className="w-5 h-5" />
-              ) : (
-                <Play className="w-5 h-5" />
-              )}
-            </button>
+           
 
             <div className="flex items-center space-x-2 relative">
               <div className="h-8 w-px bg-slate-300 dark:bg-slate-600"></div>
@@ -7633,65 +7598,14 @@ const refreshAllMedpicSummaries = async () => {
                 {/* Auto-Mode Toggle and Manual Trigger */}
                 <div className="flex items-center space-x-2">
                   {/* Auto/Manual Mode Toggle */}
-                  <button
-                    onClick={() => setIsAutoMode(!isAutoMode)}
-                    className={`px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-200 ease-in-out hover:shadow-sm ${
-                      isAutoMode
-                        ? "bg-green-500 text-white hover:bg-green-600"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                    }`}
-                  >
-                    {isAutoMode ? "Auto Mode ON" : "Manual Mode ON"}
-                  </button>
+                  
 
                   {/* Manual Question Trigger */}
-                  <button
-                    onClick={handleManualQuestionDetection}
-                    disabled={
-                      isTyping || isAutoMode || suggestedQuestions.length === 0
-                    }
-                    title={
-                      isAutoMode
-                        ? "Disable Auto-Mode to trigger manually"
-                        : "Generate question from recent transcript"
-                    }
-                    className={`relative px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-200 ease-in-out hover:shadow-sm ${
-                      isTyping || isAutoMode || suggestedQuestions.length === 0
-                        ? "bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-not-allowed"
-                        : "bg-blue-500 text-white hover:bg-blue-600"
-                    }`}
-                  >
-                    {suggestedQuestions.length > 0 &&
-                      !isAutoMode &&
-                      !isTyping && (
-                        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full animate-pulse border-2 border-white dark:border-blue-500"></span>
-                      )}
-                    <RefreshCw
-                      className={`w-3.5 h-3.5 ${
-                        isTyping ? "animate-spin" : ""
-                      }`}
-                    />
-                    <span>
-                      {isTyping ? "Answering..." : "Generate Question"}
-                    </span>
-                  </button>
+                  
+                  
                 </div>
 
-                <button
-                  onClick={() => setAutoAnswerEnabled(!autoAnswerEnabled)}
-                  className={`px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-300 transform hover:scale-105 ${
-                    autoAnswerEnabled
-                      ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 shadow-lg"
-                      : "bg-gradient-to-r from-slate-400 to-slate-500 text-white hover:from-slate-500 hover:to-slate-600 shadow-lg"
-                  }`}
-                  title={
-                    autoAnswerEnabled ? "Auto-Answer: ON" : "Auto-Answer: OFF"
-                  }
-                >
-                  <span>
-                    {autoAnswerEnabled ? "Auto-Answer ON" : "Auto-Answer OFF"}
-                  </span>
-                </button>
+                
 
                 <button
                   onClick={() => setShowHistory(!showHistory)}

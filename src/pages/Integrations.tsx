@@ -4,7 +4,7 @@ import { useTheme } from '../ThemeContext';
 import { useAuth } from '../AuthContext';
 
 // Correct API URL from your previous code
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const BASE_URL = import.meta.env.VITE_API_URL || "https://recall-backend-production-409019309412.us-central1.run.app";
 
 // Placeholder function for Gain Sights (kept from new UI)
 const handleGainSightsConnect = async () => {

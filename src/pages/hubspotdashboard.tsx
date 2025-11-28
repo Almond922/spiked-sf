@@ -4,7 +4,7 @@ import { CheckCircle, Loader, AlertCircle, RefreshCw, XCircle, Calendar, DollarS
 import { useAuth } from '../AuthContext';
 import { useTheme } from '../ThemeContext';
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const BASE_URL = import.meta.env.VITE_API_URL || "https://recall-backend-production-409019309412.us-central1.run.app";
 
 const HubSpotDashboard = () => {
   const navigate = useNavigate();
@@ -884,4 +884,4 @@ const HubSpotDashboard = () => {
   );
 };
 
-export default HubSpotDashboard;  
+export default HubSpotDashboard;

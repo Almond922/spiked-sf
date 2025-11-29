@@ -17,7 +17,7 @@ import Integrations from './pages/Integrations';
 import TutorialsHub from "./pages/TutorialsHub";
 import KnowledgeBase from "./pages/knowledge_base";
 import JiraDashboard from './pages/JiraDashboard';
-import HubSpotDashboard from './pages/hubSpotDashboard'; 
+import HubSpotDashboard from './pages/hubspotdashboard'; 
 
 const MainLayout = () => {  
   return (
@@ -41,6 +41,7 @@ const NotFoundPage = () => {
 function App() {
   return (
     <BotIdProvider> 
+      <Routes>
         <Route path="/login" element={<AuthPages />} />
         
         

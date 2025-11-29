@@ -40,6 +40,7 @@ import {
   Info, // Added for prompts
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import HelpChatWidget from "./HelpChatWidget";
 import { useAuth } from "../AuthContext"; // --- CORRECTED IMPORT ---
 import { saveAs } from "file-saver";
 
@@ -371,6 +372,7 @@ const Sidebar = memo(
     ];
 
     return (
+
       <div
         className={`bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 flex flex-col h-screen transition-all duration-300 ${
           isCollapsed ? "w-20" : "w-64"
@@ -1501,6 +1503,7 @@ const DocumentsPage = () => {
 
   return (
     <>
+      <HelpChatWidget />
       <SourcesListPage
         sources={documents}
         type="document"
@@ -1560,6 +1563,7 @@ const WebsitesPage = () => {
 
   return (
     <>
+      <HelpChatWidget />
       <SourcesListPage
         sources={websites}
         type="website"
@@ -1741,6 +1745,7 @@ const BrowsePage = () => {
 
   return (
     <div className="space-y-3">
+      <HelpChatWidget />
       {sources.map((source) => (
         <div
           key={source.id}
@@ -2161,6 +2166,7 @@ const ConnectorsPage = () => {
 
   return (
     <div className="space-y-12">
+      <HelpChatWidget />
       <div className="relative max-w-md mx-auto">
         <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
         <input
@@ -2388,6 +2394,7 @@ const VectorConfigPage = () => {
 
   return (
     <div className="space-y-6">
+      <HelpChatWidget />
       <SettingsCard
         title="Vector Configuration"
         description="Settings for how content is chunked and vectorized."
@@ -2454,6 +2461,7 @@ const RetrievalPage = () => {
 
   return (
     <div className="space-y-6">
+      <HelpChatWidget />
       <SettingsCard
         title="Retrieval Settings"
         description="Customize how the system fetches relevant information."
@@ -2590,6 +2598,7 @@ const BusinessRulesPage = ({
 
   return (
     <div className="space-y-6">
+      <HelpChatWidget />
       <SettingsCard
         title="Meeting Focus"
         description="Add topics to focus the AI Question detection"
@@ -2707,6 +2716,7 @@ const AnswerConfigPage = ({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <HelpChatWidget />
       <div className="lg:col-span-2 space-y-6">
         <SettingsCard
           title="Customer Persona"

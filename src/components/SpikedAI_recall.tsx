@@ -630,6 +630,7 @@ useEffect(() => {
   );
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [webCrawlCount, setWebCrawlCount] = useState(0);
   const [currentSources, setCurrentSources] = useState<
     Array<{ filename: string; url?: string }>
   >([]);
@@ -3360,6 +3361,21 @@ const deleteCustomGoal = async (goalId: string) => {
     }
   };
 
+  const fetchWebsitesCount = async () => { 
+    if (!session) return;
+    try {
+      const response = await fetch(`${BASE_URL_PROD}/websites`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (response.ok) {
+        const docs = await response.json();
+        setWebCrawlCount(docs.length);
+      }
+    } catch (error) {
+      console.error("Failed to fetch websites:", error);
+    }
+  };
+
   const uploadDocument = async (file: File) => {
     if (!session) throw new Error("User not authenticated");
     setIsUploading(true);
@@ -4265,7 +4281,8 @@ const deleteCustomGoal = async (goalId: string) => {
   checkApiHealth();
   if (session) {
     fetchDocuments();
-    fetchCustomGoals(); // ADD THIS LINE - this was missing!
+    fetchCustomGoals(); 
+    fetchWebsitesCount();
   }
   const interval = setInterval(checkApiHealth, 30000);
   return () => {
@@ -7591,6 +7608,16 @@ const refreshAllMedpicSummaries = async () => {
                     style={{ minWidth: 48, textAlign: "center" }}
                   >
                     Document: {documents.length}
+                  </span>
+                  <span
+                    className={`ml-2 px-2 py-0.5 rounded-lg text-xs font-semibold shadow-sm ${
+                      isDarkMode
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                        : "bg-emerald-100/50 text-emerald-700 border border-emerald-500/40"
+                    }`}
+                    style={{ minWidth: 48, textAlign: "center" }}
+                  >
+                    Web Crawls: {webCrawlCount}
                   </span>
                 </div>
               </div>

@@ -26,6 +26,7 @@ import {
     Bot,
     ArrowLeft
 } from 'lucide-react';
+import HelpChatWidget from "./HelpChatWidget";
 
 
 // Enhanced Markdown Component with custom styling
@@ -491,7 +492,7 @@ export default function Notetaker() {
 
             {/* Column 3: AI Assistant */}
             <div className={`flex flex-col border-l ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'} min-w-0`} style={{ width: `${columnWidths[2]}%`, minWidth: '320px' }}>
-                 <div className={`flex items-center space-x-4 p-5 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex-shrink-0`}>
+                 <div className={`flex items-center space-x-4 p-5 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex-shrink-0`}>                    
                     <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-green-900/20' : 'bg-green-100'}`}><MessageSquare className={`w-5 h-5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} /></div>
                     <div className="flex-1 min-w-0">
                         <h2 className="text-xl font-bold truncate text-black-600 dark:text-red-400">AI Assistant</h2>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Puzzle, Loader, ExternalLink, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../ThemeContext';
 import { useAuth } from '../AuthContext';
+import HelpChatWidget from './HelpChatWidget';
 
 // Correct API URL from your previous code
 const BASE_URL = import.meta.env.VITE_API_URL || "https://recall-backend-production-409019309412.us-central1.run.app";
@@ -219,6 +220,7 @@ const Integrations = () => {
 
     return (
         <div className={`min-h-screen ${backgroundClass} font-sans transition-colors duration-300`}>
+            <HelpChatWidget />
             {/* Dark Mode Toggle Button */}
             <button
                 onClick={toggleDarkMode}

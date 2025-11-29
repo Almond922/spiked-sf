@@ -17,6 +17,7 @@ import {
   Edit,
 } from "lucide-react";
 import { useAuth } from "../AuthContext";
+import HelpChatWidget from "./HelpChatWidget";
 import { useTheme } from "../ThemeContext"; 
 
 const API_BASE_URL =
@@ -503,6 +504,7 @@ const SpikedAISettings: React.FC = () => {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"}`}>
+      <HelpChatWidget />
       {toast && (<Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />)}
       
       <GoalModal 

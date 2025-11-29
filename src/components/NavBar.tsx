@@ -290,37 +290,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 </div>
                             </div>
 
-                            {/* Documents Button */}
-                            <div className="relative group">
-                                <button
-                                    onClick={() => setShowDocuments(!showDocuments)}
-                                    className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
-                                        showDocuments
-                                            ? "bg-gradient-to-r from-cerulean to-berkeley-blue text-white shadow-lg"
-                                            : isDarkMode
-                                            ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
-                                            : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900"
-                                    } backdrop-blur-sm`}
-                                >
-                                    <FileText className="w-5 h-5" />
-                                </button>
-                                <div
-                                    className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 text-sm rounded-md 
-                                    opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none
-                                    shadow-md whitespace-nowrap z-10 ${
-                                        isDarkMode
-                                            ? "bg-slate-200 text-slate-800"
-                                            : "bg-slate-800 text-slate-100"
-                                    }`}
-                                >
-                                    Content
-                                    <div
-                                        className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
-                                            isDarkMode ? "bg-slate-200" : "bg-slate-800"
-                                        }`}
-                                    ></div>
-                                </div>
-                            </div>
+                            
 
                             {/* Integrations */}
                             <div className="relative group">
@@ -386,70 +356,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 </div>
                             </div>
 
-                            {/* Layout Menu */}
-                            <div className="relative group">
-                                <button
-                                    onClick={() => setShowLayoutMenu(!showLayoutMenu)}
-                                    className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 ${
-                                        showLayoutMenu
-                                            ? "bg-gradient-to-r from-cerulean to-berkeley-blue text-white shadow-lg"
-                                            : isDarkMode
-                                            ? "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
-                                            : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900"
-                                    } backdrop-blur-sm`}
-                                >
-                                    <Layout className="w-5 h-5" />
-                                </button>
-                                <div
-                                    className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 text-sm rounded-md 
-                                    opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none
-                                    shadow-md whitespace-nowrap z-10 ${
-                                        isDarkMode
-                                            ? "bg-slate-200 text-slate-800"
-                                            : "bg-slate-800 text-slate-100"
-                                    }`}
-                                >
-                                    Layout Options
-                                    <div
-                                        className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
-                                            isDarkMode ? "bg-slate-200" : "bg-slate-800"
-                                        }`}
-                                    ></div>
-                                </div>
-
-                                {showLayoutMenu && (
-                                    <div
-                                        className={`absolute right-0 mt-2 w-56 rounded-xl shadow-2xl border backdrop-blur-xl z-20 ${
-                                            isDarkMode
-                                                ? "bg-slate-800/95 border-slate-700/50"
-                                                : "bg-white/95 border-gray-200/50"
-                                        }`}
-                                    >
-                                        {layouts.map((layoutOption) => (
-                                            <button
-                                                key={layoutOption.id}
-                                                onClick={() => {
-                                                    handleLayoutChange(layoutOption.id);
-                                                    setShowLayoutMenu(false); // Close menu on selection
-                                                }}
-                                                className={`w-full px-4 py-3 text-left transition-all duration-200 first:rounded-t-xl last:rounded-b-xl flex items-center space-x-3 ${
-                                                    layout === layoutOption.id
-                                                        ? "bg-gradient-to-r from-cerulean/20 to-berkeley-blue/20 border-l-4 border-cerulean"
-                                                        : "hover:bg-slate-100 dark:hover:bg-slate-700/50"
-                                                } ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}
-                                            >
-                                                <layoutOption.icon className="w-4 h-4" />
-                                                <div>
-                                                    <div className="font-medium">{layoutOption.name}</div>
-                                                    <div className="text-xs opacity-70">
-                                                        {layoutOption.desc}
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                            
 
                             {/* User Button */}
                             <div className="relative group">

@@ -7,11 +7,19 @@ interface Message {
   role: "user" | "assistant";
   content: string;
 }
+
+// Define the type for position
+interface Position {
+  x: number;
+  y: number;
+}
+
 const BASE_URL = "https://spikedai-production-application-409019309412.us-central1.run.app";
 
 const HelpChatWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: "Hello! I'm your SpikedAI Agent. How can I help you manage the platform today?" }
   ]);
@@ -20,7 +28,15 @@ const HelpChatWidget: React.FC = () => {
   const { session } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when messages change
+  // State for positioning and dragging
+  const [position, setPosition] = useState<Position>({ x: 24, y: 24 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState<Position>({ x: 0, y: 0 });
+  const widgetRef = useRef<HTMLDivElement>(null);
+
+
+  // --- Auto-scroll and Drag Handlers ---
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -29,13 +45,62 @@ const HelpChatWidget: React.FC = () => {
     scrollToBottom();
   }, [messages, isOpen, isLoading]);
 
+  const handleDragStart = (e: React.MouseEvent) => {
+    if (isMinimized) return;
+
+    const widgetRect = widgetRef.current?.getBoundingClientRect();
+    if (!widgetRect) return;
+
+    setDragOffset({
+        x: e.clientX - widgetRect.left,
+        y: e.clientY - widgetRect.top,
+    });
+    setIsDragging(true);
+  };
+
+  const handleDrag = (e: MouseEvent) => {
+    if (!isDragging || !widgetRef.current) return;
+    
+    const widgetWidth = widgetRef.current.offsetWidth;
+    const widgetHeight = widgetRef.current.offsetHeight;
+    
+    let newX = window.innerWidth - (e.clientX - dragOffset.x + widgetWidth);
+    let newY = window.innerHeight - (e.clientY - dragOffset.y + widgetHeight);
+
+    const margin = 24;
+    newX = Math.min(Math.max(margin, newX), window.innerWidth - widgetWidth - margin);
+    newY = Math.min(Math.max(margin, newY), window.innerHeight - widgetHeight - margin);
+    
+    setPosition({ x: newX, y: newY });
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+        document.addEventListener('mousemove', handleDrag);
+        document.addEventListener('mouseup', handleDragEnd);
+    } else {
+        document.removeEventListener('mousemove', handleDrag);
+        document.removeEventListener('mouseup', handleDragEnd);
+    }
+    return () => {
+        document.removeEventListener('mousemove', handleDrag);
+        document.removeEventListener('mouseup', handleDragEnd);
+    };
+  }, [isDragging, dragOffset]); 
+
+
+  // --- Message Sending Logic (Omitted for brevity, assumed correct) ---
+
   const handleSendMessage = async () => {
       if (!input.trim() || isLoading) return;
 
       const userMsg = input.trim();
       setInput("");
       
-      // 1. Add user message to state immediately
       const newHistory = [...messages, { role: "user" as const, content: userMsg }];
       setMessages(newHistory);
       setIsLoading(true);
@@ -49,21 +114,19 @@ const HelpChatWidget: React.FC = () => {
               },
               body: JSON.stringify({
                   message: userMsg,
-                  history: newHistory.slice(-6) // Context window
+                  history: newHistory.slice(-6)
               })
           });
 
           if (!response.ok) throw new Error("Network response was not ok");
           if (!response.body) throw new Error("No response body");
 
-          // 2. Prepare empty assistant message for streaming
           setMessages(prev => [...prev, { role: "assistant", content: "" }]);
 
           const reader = response.body.getReader();
           const decoder = new TextDecoder("utf-8");
           let done = false;
 
-          // 3. Read stream loop
           while (!done) {
               const { value, done: doneReading } = await reader.read();
               done = doneReading;
@@ -75,7 +138,6 @@ const HelpChatWidget: React.FC = () => {
                       const updated = [...prev];
                       const lastMsgIndex = updated.length - 1;
                       
-                      // Ensure we append to the correct assistant message
                       if (updated[lastMsgIndex].role === "assistant") {
                           updated[lastMsgIndex] = {
                               ...updated[lastMsgIndex],
@@ -104,6 +166,29 @@ const HelpChatWidget: React.FC = () => {
     }
   };
 
+  // --- Conditional Render Logic ---
+
+  // 1. RENDER BLUE HIDING TAB (When isHidden is true)
+  if (isHidden) {
+    return (
+      <div 
+        onClick={() => {
+            setIsHidden(false); 
+            setIsOpen(false);
+        }}
+        // --- MODIFIED CLASS AND STYLE TO USE position.y ---
+        className="fixed right-0 w-4 h-32 bg-blue-600/70 hover:bg-blue-600 rounded-l-lg shadow-lg z-50 transition-all duration-200 cursor-pointer flex items-center justify-center group"
+        style={{
+            bottom: `${position.y}px`, // Align the bottom edge with the floating circle's bottom edge
+        }}
+        title="Show System Help"
+      >
+        <MessageCircle size={20} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+      </div>
+    );
+  }
+
+  // 2. RENDER FLOATING CIRCLE (When isHidden is false but chat is closed)
   if (!isOpen) {
     return (
       <button
@@ -118,19 +203,38 @@ const HelpChatWidget: React.FC = () => {
     );
   }
 
+  // 3. RENDER FULL/MINIMIZED WIDGET (When isOpen is true)
   return (
-    <div className={`fixed bottom-6 right-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-2xl rounded-2xl z-50 flex flex-col transition-all duration-300 ${isMinimized ? "w-72 h-14" : "w-80 sm:w-96 h-[500px]"}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b dark:border-gray-700 bg-blue-600 text-white rounded-t-2xl">
+    <div
+      ref={widgetRef}
+      className={`fixed bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-2xl rounded-2xl z-50 flex flex-col transition-all duration-300 ${isMinimized ? "w-72 h-14" : "w-80 sm:w-96 h-[500px]"} ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+      style={{
+        right: `${position.x}px`,
+        bottom: `${position.y}px`,
+      }}
+    >
+      {/* Header (Drag Handle) */}
+      <div 
+        className="flex items-center justify-between p-4 border-b dark:border-gray-700 bg-blue-600 text-white rounded-t-2xl select-none"
+        onMouseDown={handleDragStart} // Enables dragging
+      >
         <div className="flex items-center space-x-2">
             <MessageCircle size={20} />
             <span className="font-semibold">SpikedAI Agent</span>
         </div>
         <div className="flex items-center space-x-1">
-            <button onClick={() => setIsMinimized(!isMinimized)} className="p-1 hover:bg-blue-500 rounded">
+            {/* Minimize Button: Revert to floating circle */}
+            <button 
+                onClick={() => { setIsOpen(false); setIsMinimized(false); }} 
+                className="p-1 hover:bg-blue-500 rounded"
+            >
                 <Minimize2 size={16} />
             </button>
-            <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-blue-500 rounded">
+            {/* Hide Button: Sets isOpen=false and isHidden=true */}
+            <button 
+                onClick={() => { setIsOpen(false); setIsHidden(true); }}
+                className="p-1 hover:bg-blue-500 rounded"
+            >
                 <X size={16} />
             </button>
         </div>
@@ -160,7 +264,7 @@ const HelpChatWidget: React.FC = () => {
                     </div>
                 ))}
                 
-                {/* Loading Indicator (only show if we are waiting for the FIRST chunk) */}
+                {/* Loading Indicator */}
                 {isLoading && messages[messages.length - 1].role === 'user' && (
                     <div className="flex justify-start">
                         <div className="bg-white dark:bg-gray-700 p-3 rounded-lg rounded-bl-none shadow-sm border dark:border-gray-600">

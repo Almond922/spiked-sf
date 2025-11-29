@@ -7,6 +7,7 @@ import ReactMarkdown, { Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
+import HelpChatWidget from "../pages/HelpChatWidget";
 import {
   Maximize2,
   Play,
@@ -4824,6 +4825,7 @@ const refreshAllMedpicSummaries = async () => {
 
     return (
       <div className="space-y-4">
+        <HelpChatWidget />
         {/* Proactively Detected "Suggested" Questions (from transcript) */}
         {!isAutoMode && suggestedQuestions.length > 0 && (
           <div>

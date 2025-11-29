@@ -1671,36 +1671,7 @@ ${transcriptText}`;
                     </div>
                 </div>
                 
-                <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>  
-                    <HelpChatWidget />              
-                    <div className="space-y-3">                        
-                        {meetingUrl ? (
-                            <div className="space-y-2">
-                                <div className="flex items-center space-x-2">
-                                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                                    <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                                        Meeting URL:
-                                    </span>
-                                </div>
-                                <div className={`px-3 py-2 rounded-lg text-xs font-mono break-all ${
-                                        isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-white text-gray-600'
-                                    }`}>
-                                    {meetingUrl}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className={`py-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                <div className="text-center mb-3">
-                                    <div className={`p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
-                                        <Headphones className="w-12 h-12 text-gray-400" />
-                                    </div>
-                                    <h3 className="mb-2 text-lg font-bold text-black-600 dark:text-red-400">No Transcription Data</h3>
-                                    <p className="text-sm text-gray-500">Please connect a meeting to start live transcription.</p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                
                 
                 <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="flex-1 p-4 space-y-4 overflow-y-auto">

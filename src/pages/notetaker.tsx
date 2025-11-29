@@ -597,34 +597,38 @@ export default function Notetaker() {
         let promptParts: string[] = [];
 
         promptParts.push(`Based on the full transcript provided below, analyze each of the custom goals and provide a consolidated update.
-        
-Your output MUST adhere to the following strict format for *each* goal, starting with the exact "Goal:" line. Do NOT include any conversational filler before the first "Goal:" line.
+
+Your output MUST adhere to the following strict format for each goal, starting with the exact "Goal:" line. Do NOT include any conversational filler before the first "Goal:" line.
 
 Goal: [The Goal's description]
 Status: [Achieved/In Progress/Not Started]
+Participants: [Names of all participants who contributed toward this goal]
 Summary/Analysis: [Your detailed summary and analysis...]
 
 Goals to analyze:
 - ${goalsText}
 `);
 
-        let formatInstruction: string = `Your response MUST be a **single, raw text response** containing only the analysis for all goals, separated by the "Goal:" marker. For each goal:
-1. State the **Goal:** exactly as listed above.
-2. State its current **Status:** (Achieved/In Progress/Not Started).
-3. Provide a **Summary/Analysis:** of the progress based on the transcript, keeping the response for this summary concise, around ${goalSettings.wordLimit} words.`;
+let formatInstruction: string = `Your response MUST be a *single, raw text response* containing only the analysis for all goals, separated by the "Goal:" marker. For each goal:
+1. *Goal:* exactly as listed above.
+2. *Status:* (Achieved/In Progress/Not Started).
+3. *Participants:* List the names of all speakers who contributed relevant evidence.
+4. *Summary/Analysis:* A concise summary (around ${goalSettings.wordLimit} words).`;
 
-        if (goalSettings.format === 'detailed') {
-            formatInstruction = `Your response MUST be a **single, raw text response** containing only the analysis for all goals. For each goal, include:
-1. **Goal:** [The Goal's description]
-2. **Status:** [Achieved/In Progress/Not Started]
-3. **Summary/Analysis:** A thorough analysis (strictly within ${goalSettings.wordLimit} words).
-4. **Evidence List:** A markdown list of the most relevant quotes/instances from the transcript.`;
-        } else if (goalSettings.format === 'speakers_only') {
-            formatInstruction = `Your response MUST be a **single, raw text response** containing only the analysis for all goals. For each goal, include:
-1. **Goal:** [The Goal's description]
-2. **Status:** [Achieved/In Progress/Not Started]
-3. **Summary/Analysis:** List only the names of the speakers who contributed evidence towards this goal.`;
-        }
+if (goalSettings.format === 'detailed') {
+    formatInstruction = `Your response MUST be a *single, raw text response* containing only the analysis for all goals. For each goal, include:
+1. *Goal:* [The Goal's description]
+2. *Status:* [Achieved/In Progress/Not Started]
+3. *Participants:* Names of all participants who contributed relevant evidence.
+4. *Summary/Analysis:* A thorough analysis (strictly within ${goalSettings.wordLimit} words).
+5. *Evidence List:* A markdown list of the most relevant quotes/instances from the transcript.`;
+} else if (goalSettings.format === 'speakers_only') {
+    formatInstruction = `Your response MUST be a *single, raw text response* containing only the analysis for all goals. For each goal, include:
+1. *Goal:* [The Goal's description]
+2. *Status:* [Achieved/In Progress/Not Started]
+3. *Participants:* Names of all speakers who contributed evidence.
+4. *Summary/Analysis:* List only the names of the speakers who contributed evidence toward this goal.`;
+}
 
         let inclusionInstruction: string = '';
         if (goalSettings.includeSpeakers) {

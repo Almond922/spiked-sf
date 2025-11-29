@@ -11,6 +11,7 @@ import { useBotId } from '../BotIdContext';
 import { useAuth } from '../AuthContext';
 import { useTheme } from '../ThemeContext';
 import { fetchEventSource } from "@microsoft/fetch-event-source";
+import HelpChatWidget from './HelpChatWidget';
 import {
     Send,
     Users,
@@ -1670,8 +1671,9 @@ ${transcriptText}`;
                     </div>
                 </div>
                 
-                <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
-                    <div className="space-y-3">
+                <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>  
+                    <HelpChatWidget />              
+                    <div className="space-y-3">                        
                         {meetingUrl ? (
                             <div className="space-y-2">
                                 <div className="flex items-center space-x-2">

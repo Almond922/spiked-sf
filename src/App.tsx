@@ -1,7 +1,7 @@
 // src/App.tsx
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "./AuthContext";
-import { BotIdProvider } from "./BotIdContext"; // Import the BotProvider
+import { BotIdProvider } from "./BotIdContext";
 
 // --- Import Your Page Components ---
 import AuthPages from "./login";
@@ -16,8 +16,8 @@ import ProtectedRoute from "./ProtectedRoute";
 import Integrations from './pages/Integrations';
 import TutorialsHub from "./pages/TutorialsHub";
 import KnowledgeBase from "./pages/knowledge_base";
-
 import JiraDashboard from './pages/JiraDashboard';
+import HubSpotDashboard from './pages/hubSpotDashboard'; 
 
 const MainLayout = () => {  
   return (
@@ -40,11 +40,10 @@ const NotFoundPage = () => {
 
 function App() {
   return (
-    <BotIdProvider> {/* Wrap the entire app with the BotProvider */}
-      <Routes>
+    <BotIdProvider> 
         <Route path="/login" element={<AuthPages />} />
         
-        {/* All protected routes, including the main app */}
+        
         <Route element={<ProtectedRoute />}>
           <Route element={<MainLayout />}>
             <Route path="/" element={<SpikedAIrecall />} />
@@ -54,8 +53,12 @@ function App() {
             <Route path="/note-taker" element={<DashboardPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/vexa" element={<SpikedAIvexa />} />
+            
+            {/* Integrations Routes */}
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/integrations/jira" element={<JiraDashboard />} />
+            <Route path="/integrations/hubspot" element={<HubSpotDashboard />} />
+            
             <Route path="/tutorial" element={<TutorialsHub />} />
             <Route path="/knowledge_base" element={<KnowledgeBase/>}/>
 

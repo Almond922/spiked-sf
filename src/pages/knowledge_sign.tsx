@@ -2,7 +2,7 @@ import React, { useState, FormEvent, FC, useEffect } from 'react';
 import {
   Rocket, Mail, Lock, User, Zap, BookOpen, Settings, CheckCircle,
   XCircle, Clock, Send, Search, Bell, Menu, Tag, Users, Folder,
-  Inbox, Filter, LogIn, Volume2
+  Inbox, Filter, LogIn, Volume2, ChevronRight, RefreshCw
 } from 'lucide-react';
 
 // --- INTERFACES (Typescript Definitions) ---
@@ -111,7 +111,8 @@ const ChecklistPill: FC<{ label: string; done: boolean; index: number }> = ({ la
 
 // --- DEMO COMPONENT 1: SIGN IN FORM ---
 
-const SignInFormDemo: FC = () => {
+const SignInFormDemo: FC<{ currentArticleId?: string }> = ({ currentArticleId = 'standard-signin' }) => {
+  const shouldHighlight = currentArticleId === 'standard-signin';
   const [status, setStatus] = useState<'ready' | 'signingIn' | 'success' | 'error'>('ready');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -222,7 +223,9 @@ const SignInFormDemo: FC = () => {
                   defaultValue="test@spiked.ai"
                   placeholder="john@company.com"
                   required
-                  className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans"
+                  className={`w-full p-2 pl-9 border rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans ${
+                    shouldHighlight ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'border-gray-300'
+                  }`}
                 />
               </div>
             </div>
@@ -239,7 +242,9 @@ const SignInFormDemo: FC = () => {
                   defaultValue="StrongPass123!"
                   placeholder="Enter your password"
                   required
-                  className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans"
+                  className={`w-full p-2 pl-9 border rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans ${
+                    shouldHighlight ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'border-gray-300'
+                  }`}
                 />
               </div>
             </div>
@@ -252,7 +257,9 @@ const SignInFormDemo: FC = () => {
             <button
               type="submit"
               disabled={status === 'signingIn'}
-              className="w-full py-2 bg-gray-900 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 transition duration-150 ease-in-out disabled:bg-gray-400 mt-4 font-sans"
+              className={`w-full py-2 bg-gray-900 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 transition duration-150 ease-in-out disabled:bg-gray-400 mt-4 font-sans ${
+                shouldHighlight ? 'shadow-[0_0_20px_rgba(34,197,94,0.6)]' : ''
+              }`}
             >
               {status === 'signingIn' ? 'Signing In...' : 'Sign In'}
             </button>
@@ -272,7 +279,8 @@ const SignInFormDemo: FC = () => {
 
 // --- DEMO COMPONENT 2: PASSWORD RESET FLOW ---
 
-const PasswordResetDemo: FC = () => {
+const PasswordResetDemo: FC<{ currentArticleId?: string }> = ({ currentArticleId = 'forgot-password' }) => {
+  const shouldHighlight = currentArticleId === 'forgot-password';
   const [step, setStep] = useState<'email' | 'linkSent' | 'resetForm'>('email');
   const [email, setEmail] = useState('');
 
@@ -370,13 +378,17 @@ const PasswordResetDemo: FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans"
+                  className={`w-full p-2 pl-9 border rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans ${
+                    shouldHighlight && step === 'email' ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'border-gray-300'
+                  }`}
                 />
               </div>
             </div>
             <button
               type="submit"
-              className="w-full py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150"
+              className={`w-full py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 ${
+                shouldHighlight && step === 'email' ? 'shadow-[0_0_20px_rgba(34,197,94,0.6)]' : ''
+              }`}
             >
               Send Reset Link
             </button>
@@ -394,7 +406,9 @@ const PasswordResetDemo: FC = () => {
             </p>
             <button
               onClick={handleSimulateLink}
-              className="text-sm py-2 px-4 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition"
+              className={`text-sm py-2 px-4 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition ${
+                shouldHighlight && step === 'linkSent' ? 'shadow-[0_0_20px_rgba(34,197,94,0.6)]' : ''
+              }`}
             >
               Simulate Link Click / Go to Reset Form
             </button>
@@ -443,7 +457,9 @@ const PasswordResetDemo: FC = () => {
             </div>
             <button
               type="submit"
-              className="w-full py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-150"
+              className={`w-full py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-150 ${
+                shouldHighlight && step === 'resetForm' ? 'shadow-[0_0_20px_rgba(34,197,94,0.6)]' : ''
+              }`}
             >
               Reset Password
             </button>
@@ -457,7 +473,8 @@ const PasswordResetDemo: FC = () => {
 
 // --- DEMO COMPONENT 3: MFA (2FA) DEMO ---
 
-const MFADemo: FC = () => {
+const MFADemo: FC<{ currentArticleId?: string }> = ({ currentArticleId = 'mfa-login' }) => {
+  const shouldHighlight = currentArticleId === 'mfa-login';
   const [step, setStep] = useState<'code' | 'verified' | 'error'>('code');
   const [code, setCode] = useState('');
 
@@ -570,13 +587,17 @@ const MFADemo: FC = () => {
                   maxLength={6}
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  className="w-full p-2 pl-9 text-center tracking-widest text-lg border-2 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition font-sans"
+                  className={`w-full p-2 pl-9 text-center tracking-widest text-lg border-2 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition font-sans ${
+                    shouldHighlight && step === 'code' ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'border-gray-300'
+                  }`}
                 />
               </div>
             </div>
             <button
               type="submit"
-              className="w-full py-2 bg-gray-900 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition duration-150"
+              className={`w-full py-2 bg-gray-900 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition duration-150 ${
+                shouldHighlight && step === 'code' ? 'shadow-[0_0_20px_rgba(34,197,94,0.6)]' : ''
+              }`}
             >
               Verify Code
             </button>
@@ -595,7 +616,8 @@ const MFADemo: FC = () => {
 
 // --- DEMO COMPONENT 4: SSO FLOW DEMO ---
 
-const SSOFlowDemo: FC = () => {
+const SSOFlowDemo: FC<{ currentArticleId?: string }> = ({ currentArticleId = 'sso-login' }) => {
+  const shouldHighlight = currentArticleId === 'sso-login';
   const [status, setStatus] = useState<'ready' | 'redirecting' | 'authenticated'>('ready');
 
   const ssoSteps = [
@@ -678,7 +700,9 @@ const SSOFlowDemo: FC = () => {
             <button
               onClick={handleSSO}
               disabled={status === 'redirecting'}
-              className="w-full max-w-sm py-3 px-6 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 disabled:bg-indigo-400 flex items-center justify-center mb-4"
+              className={`w-full max-w-sm py-3 px-6 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 disabled:bg-indigo-400 flex items-center justify-center mb-4 ${
+                shouldHighlight && status === 'ready' ? 'shadow-[0_0_20px_rgba(34,197,94,0.6)]' : ''
+              }`}
             >
               {status === 'redirecting' ? (
                 <Clock className="w-5 h-5 mr-2 animate-spin" />
@@ -800,16 +824,22 @@ const App: FC = () => {
 
   // Decide which right-side interactive demo to show
   const RightSideComponent = () => {
-    if (topicData.type === 'signin-form-demo') return <SignInFormDemo />;
-    if (topicData.type === 'password-reset-demo') return <PasswordResetDemo />;
-    if (topicData.type === 'mfa-demo') return <MFADemo />;
-    if (topicData.type === 'sso-flow-demo') return <SSOFlowDemo />;
+    if (topicData.type === 'signin-form-demo') return <SignInFormDemo currentArticleId={currentArticleId} />;
+    if (topicData.type === 'password-reset-demo') return <PasswordResetDemo currentArticleId={currentArticleId} />;
+    if (topicData.type === 'mfa-demo') return <MFADemo currentArticleId={currentArticleId} />;
+    if (topicData.type === 'sso-flow-demo') return <SSOFlowDemo currentArticleId={currentArticleId} />;
     return null;
   };
 
   const handleTabClick = (id: ArticleId) => {
     stop();
     setCurrentArticleId(id);
+  };
+
+  // Reset function
+  const handleReset = () => {
+    stop();
+    setCurrentArticleId('standard-signin');
   };
 
   // Top black step bar
@@ -875,6 +905,37 @@ const App: FC = () => {
               </div>
             );
           })}
+        </div>
+        <div className="flex items-center ml-4 space-x-3">
+          <button
+            onClick={handleReset}
+            disabled={activeTopIndex === 0}
+            className={`flex items-center px-4 py-2 rounded-lg transition-colors text-sm ${
+              activeTopIndex > 0
+                ? 'bg-white text-gray-800 border border-gray-700 hover:bg-gray-100'
+                : 'bg-gray-600 opacity-50 text-white cursor-not-allowed'
+            }`}
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Undo
+          </button>
+          <button
+            onClick={() => {
+              const nextIndex = activeTopIndex + 1;
+              if (nextIndex === 1) handleTabClick('forgot-password');
+              else if (nextIndex === 2) handleTabClick('mfa-login');
+              else if (nextIndex === 3) handleTabClick('sso-login');
+            }}
+            disabled={activeTopIndex >= 3}
+            className={`flex items-center px-4 py-2 rounded-lg transition-colors text-sm ${
+              activeTopIndex < 3
+                ? 'bg-indigo-400 text-gray-900 font-semibold hover:bg-indigo-300 shadow-[0_0_20px_rgba(34,197,94,0.6)]'
+                : 'bg-indigo-600 opacity-50 text-white cursor-not-allowed'
+            }`}
+          >
+            <ChevronRight className="w-4 h-4 mr-2" />
+            Next Step ({activeTopIndex + 1}/4)
+          </button>
         </div>
       </div>
 

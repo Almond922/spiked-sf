@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useCallback } from 'react';
+import React, { FC, useState, useEffect, useCallback, useRef } from 'react';
 import { 
     ArrowLeft, 
     Plus, 
@@ -19,8 +19,12 @@ import {
     FileText,
     Volume2,
     VolumeX,
-    ClipboardList, // New icon for Template Selection
-    Mail // New icon for Review & Share
+    ClipboardList,
+    Mail,
+    ChevronRight,
+    RefreshCw,
+    Brain,
+    Target
 } from 'lucide-react';
 
 /* ======================================================================
@@ -92,68 +96,18 @@ const useSpeechSynthesis = (text: string) => {
 };
 
 /* ======================================================================
-    1. STEPS BAR (Adjusted to start at 'Select Template')
+    1. STEPS DEFINITION
     ====================================================================== */
 
-// We only care about these two steps now:
-const steps = [
-    'Select Template', // Index 0 in this array, but functionally Step 2
-    'Review & Share'   // Index 1 in this array, but functionally Step 3
+const FULL_STEPS = [
+    'Connect Meeting',
+    'Select Template',
+    'Start Transcription',
+    'Use AI Features',
+    'Review & Share'
 ];
 
-interface StepsBarProps {
-    currentStepIndex: number; // 0 or 1
-}
-
-const StepsBar: FC<StepsBarProps> = ({ currentStepIndex }) => {
-    return (
-        <div className="w-full border-b border-gray-200 bg-white sticky top-0 z-10">
-            <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
-                <div className="flex items-center space-x-4 text-xs font-medium text-gray-700">
-                    {steps.map((step, index) => {
-                        const isCompleted = index < currentStepIndex;
-                        const isCurrent = index === currentStepIndex;
-                        
-                        let Icon;
-                        switch (index) {
-                            case 0: Icon = ClipboardList; break;
-                            case 1: Icon = Mail; break;
-                            default: Icon = CheckCircle;
-                        }
-
-                        return (
-                            <div key={step} className="flex items-center">
-                                {index !== 0 && (
-                                    <span className="mx-2 h-px w-6 bg-gray-300" />
-                                )}
-                                <div className="flex items-center">
-                                    {isCompleted ? (
-                                        <CheckCircle className="w-4 h-4 mr-1 text-black" />
-                                    ) : (
-                                        <Icon className={`w-4 h-4 mr-1 ${isCurrent ? 'text-red-600' : 'text-gray-500'}`} />
-                                    )}
-                                    
-                                    <span
-                                        className={`
-                                            ${isCompleted ? 'line-through text-black' : ''}
-                                            ${isCurrent ? 'text-red-600 font-bold' : 'text-gray-500'}
-                                        `}
-                                    >
-                                        {step}
-                                    </span>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-                <div className="hidden sm:flex items-center text-xs text-gray-500">
-                    <span className="font-semibold mr-1">Flow:</span>
-                    <span>Template Selection → Review & Share</span>
-                </div>
-            </div>
-        </div>
-    );
-};
+// StepsBar removed - will use black header bar instead
 
 /* ======================================================================
     2. REVIEW & SHARE STEP (Final Step)
@@ -604,21 +558,161 @@ const DashboardDemo: FC<DashboardDemoProps> = ({ onViewArticle, onNext }) => {
 
 
 /* ======================================================================
-    5. FLOW MANAGER (ROOT APP) - Simplified
+    5. FLOW MANAGER (ROOT APP) - Updated with Steps
     ====================================================================== */
 
 const NoteTakerFlow: FC = () => {
-    // Current step index relative to the new, simplified 'steps' array (0 or 1)
     const [currentStep, setCurrentStep] = useState(0); 
     const [view, setView] = useState<'flow' | 'article'>('flow');
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const voicesLoadedRef = useRef(false);
+    const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+    // Create text content to read based on current step
+    const getTextContent = () => {
+        const articleTitle = "Note-Taker Journey - AI-Powered Meeting Analysis";
+        const currentStepName = FULL_STEPS[currentStep] || "";
+        const guideSteps = [
+            "Connect your meeting using Google Meet, Zoom, or Microsoft Teams",
+            "Select or create an AI template that matches your analysis needs",
+            "Click Note-Taker when bot joins to start live transcription",
+            "Use Custom Goals and AI Assistant to analyze your meeting",
+            "Review insights and share professional summaries with your team"
+        ];
+        
+        let stepDescription = "";
+        let navigationGuidance = "";
+        
+        if (currentStep === 0) {
+            stepDescription = guideSteps[0];
+            navigationGuidance = "You are on step 1 of 5. Complete the current step, then click the Next Step button in the header to proceed. You can also use the Undo button to reset your progress.";
+        } else if (currentStep === 1) {
+            stepDescription = guideSteps[1];
+            navigationGuidance = "You are on step 2 of 5. Complete the current step, then click the Next Step button in the header to proceed.";
+        } else if (currentStep === 2) {
+            stepDescription = guideSteps[2];
+            navigationGuidance = "You are on step 3 of 5. Complete the current step, then click the Next Step button in the header to proceed.";
+        } else if (currentStep === 3) {
+            stepDescription = guideSteps[3];
+            navigationGuidance = "You are on step 4 of 5. Complete the current step, then click the Next Step button in the header to proceed.";
+        } else if (currentStep === 4) {
+            stepDescription = guideSteps[4];
+            navigationGuidance = "You are on step 5 of 5. This is the final step. Complete it to finish the Note-Taker journey.";
+        }
+
+        const allStepsText = guideSteps.map((step, idx) => `${idx + 1}. ${step}`).join(". ");
+
+        return `${articleTitle}. Current step: ${currentStepName}. ${stepDescription}. ${navigationGuidance} Here are all the steps in this journey: ${allStepsText}.`;
+    };
+
+    // Ensure voices are loaded
+    useEffect(() => {
+        if (!('speechSynthesis' in window)) return;
+        const synth = window.speechSynthesis;
+
+        const onVoicesChanged = () => {
+            const vs = synth.getVoices();
+            if (vs && vs.length > 0) voicesLoadedRef.current = true;
+        };
+
+        onVoicesChanged();
+        synth.addEventListener('voiceschanged', onVoicesChanged);
+
+        return () => {
+            try {
+                synth.removeEventListener('voiceschanged', onVoicesChanged);
+            } catch {
+                /* ignore if unavailable */
+            }
+        };
+    }, []);
+
+    // Stop any speaking safely
+    const stopSpeaking = () => {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        if (utteranceRef.current) {
+            utteranceRef.current.onend = null;
+            utteranceRef.current.onerror = null;
+            utteranceRef.current = null;
+        }
+        setIsSpeaking(false);
+    };
+
+    const handleSpeak = () => {
+        if (!('speechSynthesis' in window)) {
+            alert('Speech synthesis not supported in this browser.');
+            return;
+        }
+
+        if (isSpeaking) {
+            stopSpeaking();
+            return;
+        }
+
+        window.speechSynthesis.cancel();
+
+        const plainText = getTextContent();
+        if (!plainText.trim()) return;
+
+        const synth = window.speechSynthesis;
+        const voices = synth.getVoices();
+
+        if (!voicesLoadedRef.current || (voices && voices.length === 0)) {
+            const dummy = new SpeechSynthesisUtterance(' ');
+            synth.speak(dummy);
+            dummy.onend = () => {
+                voicesLoadedRef.current = true;
+            };
+        }
+
+        const u = new SpeechSynthesisUtterance(plainText);
+        utteranceRef.current = u;
+        u.rate = 1;
+        u.pitch = 1;
+
+        const englishVoice = voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en')) || undefined;
+        if (englishVoice) u.voice = englishVoice;
+
+        let endedOrErrored = false;
+        u.onstart = () => {
+            setIsSpeaking(true);
+        };
+        u.onend = () => {
+            if (endedOrErrored) return;
+            endedOrErrored = true;
+            setIsSpeaking(false);
+            utteranceRef.current = null;
+        };
+        u.onerror = () => {
+            if (endedOrErrored) return;
+            endedOrErrored = true;
+            setIsSpeaking(false);
+            utteranceRef.current = null;
+        };
+
+        synth.speak(u);
+    };
+
+    // Stop speaking when step changes
+    useEffect(() => {
+        if (isSpeaking) {
+            stopSpeaking();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentStep]);
+
+    // Reset function
+    const handleReset = () => {
+        stopSpeaking();
+        setCurrentStep(0);
+    };
 
     const handleNext = () => {
-        // Move from Template (0) to Review (1)
-        setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
+        setCurrentStep(prev => Math.min(prev + 1, FULL_STEPS.length - 1));
     };
 
     const handleStartNew = () => {
-        // Go back to Template Selection (0)
         setCurrentStep(0);
     };
 
@@ -628,21 +722,28 @@ const NoteTakerFlow: FC = () => {
 
     const handleBackToFlow = () => {
         setView('flow');
-        // Ensure we land on the Review step if coming back from the article (since it represents the completed flow state)
-        setCurrentStep(1); 
+        setCurrentStep(0); 
     };
+
+    // Create short labels for the top bar steps
+    const topSteps = FULL_STEPS.map((step, index) => ({
+        label: String(index + 1),
+        text: step.split(' ').slice(0, 2).join(' '),
+        fullText: step
+    }));
 
     let Content;
     if (view === 'article') {
-        // The Article component shows documentation. It doesn't use the simple step bar but we pass the step index for reference.
         Content = <NoteTakerArticle onBack={handleBackToFlow} currentStepIndex={currentStep} />;
     } else {
-        // The main operational flow
         switch (currentStep) {
-            case 0: // Select Template
+            case 0: // Connect Meeting
+            case 1: // Select Template
                 Content = <DashboardDemo onViewArticle={handleArticleView} onNext={handleNext} />;
                 break;
-            case 1: // Review & Share
+            case 2: // Start Transcription
+            case 3: // Use AI Features
+            case 4: // Review & Share
                 Content = <ReviewShareStep onStartNew={handleStartNew} onViewArticle={handleArticleView} />;
                 break;
             default:
@@ -651,8 +752,97 @@ const NoteTakerFlow: FC = () => {
     }
 
     return (
-        <div className="font-inter h-screen w-full flex flex-col">
-            <StepsBar currentStepIndex={currentStep} />
+        <div className="min-h-screen bg-gray-50 font-sans antialiased flex flex-col">
+            {/* TOP BLACK BAR */}
+            <div className="w-full bg-[#020617] text-white py-3 px-4 md:px-10 flex items-center justify-between shadow-md rounded-b-xl">
+                <div className="flex items-center gap-2 md:gap-3">
+                    <span className="text-xs uppercase tracking-widest text-gray-400">
+                        NOTE-TAKER JOURNEY
+                    </span>
+                </div>
+                <div className="flex items-center gap-1 md:gap-2 overflow-x-auto">
+                    {topSteps.map((step, index) => {
+                        const stepNumber = index;
+                        const isActive = stepNumber === currentStep;
+                        const isCompleted = stepNumber < currentStep;
+                        return (
+                            <div
+                                key={step.label}
+                                className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs cursor-pointer transition-all flex-shrink-0"
+                                onClick={() => {
+                                    if (stepNumber <= currentStep || stepNumber === currentStep + 1) {
+                                        setCurrentStep(stepNumber);
+                                    }
+                                }}
+                            >
+                                <div
+                                    className={`
+                                        w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded-full border text-[10px] md:text-[11px] font-semibold
+                                        ${isActive ? 'bg-white text-black border-white' : ''}
+                                        ${isCompleted && !isActive ? 'bg-green-500 border-green-500 text-white' : ''}
+                                        ${!isActive && !isCompleted ? 'border-gray-600 text-gray-300' : ''}
+                                    `}
+                                >
+                                    {isCompleted && !isActive ? <CheckCircle className="w-3 h-3" /> : step.label}
+                                </div>
+                                <span
+                                    className={`
+                                        hidden md:inline-block whitespace-nowrap
+                                        ${isActive ? 'text-white' : 'text-gray-400'}
+                                    `}
+                                >
+                                    {step.text}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+                <div className="flex items-center ml-4 space-x-3">
+                    <button
+                        onClick={handleSpeak}
+                        className={`flex items-center px-4 py-2 rounded-lg transition-colors text-sm ${
+                            isSpeaking
+                                ? 'bg-red-500 text-white hover:bg-red-600'
+                                : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'
+                        }`}
+                    >
+                        {isSpeaking ? (
+                            <>
+                                <X className="w-4 h-4 mr-2" /> Stop Reading
+                            </>
+                        ) : (
+                            <>
+                                <Volume2 className="w-4 h-4 mr-2" /> Read Aloud
+                            </>
+                        )}
+                    </button>
+                    <button
+                        onClick={handleReset}
+                        disabled={currentStep === 0}
+                        className={`flex items-center px-4 py-2 rounded-lg transition-colors text-sm ${
+                            currentStep > 0
+                                ? 'bg-white text-gray-800 border border-gray-700 hover:bg-gray-100'
+                                : 'bg-gray-600 opacity-50 text-white cursor-not-allowed'
+                        }`}
+                    >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Undo
+                    </button>
+                    <button
+                        onClick={handleNext}
+                        disabled={currentStep >= FULL_STEPS.length - 1}
+                        className={`flex items-center px-4 py-2 rounded-lg transition-colors text-sm ${
+                            currentStep < FULL_STEPS.length - 1
+                                ? 'bg-indigo-400 text-gray-900 font-semibold hover:bg-indigo-300'
+                                : 'bg-indigo-600 opacity-50 text-white cursor-not-allowed'
+                        }`}
+                    >
+                        <ChevronRight className="w-4 h-4 mr-2" />
+                        Next Step ({currentStep + 1}/{FULL_STEPS.length})
+                    </button>
+                </div>
+            </div>
+
             <div className="flex-1 overflow-auto">
                 {Content}
             </div>

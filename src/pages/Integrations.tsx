@@ -236,7 +236,7 @@ const Integrations = () => {
                 
                 {/* Updated Heading */}
                 <h1 className="text-5xl font-extrabold mb-4 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-blue-500 dark:from-indigo-300 dark:to-blue-400">
-                    Unified Real-Time Bi-Directional Sync Integrations
+                    Unified Real-Time Bi-Directional Sync Platform
                 </h1>
                 <p className={`text-xl mb-16 max-w-3xl ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     Connect your mission-critical tools to enable seamless, bidirectional data flow, enriching your meeting insights and automating post-call workflows.
@@ -298,3 +298,4 @@ const Integrations = () => {
 
 
 export default Integrations;
+

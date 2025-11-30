@@ -1,7 +1,7 @@
-import React, { useState, FormEvent, FC, useMemo } from 'react';
+import { useState, FormEvent, FC, useMemo, useEffect, useRef } from 'react';
 import { 
-    ArrowLeft, Info, RefreshCw, Save, Check, X, Plus, 
-    Cpu, TrendingUp, Briefcase, Users, Zap, Tag, Goal, Settings, Loader2
+    ArrowLeft, Info, RefreshCw, Save, Check, CheckCircle, X, Plus, 
+    Cpu, TrendingUp, Briefcase, Users, Zap, Tag, Goal, Settings, Volume2
 } from 'lucide-react';
 
 // --- INTERFACES & MOCK DATA ---
@@ -164,7 +164,8 @@ const AddNewGoalModal: FC<AddNewGoalModalProps> = ({ isOpen, onClose, onSave }) 
 
 // --- MODIFIED CustomGoalsStep Component ---
 
-const CustomGoalsStep: FC<{ goals: CustomGoal[], onAddGoal: (goal: CustomGoal) => void }> = ({ goals, onAddGoal }) => {
+const CustomGoalsStep: FC<{ goals: CustomGoal[], onAddGoal: (goal: CustomGoal) => void, currentStep?: number }> = ({ goals, onAddGoal, currentStep = 3 }) => {
+    const shouldHighlight = currentStep === 3;
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const handleSaveGoal = (title: string, criteria: string) => {
@@ -185,7 +186,9 @@ const CustomGoalsStep: FC<{ goals: CustomGoal[], onAddGoal: (goal: CustomGoal) =
                 </div>
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 disabled:bg-indigo-300"
+                    className={`flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 disabled:bg-indigo-300 ${
+                        shouldHighlight ? "shadow-[0_0_20px_rgba(34,197,94,0.6)]" : ""
+                    }`}
                 >
                     <Plus className="w-4 h-4 mr-1" /> Add New Goal
                 </button>
@@ -232,12 +235,12 @@ interface GuidePanelProps {
 
 const InteractiveGuidePanel: FC<GuidePanelProps> = ({ currentStep, stepsLength }) => {
     const guideSteps = [
-        "Review the Bot Configuration and System Prompt.",
-        "Complete Step 1: Meeting Focus (Requires > 0 tags).",
-        "Complete Step 2: Customer Persona (Requires 1 selection).",
-        "Complete Step 3: Answer Styles (Requires > 0 styles).",
-        "Complete Step 4: Custom Goals (Optional).",
-        "Click 'Save Changes' on the last step (4/4).",
+        "Review the Bot Configuration and System Prompt",
+        "Select meeting focus tags (at least one required)",
+        "Choose a customer persona (one selection required)",
+        "Select answer styles (at least one required)",
+        "Add custom goals (optional)",
+        "Click Save Changes to complete setup",
     ];
 
     return (
@@ -246,7 +249,7 @@ const InteractiveGuidePanel: FC<GuidePanelProps> = ({ currentStep, stepsLength }
                 <Info className="w-5 h-5 mr-2 text-green-600" />
                 Interactive Demo Guide
             </h3>
-            <ol className="space-y-3 text-sm">
+            <div className="space-y-2">
                 {guideSteps.map((guideStep, index) => {
                     let isStepComplete = false;
                     let isActive = false;
@@ -262,37 +265,55 @@ const InteractiveGuidePanel: FC<GuidePanelProps> = ({ currentStep, stepsLength }
                         isActive = currentStep === stepsLength;
                     }
 
+                    const done = isStepComplete;
+
                     return (
-                        <li key={index} className={`flex items-start transition-colors ${isStepComplete ? 'text-gray-500' : (isActive ? 'text-indigo-600' : 'text-gray-800')}`}>
-                            {isStepComplete ? (
-                                <Check className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                            ) : (
-                                <Loader2 className={`w-4 h-4 mr-2 mt-0.5 text-indigo-500 flex-shrink-0 ${isActive ? 'animate-spin' : ''}`} />
-                            )}
-                            <span className={isStepComplete ? 'line-through' : (isActive ? 'font-semibold' : '')}>
-                                {guideStep}
-                            </span>
-                        </li>
+                        <div
+                            key={index}
+                            className={`
+                                flex items-center justify-between w-full text-[11px] rounded-full px-3 py-2
+                                ${done
+                                    ? 'bg-[#ECFDF5] border border-[#22C55E] text-[#16A34A] line-through'
+                                    : isActive
+                                    ? 'bg-[#020617] border-2 border-indigo-500 text-[#E5E7EB]'
+                                    : 'bg-[#020617] border border-[#1F2937] text-[#E5E7EB]'}
+                            `}
+                        >
+                            <div className="flex items-center gap-1">
+                                <span
+                                    className={`
+                                        w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-semibold
+                                        ${done ? 'bg-[#22C55E] text-white' : isActive ? 'bg-indigo-500 text-white border border-indigo-400' : 'bg-[#020617] border border-[#4B5563]'}
+                                    `}
+                                >
+                                    {done ? <CheckCircle className="w-3 h-3" /> : index + 1}
+                                </span>
+                                <span>{guideStep}</span>
+                            </div>
+                        </div>
                     );
                 })}
-            </ol>
+            </div>
         </div>
     );
 };
 
 // Placeholder components (copied from previous turn for completeness)
-const MeetingFocusStep: FC<{ selectedTags: FocusTag[], onTagToggle: (tag: FocusTag) => void, onAddDomain: (domain: string) => void }> = ({ selectedTags, onTagToggle, onAddDomain }) => {
+const MeetingFocusStep: FC<{ selectedTags: FocusTag[], onTagToggle: (tag: FocusTag) => void, onAddDomain: (domain: string) => void, currentStep?: number }> = ({ selectedTags, onTagToggle, onAddDomain, currentStep = 0 }) => {
     const [newDomain, setNewDomain] = useState('');
     const handleAdd = (e: FormEvent) => { e.preventDefault(); if (newDomain.trim()) { onAddDomain(newDomain.trim()); setNewDomain(''); } };
-    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Tag className="w-5 h-5 mr-2 text-indigo-600" />Meeting Focus<Info className="w-4 h-4 ml-2 text-gray-400 cursor-pointer" /></div><p className="text-sm text-gray-600 mb-4">Add topics to focus the AI on. (Requires at least **one tag**)</p><div className="border border-gray-300 p-4 rounded-lg bg-gray-50 space-y-3"><div className="flex flex-wrap gap-2 mb-3">{MOCK_FOCUS_TAGS.map(tag => {const isSelected = selectedTags.some(t => t.id === tag.id); return (<button key={tag.id} onClick={() => onTagToggle(tag)} className={`flex items-center text-sm px-3 py-1 rounded-full transition-colors ${isSelected ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{tag.label}{isSelected && <X className="w-3 h-3 ml-1" />}</button>);} )}</div><form onSubmit={handleAdd} className="w-full"><input type="text" value={newDomain} onChange={(e) => setNewDomain(e.target.value)} placeholder="Add a domain (e.g., 'Databricks')" className="w-full px-3 py-2 text-sm border-b border-gray-300 focus:border-indigo-500 focus:ring-0 outline-none transition-colors"/>{newDomain && (<button type="submit" className="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium"><Plus className="w-3 h-3 inline-block mr-1" /> Add "{newDomain}"</button>)}</form></div></div>);
+    const shouldHighlight = currentStep === 0;
+    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Tag className="w-5 h-5 mr-2 text-indigo-600" />Meeting Focus<Info className="w-4 h-4 ml-2 text-gray-400 cursor-pointer" /></div><p className="text-sm text-gray-600 mb-4">Add topics to focus the AI on. (Requires at least **one tag**)</p><div className={`border border-gray-300 p-4 rounded-lg bg-gray-50 space-y-3 ${shouldHighlight ? 'shadow-[0_0_15px_rgba(99,102,241,0.5)]' : ''}`}><div className="flex flex-wrap gap-2 mb-3">{MOCK_FOCUS_TAGS.map(tag => {const isSelected = selectedTags.some(t => t.id === tag.id); return (<button key={tag.id} onClick={() => onTagToggle(tag)} className={`flex items-center text-sm px-3 py-1 rounded-full transition-colors ${isSelected ? 'bg-red-600 text-white' : shouldHighlight ? 'bg-gray-200 text-gray-700 hover:bg-gray-300 shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{tag.label}{isSelected && <X className="w-3 h-3 ml-1" />}</button>);} )}</div><form onSubmit={handleAdd} className="w-full"><input type="text" value={newDomain} onChange={(e) => setNewDomain(e.target.value)} placeholder="Add a domain (e.g., 'Databricks')" className={`w-full px-3 py-2 text-sm border-b border-gray-300 focus:border-indigo-500 focus:ring-0 outline-none transition-colors ${shouldHighlight ? 'shadow-[0_0_12px_rgba(99,102,241,0.4)]' : ''}`}/>{newDomain && (<button type="submit" className="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium"><Plus className="w-3 h-3 inline-block mr-1" /> Add "{newDomain}"</button>)}</form></div></div>);
 };
   
-const CustomerPersonaStep: FC<{ selectedPersona: Persona | null, onSelect: (persona: Persona) => void }> = ({ selectedPersona, onSelect }) => {
-    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Users className="w-5 h-5 mr-2 text-indigo-600" />Customer Persona</div><p className="text-sm text-gray-600 mb-4">Choose **one** persona to affect the AI's tone, depth, and focus. (Requires **one selection**)</p><div className="grid grid-cols-2 gap-4">{MOCK_PERSONAS.map(persona => {const isSelected = selectedPersona?.id === persona.id; return (<div key={persona.id} onClick={() => onSelect(persona)} className={`p-4 rounded-xl border-2 transition-all cursor-pointer min-h-[120px] relative ${isSelected ? 'border-indigo-600 bg-indigo-50 shadow-lg' : 'border-gray-200 hover:border-indigo-400 bg-white'}`}><div className="flex justify-between items-start mb-2"><h4 className="font-semibold text-base">{persona.title}</h4>{isSelected && <Check className="w-5 h-5 text-indigo-600" />}</div><p className="text-xs text-gray-600">{persona.description}</p>{persona.id === 'technical' && isSelected && (<div className="absolute inset-0 border-4 border-purple-600 rounded-xl pointer-events-none"></div>)}</div>);})}</div><h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">System Prompt</h3><div className="p-4 bg-gray-50 border border-gray-300 rounded-lg h-40 overflow-y-auto text-sm text-gray-700">{selectedPersona ? selectedPersona.detail : "Select a persona to see the corresponding system prompt/instruction that guides the AI's output."}</div></div>);
+const CustomerPersonaStep: FC<{ selectedPersona: Persona | null, onSelect: (persona: Persona) => void, currentStep?: number }> = ({ selectedPersona, onSelect, currentStep = 1 }) => {
+    const shouldHighlight = currentStep === 1;
+    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Users className="w-5 h-5 mr-2 text-indigo-600" />Customer Persona</div><p className="text-sm text-gray-600 mb-4">Choose **one** persona to affect the AI's tone, depth, and focus. (Requires **one selection**)</p><div className="grid grid-cols-2 gap-4">{MOCK_PERSONAS.map(persona => {const isSelected = selectedPersona?.id === persona.id; return (<div key={persona.id} onClick={() => onSelect(persona)} className={`p-4 rounded-xl border-2 transition-all cursor-pointer min-h-[120px] relative ${isSelected ? 'border-indigo-600 bg-indigo-50 shadow-lg' : shouldHighlight ? 'border-gray-200 hover:border-indigo-400 bg-white shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'border-gray-200 hover:border-indigo-400 bg-white'}`}><div className="flex justify-between items-start mb-2"><h4 className="font-semibold text-base">{persona.title}</h4>{isSelected && <Check className="w-5 h-5 text-indigo-600" />}</div><p className="text-xs text-gray-600">{persona.description}</p>{persona.id === 'technical' && isSelected && (<div className="absolute inset-0 border-4 border-purple-600 rounded-xl pointer-events-none"></div>)}</div>);})}</div><h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">System Prompt</h3><div className="p-4 bg-gray-50 border border-gray-300 rounded-lg h-40 overflow-y-auto text-sm text-gray-700">{selectedPersona ? selectedPersona.detail : "Select a persona to see the corresponding system prompt/instruction that guides the AI's output."}</div></div>);
 };
   
-const AnswerStylesStep: FC<{ selectedStyles: string[], onStyleToggle: (styleId: string) => void }> = ({ selectedStyles, onStyleToggle }) => {
-    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Zap className="w-5 h-5 mr-2 text-indigo-600" />Answer Styles</div><p className="text-sm text-gray-600 mb-4">Select **multiple** styles to customize responses. (Requires at least **one selection**)</p><div className="grid grid-cols-3 gap-3">{MOCK_ANSWER_STYLES.map(style => {const isSelected = selectedStyles.includes(style.id); return (<div key={style.id} onClick={() => onStyleToggle(style.id)} className={`p-3 rounded-lg border transition-all cursor-pointer min-h-[100px] relative ${isSelected ? 'border-green-600 bg-green-50 shadow-inner' : 'border-gray-200 hover:border-green-300 bg-white'}`}><div className="flex items-start mb-1"><h4 className="font-semibold text-sm text-gray-900">{style.title}</h4><div className={`w-3 h-3 rounded-full ml-auto mt-0.5 border ${isSelected ? 'bg-green-600 border-white' : 'bg-gray-200 border-gray-400'}`}></div></div><p className="text-xs text-gray-500">{style.description}</p></div>);})}</div></div>);
+const AnswerStylesStep: FC<{ selectedStyles: string[], onStyleToggle: (styleId: string) => void, currentStep?: number }> = ({ selectedStyles, onStyleToggle, currentStep = 2 }) => {
+    const shouldHighlight = currentStep === 2;
+    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Zap className="w-5 h-5 mr-2 text-indigo-600" />Answer Styles</div><p className="text-sm text-gray-600 mb-4">Select **multiple** styles to customize responses. (Requires at least **one selection**)</p><div className="grid grid-cols-3 gap-3">{MOCK_ANSWER_STYLES.map(style => {const isSelected = selectedStyles.includes(style.id); return (<div key={style.id} onClick={() => onStyleToggle(style.id)} className={`p-3 rounded-lg border transition-all cursor-pointer min-h-[100px] relative ${isSelected ? 'border-green-600 bg-green-50 shadow-inner' : shouldHighlight ? 'border-gray-200 hover:border-green-300 bg-white shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'border-gray-200 hover:border-green-300 bg-white'}`}><div className="flex items-start mb-1"><h4 className="font-semibold text-sm text-gray-900">{style.title}</h4><div className={`w-3 h-3 rounded-full ml-auto mt-0.5 border ${isSelected ? 'bg-green-600 border-white' : 'bg-gray-200 border-gray-400'}`}></div></div><p className="text-xs text-gray-500">{style.description}</p></div>);})}</div></div>);
 };
 
 
@@ -310,6 +331,144 @@ const PersonalizationPage: FC = () => {
     const [answerStyles, setAnswerStyles] = useState<string[]>(initialAnswerStyles);
     const [customGoals, setCustomGoals] = useState<CustomGoal[]>(MOCK_CUSTOM_GOALS);
     const [botName, setBotName] = useState('SpikedAI');
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const voicesLoadedRef = useRef(false);
+    const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+    // Create text content to read based on current step
+    const getTextContent = () => {
+        const articleTitle = "Personalisation - Configure your AI sales copilot";
+        const currentStepName = STEPS[currentStep] || "";
+        const guideSteps = [
+            "Review the Bot Configuration and System Prompt",
+            "Select meeting focus tags (at least one required)",
+            "Choose a customer persona (one selection required)",
+            "Select answer styles (at least one required)",
+            "Add custom goals (optional)",
+            "Click Save Changes to complete setup",
+        ];
+        
+        let stepDescription = "";
+        let navigationGuidance = "";
+        
+        if (currentStep === 0) {
+            stepDescription = guideSteps[1];
+            navigationGuidance = "You are on step 1 of 4. Complete the current step, then click the Next Step button in the header to proceed. You can also use the Undo button to reset your progress.";
+        } else if (currentStep === 1) {
+            stepDescription = guideSteps[2];
+            navigationGuidance = "You are on step 2 of 4. Complete the current step, then click the Next Step button in the header to proceed.";
+        } else if (currentStep === 2) {
+            stepDescription = guideSteps[3];
+            navigationGuidance = "You are on step 3 of 4. Complete the current step, then click the Next Step button in the header to proceed.";
+        } else if (currentStep === 3) {
+            stepDescription = guideSteps[4];
+            navigationGuidance = "You are on step 4 of 4. This is the final step. Complete it and click Save Changes to finish the setup.";
+        } else if (currentStep === 4) {
+            stepDescription = guideSteps[5];
+            navigationGuidance = "Setup is complete! You can click Start Over to begin again.";
+        }
+
+        const allStepsText = guideSteps.map((step, idx) => `${idx + 1}. ${step}`).join(". ");
+
+        return `${articleTitle}. Current step: ${currentStepName}. ${stepDescription}. ${navigationGuidance} Here are all the steps in this journey: ${allStepsText}.`;
+    };
+
+    // Ensure voices are loaded
+    useEffect(() => {
+        if (!('speechSynthesis' in window)) return;
+        const synth = window.speechSynthesis;
+
+        const onVoicesChanged = () => {
+            const vs = synth.getVoices();
+            if (vs && vs.length > 0) voicesLoadedRef.current = true;
+        };
+
+        onVoicesChanged();
+        synth.addEventListener('voiceschanged', onVoicesChanged);
+
+        return () => {
+            try {
+                synth.removeEventListener('voiceschanged', onVoicesChanged);
+            } catch {
+                /* ignore if unavailable */
+            }
+        };
+    }, []);
+
+    // Stop any speaking safely
+    const stopSpeaking = () => {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        if (utteranceRef.current) {
+            utteranceRef.current.onend = null;
+            utteranceRef.current.onerror = null;
+            utteranceRef.current = null;
+        }
+        setIsSpeaking(false);
+    };
+
+    const handleSpeak = () => {
+        if (!('speechSynthesis' in window)) {
+            alert('Speech synthesis not supported in this browser.');
+            return;
+        }
+
+        if (isSpeaking) {
+            stopSpeaking();
+            return;
+        }
+
+        window.speechSynthesis.cancel();
+
+        const plainText = getTextContent();
+        if (!plainText.trim()) return;
+
+        const synth = window.speechSynthesis;
+        const voices = synth.getVoices();
+
+        if (!voicesLoadedRef.current || (voices && voices.length === 0)) {
+            const dummy = new SpeechSynthesisUtterance(' ');
+            synth.speak(dummy);
+            dummy.onend = () => {
+                voicesLoadedRef.current = true;
+            };
+        }
+
+        const u = new SpeechSynthesisUtterance(plainText);
+        utteranceRef.current = u;
+        u.rate = 1;
+        u.pitch = 1;
+
+        const englishVoice = voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en')) || undefined;
+        if (englishVoice) u.voice = englishVoice;
+
+        let endedOrErrored = false;
+        u.onstart = () => {
+            setIsSpeaking(true);
+        };
+        u.onend = () => {
+            if (endedOrErrored) return;
+            endedOrErrored = true;
+            setIsSpeaking(false);
+            utteranceRef.current = null;
+        };
+        u.onerror = () => {
+            if (endedOrErrored) return;
+            endedOrErrored = true;
+            setIsSpeaking(false);
+            utteranceRef.current = null;
+        };
+
+        synth.speak(u);
+    };
+
+    // Stop speaking when step changes
+    useEffect(() => {
+        if (isSpeaking) {
+            stopSpeaking();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentStep]);
 
     // Handlers
     const handleTagToggle = (tag: FocusTag) => { setMeetingFocus(prev => prev.some(t => t.id === tag.id) ? prev.filter(t => t.id !== tag.id) : [...prev, tag]); };
@@ -348,10 +507,10 @@ const PersonalizationPage: FC = () => {
     // --- Conditional Rendering of Step Content ---
     const renderStepContent = () => {
         switch (currentStep) {
-            case 0: return <MeetingFocusStep selectedTags={meetingFocus} onTagToggle={handleTagToggle} onAddDomain={handleAddDomain} />;
-            case 1: return <CustomerPersonaStep selectedPersona={customerPersona} onSelect={setCustomerPersona} />;
-            case 2: return <AnswerStylesStep selectedStyles={answerStyles} onStyleToggle={handleStyleToggle} />;
-            case 3: return <CustomGoalsStep goals={customGoals} onAddGoal={handleAddGoal} />;
+            case 0: return <MeetingFocusStep selectedTags={meetingFocus} onTagToggle={handleTagToggle} onAddDomain={handleAddDomain} currentStep={currentStep} />;
+            case 1: return <CustomerPersonaStep selectedPersona={customerPersona} onSelect={setCustomerPersona} currentStep={currentStep} />;
+            case 2: return <AnswerStylesStep selectedStyles={answerStyles} onStyleToggle={handleStyleToggle} currentStep={currentStep} />;
+            case 3: return <CustomGoalsStep goals={customGoals} onAddGoal={handleAddGoal} currentStep={currentStep} />;
             case 4: return (
                 <div className="p-10 bg-green-50 rounded-xl border-2 border-green-300 text-center flex flex-col items-center justify-center h-full">
                     <Check className="w-10 h-10 text-green-600 mb-4" />
@@ -370,71 +529,102 @@ const PersonalizationPage: FC = () => {
     const isCompleted = currentStep === STEPS.length;
 
 
+    // Create step labels for the top bar
+    const topSteps = STEPS.map((step, index) => ({
+        label: String(index + 1),
+        text: step.split(' ').slice(0, 2).join(' '), // Short version
+        fullText: step
+    }));
+
     return (
-        <div className="bg-gray-50 min-h-screen font-sans">
-            
-            {/* Header and Controls - Full Width Black Bar */}
-            <div className="w-full bg-gray-900 shadow-2xl">
-                <div className="max-w-7xl mx-auto p-4 md:p-6"> {/* Centered content container */}
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                            <button onClick={handleBack} disabled={currentStep === 0 || isCompleted} className="p-2 rounded-full text-white hover:bg-gray-700 disabled:opacity-50">
-                                <ArrowLeft className="w-5 h-5" />
-                            </button>
-                            <h1 className="text-xl md:text-2xl font-bold text-white flex items-center">
-                                <Settings className="w-6 h-6 mr-2 text-indigo-400" /> 
-                                Personalisation
-                            </h1>
-                            <span className="text-gray-400 text-lg hidden md:inline">Configure your AI sales copilot</span> 
-                        </div>
-                        
-                        <div className="flex space-x-3">
-                            <button className="flex items-center px-4 py-2 bg-white text-gray-800 border border-gray-700 rounded-lg hover:bg-gray-100 disabled:opacity-50" disabled={isCompleted}>
-                                <RefreshCw className="w-4 h-4 mr-2" />
-                                Undo
-                            </button>
-                            <button 
-                                onClick={handleNext} 
-                                disabled={!isCurrentStepValid && !isSaveMode || isCompleted}
-                                className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
-                                    isCurrentStepValid || isSaveMode
-                                        ? 'bg-indigo-400 text-gray-900 font-semibold hover:bg-indigo-300' 
-                                        : 'bg-indigo-600 opacity-50 text-white cursor-not-allowed'
-                                }`}
+        <div className="bg-gray-50 min-h-screen font-sans flex flex-col">
+            {/* TOP BLACK BAR */}
+            <div className="w-full bg-[#020617] text-white py-3 px-4 md:px-10 flex items-center justify-between shadow-md rounded-b-xl">
+                <div className="flex items-center gap-2 md:gap-3">
+                    <button onClick={handleBack} disabled={currentStep === 0 || isCompleted} className="p-2 rounded-full text-white hover:bg-gray-700 disabled:opacity-50">
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <span className="text-xs uppercase tracking-widest text-gray-400">
+                        PERSONALISATION JOURNEY
+                    </span>
+                </div>
+                <div className="flex items-center gap-1 md:gap-2 overflow-x-auto">
+                    {topSteps.map((step, index) => {
+                        const stepNumber = index;
+                        const isActive = stepNumber === currentStep;
+                        const isCompleted = stepNumber < currentStep;
+                        return (
+                            <div
+                                key={step.label}
+                                className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs cursor-pointer transition-all flex-shrink-0"
                             >
-                                {isCompleted ? (
-                                    <>Setup Complete!</>
-                                ) : isSaveMode ? (
-                                    <><Save className="w-4 h-4 mr-2" /> Save Changes</>
-                                ) : (
-                                    <>Next Step ({currentStep + 1}/{STEPS.length})</>
-                                )}
-                            </button>
-                        </div>
-                    </div>
+                                <div
+                                    className={`
+                                        w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded-full border text-[10px] md:text-[11px] font-semibold
+                                        ${isActive ? 'bg-white text-black border-white' : ''}
+                                        ${isCompleted && !isActive ? 'bg-green-500 border-green-500 text-white' : ''}
+                                        ${!isActive && !isCompleted ? 'border-gray-600 text-gray-300' : ''}
+                                    `}
+                                >
+                                    {isCompleted && !isActive ? <CheckCircle className="w-3 h-3" /> : step.label}
+                                </div>
+                                <span
+                                    className={`
+                                        hidden md:inline-block whitespace-nowrap
+                                        ${isActive ? 'text-white' : 'text-gray-400'}
+                                    `}
+                                >
+                                    {step.text}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+                <div className="flex space-x-3 ml-4">
+                    <button
+                        onClick={handleSpeak}
+                        className={`flex items-center px-4 py-2 rounded-lg transition-colors text-sm ${
+                            isSpeaking
+                                ? 'bg-red-500 text-white hover:bg-red-600'
+                                : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'
+                        }`}
+                    >
+                        {isSpeaking ? (
+                            <>
+                                <X className="w-4 h-4 mr-2" /> Stop Reading
+                            </>
+                        ) : (
+                            <>
+                                <Volume2 className="w-4 h-4 mr-2" /> Read Aloud
+                            </>
+                        )}
+                    </button>
+                    <button className="flex items-center px-4 py-2 bg-white text-gray-800 border border-gray-700 rounded-lg hover:bg-gray-100 disabled:opacity-50 text-sm" disabled={isCompleted}>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Undo
+                    </button>
+                    <button 
+                        onClick={handleNext} 
+                        disabled={!isCurrentStepValid && !isSaveMode || isCompleted}
+                        className={`flex items-center px-4 py-2 rounded-lg transition-colors text-sm ${
+                            isCurrentStepValid || isSaveMode
+                                ? 'bg-indigo-400 text-gray-900 font-semibold hover:bg-indigo-300 shadow-[0_0_20px_rgba(34,197,94,0.6)]' 
+                                : 'bg-indigo-600 opacity-50 text-white cursor-not-allowed'
+                        }`}
+                    >
+                        {isCompleted ? (
+                            <>Setup Complete!</>
+                        ) : isSaveMode ? (
+                            <><Save className="w-4 h-4 mr-2" /> Save Changes</>
+                        ) : (
+                            <>Next Step ({currentStep + 1}/{STEPS.length})</>
+                        )}
+                    </button>
                 </div>
             </div>
 
             {/* Main Content Area */}
-            <div className="max-w-7xl mx-auto px-4 md:px-6 pt-6 pb-10"> 
-                
-                {/* Progress Indicator - Now aligned with main content */}
-                <div className="mb-8"> 
-                    <div className="flex justify-between text-xs font-medium text-gray-500 mb-1">
-                        {STEPS.map((step, index) => (
-                            <span key={index} className={index === currentStep ? 'text-indigo-600 font-bold' : (index < currentStep ? 'text-green-600' : 'text-gray-500')}>
-                                {index + 1}. {step}
-                            </span>
-                        ))}
-                    </div>
-                    {/* Progress Bar Track */}
-                    <div className="h-2 bg-gray-700 rounded-full"> 
-                        <div 
-                            style={{ width: `${((currentStep) / STEPS.length) * 100}%` }} 
-                            className="h-2 bg-indigo-400 rounded-full transition-all duration-500" 
-                        ></div>
-                    </div>
-                </div>
+            <div className="max-w-7xl mx-auto px-4 md:px-6 pt-6 pb-10">
 
                 {/* Main Step Content (3-column layout) */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[500px]">

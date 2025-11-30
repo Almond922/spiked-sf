@@ -2,7 +2,7 @@ import React, { useState, FormEvent, FC, useEffect, useRef } from 'react';
 import {
   Rocket, Mail, Lock, User, Zap, BookOpen, Settings,
   CheckCircle, XCircle, Clock, Send, Search, Bell, Menu,
-  Tag, Inbox, Filter
+  Tag, Inbox, Filter, ChevronRight, RefreshCw, ArrowLeft
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -27,9 +27,11 @@ interface Topics { [key: string]: Topic; }
 
 interface SignUpFormDemoProps {
   onSignUpComplete: () => void;
+  currentStep?: string;
 }
 
-const SignUpFormDemo: FC<SignUpFormDemoProps> = ({ onSignUpComplete }) => {
+const SignUpFormDemo: FC<SignUpFormDemoProps> = ({ onSignUpComplete, currentStep }) => {
+  const shouldHighlight = currentStep === 'signup-process';
   const [status, setStatus] = useState<'ready' | 'submitting' | 'success'>('ready');
 
   // fields for tracking checklist
@@ -167,7 +169,11 @@ const SignUpFormDemo: FC<SignUpFormDemoProps> = ({ onSignUpComplete }) => {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required
-                    className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans"
+                    className={`w-full p-2 pl-9 border rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans ${
+                      shouldHighlight 
+                        ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' 
+                        : 'border-gray-300'
+                    }`}
                   />
                 </div>
               </div>
@@ -185,7 +191,11 @@ const SignUpFormDemo: FC<SignUpFormDemoProps> = ({ onSignUpComplete }) => {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required
-                    className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans"
+                    className={`w-full p-2 pl-9 border rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans ${
+                      shouldHighlight 
+                        ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' 
+                        : 'border-gray-300'
+                    }`}
                   />
                 </div>
               </div>
@@ -205,7 +215,11 @@ const SignUpFormDemo: FC<SignUpFormDemoProps> = ({ onSignUpComplete }) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans"
+                  className={`w-full p-2 pl-9 border rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans ${
+                    shouldHighlight 
+                      ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' 
+                      : 'border-gray-300'
+                  }`}
                 />
               </div>
             </div>
@@ -224,7 +238,11 @@ const SignUpFormDemo: FC<SignUpFormDemoProps> = ({ onSignUpComplete }) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans"
+                  className={`w-full p-2 pl-9 border rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans ${
+                    shouldHighlight 
+                      ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' 
+                      : 'border-gray-300'
+                  }`}
                 />
               </div>
             </div>
@@ -243,7 +261,11 @@ const SignUpFormDemo: FC<SignUpFormDemoProps> = ({ onSignUpComplete }) => {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans"
+                  className={`w-full p-2 pl-9 border rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans ${
+                    shouldHighlight 
+                      ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' 
+                      : 'border-gray-300'
+                  }`}
                 />
               </div>
             </div>
@@ -251,7 +273,11 @@ const SignUpFormDemo: FC<SignUpFormDemoProps> = ({ onSignUpComplete }) => {
             <button
               type="submit"
               disabled={status === 'submitting'}
-              className="w-full py-2 bg-gray-900 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 transition duration-150 ease-in-out disabled:bg-gray-400 mt-4 font-sans"
+              className={`w-full py-2 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 transition duration-150 ease-in-out disabled:bg-gray-400 mt-4 font-sans ${
+                shouldHighlight 
+                  ? 'bg-gray-900 shadow-[0_0_20px_rgba(34,197,94,0.6)]' 
+                  : 'bg-gray-900'
+              }`}
             >
               {status === 'submitting' ? 'Creating account…' : 'Create account'}
             </button>
@@ -273,9 +299,11 @@ const SignUpFormDemo: FC<SignUpFormDemoProps> = ({ onSignUpComplete }) => {
 
 interface VerificationSuccessDemoProps {
   onVerifyComplete: () => void;
+  currentStep?: string;
 }
 
-const VerificationSuccessDemo: FC<VerificationSuccessDemoProps> = ({ onVerifyComplete }) => {
+const VerificationSuccessDemo: FC<VerificationSuccessDemoProps> = ({ onVerifyComplete, currentStep }) => {
+  const shouldHighlight = currentStep === 'signup-verify';
   const [isConfirmed, setIsConfirmed] = useState(false);
 
   // checklist:
@@ -373,7 +401,11 @@ const VerificationSuccessDemo: FC<VerificationSuccessDemoProps> = ({ onVerifyCom
             </p>
             <button
               onClick={handleConfirm}
-              className="relative py-3 px-12 bg-red-600 text-white font-semibold rounded-full shadow-lg transition duration-300 ease-in-out hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-300 transform scale-100 hover:scale-105"
+              className={`relative py-3 px-12 text-white font-semibold rounded-full shadow-lg transition duration-300 ease-in-out hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-300 transform scale-100 hover:scale-105 ${
+                shouldHighlight 
+                  ? 'bg-red-600 shadow-[0_0_25px_rgba(34,197,94,0.7)]' 
+                  : 'bg-red-600'
+              }`}
             >
               <span className="relative z-10">Confirm your email</span>
             </button>
@@ -395,9 +427,11 @@ const VerificationSuccessDemo: FC<VerificationSuccessDemoProps> = ({ onVerifyCom
 
 interface PasswordCheckerDemoProps {
   onPasswordStrong: () => void;
+  currentStep?: string;
 }
 
-const PasswordCheckerDemo: FC<PasswordCheckerDemoProps> = ({ onPasswordStrong }) => {
+const PasswordCheckerDemo: FC<PasswordCheckerDemoProps> = ({ onPasswordStrong, currentStep }) => {
+  const shouldHighlight = currentStep === 'signup-password';
   const [password, setPassword] = useState('');
   const [strongTriggered, setStrongTriggered] = useState(false);
 
@@ -502,7 +536,11 @@ const PasswordCheckerDemo: FC<PasswordCheckerDemoProps> = ({ onPasswordStrong })
             placeholder="Enter your new password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-2 pl-9 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans"
+            className={`w-full p-2 pl-9 border rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition font-sans ${
+              shouldHighlight 
+                ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' 
+                : 'border-gray-300'
+            }`}
           />
         </div>
         <div className="mb-4">
@@ -540,9 +578,11 @@ const PasswordCheckerDemo: FC<PasswordCheckerDemoProps> = ({ onPasswordStrong })
 
 interface GmailFoldersDemoProps {
   onInboxMove: () => void;
+  currentStep?: string;
 }
 
-const GmailFoldersDemo: FC<GmailFoldersDemoProps> = ({ onInboxMove }) => {
+const GmailFoldersDemo: FC<GmailFoldersDemoProps> = ({ onInboxMove, currentStep }) => {
+  const shouldHighlight = currentStep === 'signup-not-received';
 
   const [activeTab, setActiveTab] = useState<'spam' | 'junk' | 'promotions'>('spam');
   const [emailInFolder, setEmailInFolder] = useState(true);
@@ -667,6 +707,8 @@ const GmailFoldersDemo: FC<GmailFoldersDemoProps> = ({ onInboxMove }) => {
                 className={`flex items-center p-2 text-sm rounded-lg cursor-pointer transition-all border-l-4 ${
                   activeTab === item.id
                     ? `font-bold ${item.highlightColor} text-gray-900`
+                    : shouldHighlight && activeTab !== item.id
+                    ? 'text-gray-700 hover:bg-gray-100 border-transparent shadow-[0_0_12px_rgba(99,102,241,0.4)]'
                     : 'text-gray-700 hover:bg-gray-100 border-transparent'
                 }`}
               >
@@ -699,7 +741,11 @@ const GmailFoldersDemo: FC<GmailFoldersDemoProps> = ({ onInboxMove }) => {
                 </p>
                 <button
                   onClick={handleMoveToInbox}
-                  className="mt-2 text-xs text-red-600 hover:text-red-800 font-medium py-1 px-2 rounded border border-red-300 bg-red-50/50"
+                  className={`mt-2 text-xs text-red-600 hover:text-red-800 font-medium py-1 px-2 rounded border transition ${
+                    shouldHighlight 
+                      ? 'border-red-600 bg-red-50/50 shadow-[0_0_15px_rgba(34,197,94,0.5)]' 
+                      : 'border-red-300 bg-red-50/50'
+                  }`}
                 >
                   Not Spam? Move to Inbox
                 </button>
@@ -950,113 +996,152 @@ const App: FC = () => {
     setCurrentArticleId(id);
   };
 
+  // Reset function
+  const handleReset = () => {
+    stopSpeaking();
+    setCurrentStep('signup-process');
+    setCompletedSteps([]);
+    setCurrentArticleId('signup-process');
+  };
+
   const RightSideComponent = () => {
-    if (topicData.type === 'form-demo') return <SignUpFormDemo onSignUpComplete={handleSignUpComplete} />;
-    if (topicData.type === 'verification-demo') return <VerificationSuccessDemo onVerifyComplete={handleVerifyComplete} />;
-    if (topicData.type === 'password-checker') return <PasswordCheckerDemo onPasswordStrong={handlePasswordStrong} />;
-    if (topicData.type === 'gmail-folders-demo') return <GmailFoldersDemo onInboxMove={handleInboxMove} />;
+    if (topicData.type === 'form-demo') return <SignUpFormDemo onSignUpComplete={handleSignUpComplete} currentStep={currentStep} />;
+    if (topicData.type === 'verification-demo') return <VerificationSuccessDemo onVerifyComplete={handleVerifyComplete} currentStep={currentStep} />;
+    if (topicData.type === 'password-checker') return <PasswordCheckerDemo onPasswordStrong={handlePasswordStrong} currentStep={currentStep} />;
+    if (topicData.type === 'gmail-folders-demo') return <GmailFoldersDemo onInboxMove={handleInboxMove} currentStep={currentStep} />;
     return null;
   };
 
   return (
-    <div className="p-6 md:p-10 bg-gray-50 min-h-screen font-inter">
-      {/* Back to dashboard */}
-      <div className="max-w-6xl mx-auto flex">
-        <button
-          onClick={() => navigate('/admin')}
-          className="flex items-center text-sm font-medium text-gray-500 mb-6 hover:text-indigo-600 transition duration-150 cursor-pointer p-1 -ml-1 rounded"
-        >
-          <Settings className="w-4 h-4 mr-1.5" />
-          <span>Back to Dashboard</span>
-        </button>
-      </div>
-
-      {/* TOP STEPPER */}
-            {/* TOP STEPPER – slim Sign In Journey bar */}
-      <div className="max-w-6xl mx-auto mb-6">
-        <div
-          className="
-            flex items-center justify-between
-            bg-[#020518]
-            px-8 py-3
-            rounded-xl
-            border border-[#04081a]
-            shadow-[0_12px_25px_rgba(0,0,0,0.35)]
-          "
-        >
-          {/* Left label */}
-          <div className="text-[11px] tracking-[0.25em] text-slate-300 uppercase">
-            Sign Up Journey
+    <div className="min-h-screen bg-gray-50 font-inter flex flex-col">
+      {/* BEAUTIFUL HEADING SECTION */}
+      <div className="w-full bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-12 px-4 md:px-10 border-b border-gray-200">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <button
+              onClick={() => navigate('/')}
+              className="p-2 rounded-full hover:bg-gray-200 transition-colors text-gray-700 hover:text-gray-900"
+              title="Back to Dashboard"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Interactive User Demo
+            </h1>
           </div>
-
-          {/* Right steps, compact & aligned like screenshot */}
-          <div className="flex items-center gap-6">
-            {steps.map((step, index) => {
-              const isCompleted = completedSteps.includes(step.id);
-              const isActive = currentStep === step.id;
-
-              return (
-                <button
-                  key={step.id}
-                  type="button"
-                  onClick={() => setCurrentStep(step.id)}
-                  className="flex items-center gap-2 text-xs md:text-sm group"
-                >
-                  {/* Number circle – small and tight */}
-                  <span
-                    className={[
-                      "flex items-center justify-center",
-                      "w-7 h-7 rounded-full border text-[11px]",
-                      "transition-all duration-150",
-                      isActive
-                        ? "bg-white text-black border-white shadow-sm"
-                        : "border-slate-500/70 text-slate-200 bg-transparent group-hover:border-slate-300"
-                    ].join(" ")}
-                  >
-                    {isCompleted ? (
-                      <CheckCircle className="w-3.5 h-3.5" />
-                    ) : (
-                      index + 1
-                    )}
-                  </span>
-
-                  {/* Label – light, no line-through, just like the ref */}
-                  <span
-                    className={[
-                      "transition-colors",
-                      isActive
-                        ? "text-white font-medium"
-                        : "text-slate-300 group-hover:text-slate-100"
-                    ].join(" ")}
-                  >
-                    {step.label}
-                  </span>
-                </button>
-              );
-            })}
+          <div className="text-center">
+          <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-6">
+            Experience our platform firsthand with this interactive demonstration. Follow the steps below to explore how SpikedAI works in real-time.
+          </p>
+            <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
+              <span>Try each step interactively</span>
+              <span className="mx-2">•</span>
+              <span>Track your progress</span>
+              <span className="mx-2">•</span>
+              <span>Learn as you go</span>
+            </div>
           </div>
         </div>
       </div>
 
+      {/* TOP BLACK BAR */}
+      <div className="w-full bg-[#020617] text-white py-3 px-4 md:px-10 flex items-center justify-between shadow-md rounded-b-xl">
+        <div className="flex items-center gap-2 md:gap-3">
+          <span className="text-xs uppercase tracking-widest text-gray-400">
+            SIGN UP JOURNEY
+          </span>
+        </div>
+        <div className="flex items-center gap-2 md:gap-4">
+          {steps.map((step, index) => {
+            const isCompleted = completedSteps.includes(step.id);
+            const isActive = currentStep === step.id;
+            return (
+              <div
+                key={step.id}
+                className="flex items-center gap-2 text-xs md:text-sm cursor-pointer transition-all"
+                onClick={() => setCurrentStep(step.id)}
+              >
+                <div
+                  className={`
+                    w-6 h-6 flex items-center justify-center rounded-full border text-[11px] font-semibold
+                    ${isActive ? 'bg-white text-black border-white' : ''}
+                    ${isCompleted && !isActive ? 'bg-green-500 border-green-500 text-white' : ''}
+                    ${!isActive && !isCompleted ? 'border-gray-600 text-gray-300' : ''}
+                  `}
+                >
+                  {isCompleted && !isActive ? <CheckCircle className="w-3 h-3" /> : index + 1}
+                </div>
+                <span
+                  className={`
+                    hidden md:inline-block
+                    ${isActive ? 'text-white' : 'text-gray-400'}
+                  `}
+                >
+                  {step.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex items-center ml-4 space-x-3">
+          <button
+            onClick={handleReset}
+            disabled={currentStep === 'signup-process' && completedSteps.length === 0}
+            className={`flex items-center px-4 py-2 rounded-lg transition-colors text-sm ${
+              currentStep !== 'signup-process' || completedSteps.length > 0
+                ? 'bg-white text-gray-800 border border-gray-700 hover:bg-gray-100'
+                : 'bg-gray-600 opacity-50 text-white cursor-not-allowed'
+            }`}
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Undo
+          </button>
+          <button
+            onClick={() => {
+              const currentIndex = steps.findIndex(s => s.id === currentStep);
+              if (currentIndex < steps.length - 1) {
+                const nextStep = steps[currentIndex + 1];
+                setCurrentStep(nextStep.id);
+                setCurrentArticleId(nextStep.id as typeof currentArticleId);
+              }
+            }}
+            disabled={steps.findIndex(s => s.id === currentStep) >= steps.length - 1}
+            className={`flex items-center px-4 py-2 rounded-lg transition-colors text-sm ${
+              steps.findIndex(s => s.id === currentStep) < steps.length - 1
+                ? 'bg-indigo-400 text-gray-900 font-semibold hover:bg-indigo-300 shadow-[0_0_20px_rgba(34,197,94,0.6)]'
+                : 'bg-indigo-600 opacity-50 text-white cursor-not-allowed'
+            }`}
+          >
+            <ChevronRight className="w-4 h-4 mr-2" />
+            Next Step ({steps.findIndex(s => s.id === currentStep) + 1}/{steps.length})
+          </button>
+        </div>
+      </div>
 
       {/* MAIN CARD */}
-      <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 max-w-6xl mx-auto">
+      <div className="p-6 md:p-10 flex-1 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 max-w-6xl w-full">
         {/* Tabs headings (questions) */}
         <div className="flex border-b border-gray-200 mb-6 overflow-x-auto no-scrollbar">
           <BookOpen className="w-5 h-5 text-gray-400 mr-2 self-center flex-shrink-0" />
-          {subQuestions.map((q) => (
-            <button
-              key={q.id}
-              onClick={() => handleTabClick(q.id as any)}
-              className={`py-2 px-4 text-sm font-medium transition-all border-b-2 whitespace-nowrap ${
-                q.id === currentArticleId
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'text-gray-500 border-transparent hover:text-gray-700'
-              }`}
-            >
-              {q.question}
-            </button>
-          ))}
+          {subQuestions.map((q) => {
+            const shouldHighlightTab = q.id === currentStep && q.id !== currentArticleId;
+            return (
+              <button
+                key={q.id}
+                onClick={() => handleTabClick(q.id as any)}
+                className={`py-2 px-4 text-sm font-medium transition-all border-b-2 whitespace-nowrap ${
+                  q.id === currentArticleId
+                    ? 'border-indigo-600 text-indigo-600'
+                    : shouldHighlightTab
+                    ? 'text-gray-500 border-transparent hover:text-gray-700 shadow-[0_0_12px_rgba(99,102,241,0.4)]'
+                    : 'text-gray-500 border-transparent hover:text-gray-700'
+                }`}
+              >
+                {q.question}
+              </button>
+            );
+          })}
         </div>
 
         <h1 className="text-2xl font-bold mb-4 text-gray-900 flex items-center justify-between">
@@ -1087,6 +1172,7 @@ const App: FC = () => {
           <div className="flex justify-center md:justify-end">
             <RightSideComponent />
           </div>
+        </div>
         </div>
       </div>
 

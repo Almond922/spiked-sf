@@ -659,7 +659,7 @@ const SpikedAISettings: React.FC = () => {
                   <div>
                     <h2 className="text-2xl font-semibold">Meeting Focus</h2>
                     <p className={`text-sm mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>Add topics to focus the AI</p>
-                    <p className={`text-xs mt-1 ${isDarkMode ? "text-red-400" : "text-red-600"}`}>Note: Only focuses set before the meeting will be used.</p>
+                    <p className={`text-xs mt-1 ${isDarkMode ? "text-red-400" : "text-red-600"}`}>Note: Focuses must be set before the meeting and cannot be changed during it.</p>
                   </div>
                 </div>
                 <div className="relative group">

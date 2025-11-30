@@ -82,93 +82,175 @@ export const topics: Topics = {
     cardDescription: 'Set up your SpikedAI workspace — personalize your AI, upload essential documents, and prepare your environment before starting your first meeting.',
     icon: <Rocket style={{ width: '20px', height: '20px' }} />,
     emoji: '🚀',
-    items: [
-      {
-  id: 'signup',
-  title: 'Sign Up',
-  description: 'Create your SpikedAI account and start exploring personalized meeting insights.',
-  // PASTE THIS NEW CODE IN ITS PLACE:
-questions: [
-  {
-    id: 'signup-flow',
-    title: 'Sign Up Process',
-    emoji: '👋',
-    description: 'Simple steps to create your SpikedAI account.',
-    // We are replacing 'subQuestions' with our new 'content' array.
-    content: [
-      {
-        type: 'toc', // 'toc' stands for Table of Contents
-        links: [
-        { id: 'signup-process', text: 'How do I sign up for SpikedAI?' },
-        { id: 'signup-verify', text: 'How do I verify my email after signing up?' },
-        { id: 'signup-password', text: 'What are the password requirements?' },
-        { id: 'signup-not-received', text: "I didn't receive my verification email. What should I do?" },
-        { id: 'signup-email-reuse', text: 'Can I create multiple accounts with the same email?' }
-        ]
-      },
+   items: [
+    {
+          id: 'signup',
+       
+          title: 'Sign Up',
+          description: 'Create your spikedAI account and start exploring personalized meeting insights.',
+          questions: [
+            {
+              id: 'signup-flow',
+              title: 'Sign Up Process',
+              emoji: '🆕',
+     
+              description: 'Simple steps to create your spikedAI account.',
+              subQuestions: [
+                {
+                  id: 'signup-process',
+                  question: 'How do I sign up for spikedAI?',
+         
+                  answer: `
+                    <div style="line-height:1.8;color:#374151;font-size:15px;">
+                      <p style="margin-bottom:20px;">The sign-up process in <strong>spikedAI</strong> is quick and straightforward.
+Follow these steps to get started:</p>
+                      
+                      <ol style="margin:0 0 24px 0;padding-left:24px;">
+                        <li style="margin-bottom:14px;padding-left:8px;">Navigate to the <strong>Sign Up</strong> page from the home screen or login page</li>
+          
+                        <li style="margin-bottom:14px;padding-left:8px;">Fill in your personal details:
+                          <ul style="margin-top:10px;list-style-type:disc;padding-left:24px;">
+                            <li style="margin-bottom:6px;">First Name</li>
+                        
+                            <li style="margin-bottom:6px;">Last Name</li>
+                            <li style="margin-bottom:6px;">Email Address</li>
+                            <li style="margin-bottom:6px;">Password (and confirm it)</li>
+                          </ul>
+      
+                        </li>
+                        <li style="margin-bottom:14px;padding-left:8px;">Click the <strong>Create Account</strong> button</li>
+                        <li style="margin-bottom:14px;padding-left:8px;">Check your inbox for a <strong>verification email</strong></li>
+                      
+                        <li style="margin-bottom:0;padding-left:8px;">Click <strong>Verify Email</strong> to activate your account</li>
+                      </ol>
 
-      {
-        type: 'heading',
-        text: 'How do I sign up for SpikedAI?',
-        anchorId: 'signup-process' // ADDED
+                      <p style="margin-bottom:24px;">After verification, you can immediately log in to your <strong>spikedAI workspace</strong> and start using all features.</p>
+                      
+         
+                      <img 
+    src="/tutorial/signup.png" 
+    alt="Sign Up Screenshot" 
+    style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+/>
 
-      },
-      {
-        type: 'paragraph',
-        text: 'The sign-up process is quick and straightforward. Follow these steps:'
-      },
-      {
-        type: 'imageLayout',
-        htmlContent: '<ol><li>1. Navigate to the <strong>Sign Up</strong> page</li><li>2. Fill in your details: First Name, Last Name, Email, and Password</li><li>3. Click <strong>Create Account</strong></li><li>4. Check your inbox for a verification email</li><li>5. Click <strong>Verify Email</strong> to activate</li></ol><p style="margin-top:16px;">After verification, you can immediately log in to your workspace.</p>',
-        imgSrc: '/tutorial/signup.png',
-        altText: 'Sign Up Screenshot'
-      },
-      {
-        type: 'heading',
-        text: 'How do I verify my email after signing up?',
-            anchorId: 'signup-verify' // ADDED
+                      
+                      </div>
+                    </div>
+                  `
+                },
+  
+                {
+                  id: 'signup-verify',
+                  question: 'How do I verify my email after signing up?',
+                  answer: `
+                    <div 
+style="line-height:1.8;color:#374151;font-size:15px;">
+                      <p style="margin-bottom:20px;">Email verification is a crucial step to activate your spikedAI account.
+Here's what you need to do:</p>
+                      
+                      <ol style="margin:0 0 24px 0;padding-left:24px;">
+                        <li style="margin-bottom:12px;padding-left:8px;">Open the email from <strong>spikedAI</strong> (usually arrives within 1-2 minutes)</li>
+             
+                        <li style="margin-bottom:12px;padding-left:8px;">Click on the <strong>Verify Email</strong> button in the message</li>
+                        <li style="margin-bottom:0;padding-left:8px;">Your account will be activated instantly</li>
+                      </ol>
 
-      },
-      {
-        type: 'imageLayout',
-        htmlContent: '<p>Email verification activates your SpikedAI account.</p><ol><li>An email from <strong>SpikedAI</strong> (arrives within 1-2 minutes)</li><li>Open the email</li><li>Click the <strong>Verify Email</strong> button</li><li>Your account activates instantly</li></ol>',
-        imgSrc: '/tutorial/verificationmail.png',
-        altText: 'Email Verification Screenshot'
-      },
-      {
-        type: 'heading',
-        text: 'What are the password requirements?',
-            anchorId: 'signup-password' // ADDED
+                      <p style="margin-bottom:24px;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+   
+                        <strong>Tip:</strong> If you don't see the verification email, check your <strong>Spam</strong> or <strong>Promotions</strong> folder.
+</p>
 
-      },
-      {
-        type: 'paragraph',
-        text: 'While SpikedAI allows flexible passwords, we recommend following security best practices. <br/><br/> <strong>Recommended guidelines:</strong> <ul><li>Minimum <strong>8 characters</strong></li><li>Upper & lowercase letters</li><li>Include numbers</li><li>Special characters (!@#$%)</li></ul>'
-      },
-      {
-        type: 'heading',
-        text: "I didn't receive my verification email. What should I do?",
-            anchorId: 'signup-not-received' // ADDED
+                       <img 
+    src="/tutorial/verificationmail.png" 
+    alt="Email Verification Screenshot" 
+    style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+/>
+                      </div>
+                    </div>
+                  `
+                },
+                {
+        
+                  id: 'signup-password',
+                  question: 'What are the password requirements?',
+                  answer: `
+                    <div style="line-height:1.8;color:#374151;font-size:15px;">
+                      <p style="margin-bottom:20px;"><strong>spikedAI</strong> allows flexible 
+password creation, but we strongly recommend following security best practices.</p>
+                      
+                      <p style="margin-bottom:12px;font-weight:600;">Recommended password guidelines:</p>
+                      <ul style="margin:0 0 24px 0;padding-left:24px;">
+                  
+                        <li style="margin-bottom:10px;padding-left:8px;">Minimum of <strong>8 characters</strong></li>
+                        <li style="margin-bottom:10px;padding-left:8px;">Include both <strong>uppercase</strong> and <strong>lowercase</strong> letters</li>
+                        <li style="margin-bottom:10px;padding-left:8px;">Add <strong>numbers</strong> for extra strength</li>
+                        <li style="margin-bottom:0;padding-left:8px;">Include <strong>special characters</strong> (!@#$%) if possible</li>
+ 
+                      </ul>
 
-      },
-      {
-        type: 'paragraph',
-        text: "If the verification email hasn't arrived, try these steps:<ol><li>Check <strong>Spam</strong>, <strong>Junk</strong>, or <strong>Promotions</strong> folders</li><li>Click <strong>Resend Verification Email</strong> on the login page</li><li>Verify your email address was entered correctly</li><li>Contact <strong>support@spiked.ai</strong> if still not received</li></ol>"
-      },
-      {
-        type: 'heading',
-        text: 'Can I create multiple accounts with the same email?',
-            anchorId: 'signup-email-reuse' // ADDED
+                      <p style="margin-bottom:8px;font-weight:600;">Examples:</p>
+                      <ul style="margin:0;padding-left:24px;list-style-type:none;">
+                        <li style="margin-bottom:8px;padding-left:8px;font-family:monospace;">✓ SpikedAI2025!
+ — <span style="color:#059669;">Strong</span></li>
+                        <li style="margin-bottom:8px;padding-left:8px;font-family:monospace;">✓ Sales#Track24 — <span style="color:#059669;">Strong</span></li>
+                        <li style="margin-bottom:0;padding-left:8px;font-family:monospace;">✗ password123 — <span style="color:#dc2626;">Weak</span></li>
+                      </ul>
+                  
+                    </div>
+                  `
+                },
+                {
+                  id: 'signup-not-received',
+                  question: 'I didnt receive my verification email.What should I do?',
+                  answer: `
+                    <div style="line-height:1.8;color:#374151;font-size:15px;">
+                      <p style="margin-bottom:20px;">If the verification email hasn't arrived, try these troubleshooting steps:</p>
+                      
+   
+                    <ol style="margin:0 0 24px 0;padding-left:24px;">
+                        <li style="margin-bottom:12px;padding-left:8px;">Check your <strong>Spam</strong>, <strong>Junk</strong>, or <strong>Promotions</strong> folders</li>
+                        <li style="margin-bottom:12px;padding-left:8px;">Click the <strong>Resend Verification Email</strong> link on the login page</li>
+            
+                        <li style="margin-bottom:12px;padding-left:8px;">Ensure your email address was entered correctly during sign-up</li>
+                        <li style="margin-bottom:0;padding-left:8px;">If you still don't receive it, contact <strong>support@spiked.ai</strong></li>
+                      </ol>
 
-      },
-      {
-        type: 'paragraph',
-        text: 'No, each email can only link to <strong>one SpikedAI account</strong> for security.<br/><br/><strong>Alternative options:</strong><ul><li>Use a different personal email</li><li>Create a new email account</li><li>Use your work email</li></ul>'
-      }
-    ]
-  }
-]
-},
+                      <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid 
+#2563EB;border-radius:4px;font-size:14px;">
+                        <strong>Note:</strong> Verification emails typically arrive within <strong>1-2 minutes</strong>.
+Wait a few moments before requesting a resend.
+                      </p>
+                    </div>
+                  `
+                },
+                {
+                  id: 'signup-email-reuse',
+   
+                  question: 'Can I create multiple accounts with the same email?',
+                  answer: `
+                    <div style="line-height:1.8;color:#374151;font-size:15px;">
+                      <p style="margin-bottom:20px;"><strong>No</strong>, each email address can only be linked to <strong>one spikedAI account</strong>.</p>
+
+  
+                      <p style="margin-bottom:20px;">This policy ensures account security and prevents duplicate registrations.
+If you need to create another account, you'll need to use a different email address.</p>
+
+                      <p style="margin-bottom:8px;font-weight:600;">Alternative options:</p>
+                      <ul style="margin:0;padding-left:24px;">
+                        <li style="margin-bottom:10px;padding-left:8px;">Use a different personal email address</li>
+         
+                        <li style="margin-bottom:10px;padding-left:8px;">Create a new email account (Gmail, Outlook, etc.)</li>
+                        <li style="margin-bottom:0;padding-left:8px;">Use your work email if available</li>
+                      </ul>
+                    </div>
+     
+              `
+                }
+              ]
+            }
+          ]
+        },
+
 
 {
   id: 'signin',
@@ -176,6 +258,7 @@ questions: [
   description: 'Learn how to access your SpikedAI account securely and quickly.',
   questions: [
     {
+ 
       id: 'signin-main',
       title: 'Sign In Process',
       emoji: '🔐',
@@ -185,29 +268,24 @@ questions: [
           id: 'signin-email',
           question: 'How do I login using my email and password?',
           answer: `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;line-height:1.8;color:#374151;font-size:15px;">
-              <div style="display:flex;flex-direction:column;justify-content:center;">
-                <p style="margin:0 0 20px 0;">Access your SpikedAI workspace with your credentials:</p>
-                
-                <ol style="margin:0 0 20px 0;padding-left:20px;">
-                  <li style="margin:0 0 12px 0;">Navigate to the <strong>Sign In</strong> page</li>
-                  <li style="margin:0 0 12px 0;">Enter your <strong>Email Address</strong> and <strong>Password</strong></li>
-                
-                  <li style="margin:0;">Click <strong>Sign In</strong></li>
-                </ol>
-
-                <p style="margin:0;padding:12px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-  <strong>Security Tip:</strong> Use the <strong>"Keep me signed in"</strong> option only on your personal or trusted devices to protect your account from unauthorized access.
-</p>
-              </div>
+            <div style="line-height:1.8;color:#374151;font-size:15px;">
+              <p style="margin:0 0 20px 0;">Access your SpikedAI workspace with your credentials:</p>
               
-              <div style="display:flex;justify-content:center;align-items:start;">
-                <img 
-                  src="/tutorial/sign in.png" 
-                  alt="Sign In Screenshot" 
-                  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-                />
-              </div>
+              <ol style="margin:0 0 20px 0;padding-left:20px;">
+                <li style="margin:0 0 12px 0;">Navigate to the <strong>Sign In</strong> page</li>
+                <li style="margin:0 0 12px 0;">Enter your <strong>Email Address</strong> and <strong>Password</strong></li>
+                <li style="margin:0;">Click <strong>Sign In</strong></li>
+              </ol>
+
+              <p style="margin:0 0 20px 0;padding:12px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+                <strong>Security Tip:</strong> Use the <strong>"Keep me signed in"</strong> option only on your personal or trusted devices to protect your account from unauthorized access.
+              </p>
+
+              <img 
+                src="/tutorial/sign in.png" 
+                alt="Sign In Screenshot" 
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
             </div>
           `
         },
@@ -215,54 +293,55 @@ questions: [
           id: 'signin-google',
           question: 'How do I login using my Google account?',
           answer: `
+        
             <div style="line-height:1.8;color:#374151;font-size:15px;">
               <p style="margin:0 0 20px 0;">Sign in faster with Google — no password required:</p>
               
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
                 <div>
                   <p style="margin:0 0 12px 0;font-weight:600;">Steps:</p>
+ 
                   <ol style="margin:0;padding-left:20px;">
                     <li style="margin:0 0 10px 0;">Click <strong>Sign in with Google</strong></li>
                     <li style="margin:0 0 10px 0;">Select your Google account</li>
                     <li style="margin:0;">Grant access when prompted</li>
-                  </ol>
+   
+                </ol>
                 </div>
                 <div>
                   <p style="margin:0 0 12px 0;font-weight:600;">Benefits:</p>
                   <ul style="margin:0;padding-left:20px;">
+            
                     <li style="margin:0 0 10px 0;">Faster login</li>
                     <li style="margin:0 0 10px 0;">More secure</li>
                     <li style="margin:0;">One-click access</li>
                   </ul>
                 </div>
-              </div>
+      
             </div>
+          </div>
           `
         },
         {
           id: 'signin-forgot',
           question: 'What should I do if I forgot my password?',
           answer: `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;line-height:1.8;color:#374151;font-size:15px;">
-              <div style="display:flex;flex-direction:column;justify-content:center;">
-                <p style="margin:0 0 20px 0;">Reset your password in a few steps:</p>
-                
-                <ol style="margin:0;padding-left:20px;">
-                  <li style="margin:0 0 12px 0;">Click <strong>Forgot Password?</strong> on the sign-in page</li>
-                  <li style="margin:0 0 12px 0;">Enter your registered email</li>
-                  <li style="margin:0 0 12px 0;">Click <strong>Send Reset Link</strong></li>
-                  <li style="margin:0 0 12px 0;">Check your email for the reset link</li>
-                  <li style="margin:0;">Create a new password</li>
-                </ol>
-              </div>
+            <div style="line-height:1.8;color:#374151;font-size:15px;">
+              <p style="margin:0 0 20px 0;">Reset your password in a few steps:</p>
               
-              <div style="display:flex;justify-content:center;align-items:start;">
-                <img 
-                  src="/tutorial/passwordreset.png" 
-                  alt="Password Reset Screenshot" 
-                  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-                />
-              </div>
+              <ol style="margin:0 0 20px 0;padding-left:20px;">
+                <li style="margin:0 0 12px 0;">Click <strong>Forgot Password?</strong> on the sign-in page</li>
+                <li style="margin:0 0 12px 0;">Enter your registered email</li>
+                <li style="margin:0 0 12px 0;">Click <strong>Send Reset Link</strong></li>
+                <li style="margin:0 0 12px 0;">Check your email for the reset link</li>
+                <li style="margin:0;">Create a new password</li>
+              </ol>
+              
+              <img 
+                src="/tutorial/passwordreset.png" 
+                alt="Password Reset Screenshot" 
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
             </div>
           `
         },
@@ -270,16 +349,19 @@ questions: [
           id: 'signin-troubleshoot',
           question: 'Having trouble signing in?',
           answer: `
+            
             <div style="line-height:1.8;color:#374151;font-size:15px;">
               <p style="margin:0 0 20px 0;">Try these troubleshooting steps:</p>
               
               <ol style="margin:0 0 20px 0;padding-left:20px;">
                 <li style="margin:0 0 10px 0;">Verify your account is <strong>email-verified</strong></li>
-                <li style="margin:0 0 10px 0;">Check for <strong>typos</strong> in email/password</li>
+                <li style="margin:0 0 10px 0;">Check for 
+                <strong>typos</strong> in email/password</li>
                 <li style="margin:0 0 10px 0;">Try a different browser</li>
                 <li style="margin:0 0 10px 0;">Clear browser cache and cookies</li>
                 <li style="margin:0 0 10px 0;">Disable browser extensions temporarily</li>
                 <li style="margin:0;">Use password reset for "Invalid Credentials" errors</li>
+     
               </ol>
 
               <p style="margin:0;padding:12px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
@@ -289,6 +371,7 @@ questions: [
           `
         }
       ]
+    
     }
   ]
 },
@@ -305,22 +388,25 @@ questions: [
       description: 'Everything you need to know about managing your profile.',
       subQuestions: [
         {
-          id: 'profile-overview',
+          id: 
+            'profile-overview',
           question: 'What can I do in the Setup Profile section?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
               <p style="margin:0 0 20px 0;">The Setup Profile section is your personal account control center where you can manage all your profile information and settings.</p>
               
+      
               <p style="margin:0 0 12px 0;font-weight:600;">You can manage the following:</p>
               <ul style="margin:0 0 20px 0;padding-left:20px;">
                 <li style="margin:0 0 10px 0;"><strong>Personal Information</strong> — Update your first name and last name</li>
                 <li style="margin:0 0 10px 0;"><strong>Email Address</strong> — View your registered email (contact support to change)</li>
+       
                 <li style="margin:0;"><strong>Password</strong> — Reset or change your account password</li>
               </ul>
 
               <p style="margin:0;padding:12px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
                 <strong>Quick Access:</strong> Navigate to <strong>Settings → Profile</strong> to access your profile settings anytime.
-              </p>
+</p>
             </div>
           `
         },
@@ -329,49 +415,49 @@ questions: [
           question: 'How do I edit my name?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;margin:0 0 20px 0;">
-                <div>
-                  <p style="margin:0 0 20px 0;">Updating your name in SpikedAI is simple and takes just a few seconds:</p>
-                  
-                  <ol style="margin:0;padding-left:20px;">
-                    <li style="margin:0 0 12px 0;">Go to <strong>Settings → Profile</strong></li>
-                    <li style="margin:0 0 12px 0;">Click on the <strong>Edit Profile</strong> button</li>
-                    <li style="margin:0 0 12px 0;">Click on the name field you want to update (First Name or Last Name)</li>
-                    <li style="margin:0 0 12px 0;">Enter your new name</li>
-                    <li style="margin:0;">Click <strong>Save Changes</strong> to apply the update</li>
-                  </ol>
-                </div>
+              <div style="margin:0 0 20px 0;">
+                <p style="margin:0 0 20px 0;">Updating your name in SpikedAI is simple and takes just a few seconds:</p>
                 
-                <div style="display:flex;justify-content:center;align-items:start;">
-                  <img 
-                    src="/tutorial/editprofile.png" 
-                    alt="Edit Profile Screenshot" 
-                    style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-                  />
-                </div>
+                <ol style="margin:0 0 20px 0;padding-left:20px;">
+                  <li style="margin:0 0 12px 0;">Go to <strong>Settings → Profile</strong></li>
+                  <li style="margin:0 0 12px 0;">Click on the <strong>Edit Profile</strong> button</li>
+                  <li style="margin:0 0 12px 0;">Click on the name field you want to update (First Name or Last Name)</li>
+                  <li style="margin:0 0 12px 0;">Enter your new name</li>
+                  <li style="margin:0;">Click <strong>Save Changes</strong> to apply the update</li>
+                </ol>
               </div>
+              
+              <img 
+                src="/tutorial/editprofile.png" 
+                alt="Edit Profile Screenshot" 
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
 
-              <p style="margin:0;">Your updated name will be reflected immediately across your SpikedAI workspace and in all future meetings.</p>
+              <p style="margin:20px 0 0 0;">Your updated name will be reflected immediately across your SpikedAI workspace and in all future meetings.</p>
             </div>
           `
         },
         {
+  
           id: 'change-email',
           question: 'Can I change my email address?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
               <p style="margin:0 0 20px 0;">Your registered email address is permanently linked to your SpikedAI account for security purposes and cannot be changed directly through the settings.</p>
-              
+            
+  
               <p style="margin:0 0 12px 0;font-weight:600;">To update your email address:</p>
               <ol style="margin:0 0 20px 0;padding-left:20px;">
                 <li style="margin:0 0 12px 0;">Navigate to <strong>Settings → Help & Support</strong></li>
                 <li style="margin:0 0 12px 0;">Click on <strong>Contact Support</strong></li>
+         
                 <li style="margin:0 0 12px 0;">Submit a request to change your email address</li>
                 <li style="margin:0;">Our support team will verify your identity and process the change</li>
               </ol>
 
               <p style="margin:0;padding:12px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Important:</strong> Email changes require verification to protect your account security. The process typically takes 24-48 hours.
+                <strong>Important:</strong> Email changes require verification to protect your 
+account security. The process typically takes 24-48 hours.
               </p>
             </div>
           `
@@ -381,58 +467,58 @@ questions: [
           question: 'How can I reset or change my password?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;margin:0 0 20px 0;">
-                <div>
-                  <p style="margin:0 0 20px 0;">You can change your password anytime from your profile settings:</p>
-                  
-                  <p style="margin:0 0 12px 0;font-weight:600;">Method 1: From Profile Settings</p>
-                  <ol style="margin:0 0 20px 0;padding-left:20px;">
-                    <li style="margin:0 0 10px 0;">Go to <strong>Settings → Security</strong></li>
-                    <li style="margin:0 0 10px 0;">Click on <strong>Change Password</strong></li>
-                    <li style="margin:0 0 10px 0;">Enter your <strong>current password</strong></li>
-                    <li style="margin:0 0 10px 0;">Enter your <strong>new password</strong> and confirm it</li>
-                    <li style="margin:0;">Click <strong>Update Password</strong> to save</li>
-                  </ol>
-
-                  <p style="margin:0 0 12px 0;font-weight:600;">Method 2: Password Reset (if you forgot your password)</p>
-                  <ol style="margin:0;padding-left:20px;">
-                    <li style="margin:0 0 10px 0;">Go to the login page</li>
-                    <li style="margin:0 0 10px 0;">Click <strong>Forgot Password?</strong></li>
-                    <li style="margin:0 0 10px 0;">Enter your registered email</li>
-                    <li style="margin:0 0 10px 0;">Check your email for the reset link</li>
-                    <li style="margin:0;">Create a new password through the link</li>
-                  </ol>
-                </div>
+ 
+              <div style="margin:0 0 20px 0;">
+                <p style="margin:0 0 20px 0;">You can change your password anytime from your profile settings:</p>
                 
-                <div style="display:flex;justify-content:center;align-items:start;">
-                  <img 
-                    src="/tutorial/changepassword.png" 
-                    alt="Password Change Screenshot" 
-                    style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-                  />
-                </div>
+                <p style="margin:0 0 12px 0;font-weight:600;">Method 1: From Profile Settings</p>
+                <ol style="margin:0 0 20px 0;padding-left:20px;">
+                  <li style="margin:0 0 10px 0;">Go to <strong>Settings → Security</strong></li>
+                  <li style="margin:0 0 10px 0;">Click on <strong>Change Password</strong></li>
+                  <li style="margin:0 0 10px 0;">Enter your <strong>current password</strong></li>
+                  <li style="margin:0 0 10px 0;">Enter your <strong>new password</strong> and confirm it</li>
+                  <li style="margin:0;">Click <strong>Update Password</strong> to save</li>
+                </ol>
+
+                <p style="margin:0 0 12px 0;font-weight:600;">Method 2: Password Reset (if you forgot your password)</p>
+                <ol style="margin:0;padding-left:20px;">
+                  <li style="margin:0 0 10px 0;">Go to the login page</li>
+                  <li style="margin:0 0 10px 0;">Click <strong>Forgot Password?</strong></li>
+                  <li style="margin:0 0 10px 0;">Enter your registered email</li>
+                  <li style="margin:0 0 10px 0;">Check your email for the reset link</li>
+                  <li style="margin:0;">Create a new password through the link</li>
+                </ol>
               </div>
+              
+              <img 
+                src="/tutorial/changepassword.png" 
+                alt="Password Change Screenshot" 
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
             </div>
           `
         },
         {
           id: 'unsaved-changes',
           question: 'What happens if I don\'t save my changes?',
-          answer: `
+   
+        answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
               <p style="margin:0 0 20px 0;">If you make changes to your profile but don't click the <strong>Save Changes</strong> button, your modifications will not be applied.</p>
               
               <p style="margin:0 0 12px 0;font-weight:600;">What happens to unsaved changes:</p>
+      
               <ul style="margin:0 0 20px 0;padding-left:20px;">
                 <li style="margin:0 0 10px 0;">If you navigate away from the page, all unsaved changes will be lost</li>
                 <li style="margin:0 0 10px 0;">If you refresh the page, your previous saved details will remain unchanged</li>
-                <li style="margin:0 0 10px 0;">If you close the browser, no changes will be saved</li>
+                <li style="margin:0 0 10px 0;">If you close the browser, 
+no changes will be saved</li>
                 <li style="margin:0;">You may see a warning popup asking you to confirm before leaving (depending on your browser)</li>
               </ul>
 
               <p style="margin:0;padding:12px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
                 <strong>Best Practice:</strong> Always click <strong>Save Changes</strong> after updating your profile information to ensure your changes are preserved.
-              </p>
+</p>
             </div>
           `
         },
@@ -441,14 +527,18 @@ questions: [
           question: 'Can I refresh my profile settings?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin:0 0 20px 0;">Yes, you can refresh your profile settings anytime. This is useful if you want to discard unsaved changes or reload your current saved information.</p>
+           
+            <p style="margin:0 0 20px 0;">Yes, you can refresh your profile settings anytime.
+This is useful if you want to discard unsaved changes or reload your current saved information.</p>
               
               <p style="margin:0 0 12px 0;font-weight:600;">Ways to refresh your profile:</p>
               <ul style="margin:0 0 20px 0;padding-left:20px;">
-                <li style="margin:0 0 10px 0;"><strong>Browser Refresh</strong> — Press F5 or click the refresh button in your browser</li>
+                <li style="margin:0 0 10px 0;"><strong>Browser Refresh</strong> — Press F5 or click the refresh button in 
+your browser</li>
                 <li style="margin:0 0 10px 0;"><strong>Cancel Button</strong> — Click the <strong>Cancel</strong> button (if available) to discard changes</li>
                 <li style="margin:0 0 10px 0;"><strong>Navigate Away</strong> — Go to another section and return to profile settings</li>
                 <li style="margin:0;"><strong>Reload Option</strong> — Use the reload/reset button if provided in the UI</li>
+         
               </ul>
 
               <p style="margin:0;">Refreshing will reload your last saved profile information and discard any unsaved edits you've made.</p>
@@ -475,27 +565,21 @@ questions: [
           id: 'where-personalization',
           question: 'Where do I find the Personalization settings?',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;margin:0 0 20px 0;">
-                <div>
-                  <p style="margin:0 0 20px 0;">Personalization settings are located in the main console and must be configured <strong>before starting a meeting</strong>.</p>
-                  
-                  <p style="margin:0 0 12px 0;font-weight:600;">How to access:</p>
-                  <ol style="margin:0;padding-left:20px;">
-                    <li style="margin:0 0 12px 0;">Go to the <strong>Main Console</strong></li>
-                    <li style="margin:0 0 12px 0;">Click on <strong>Personalization</strong> in the navigation menu</li>
-                    <li style="margin:0;">Configure your settings before joining or starting a meeting</li>
-                  </ol>
-                </div>
-                
-                <div style="display:flex;justify-content:center;align-items:start;">
-                  <img 
-                    src="/tutorial/personalizationlocation.png" 
-                    alt="Personalization Location Screenshot" 
-                    style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-                  />
-                </div>
-              </div>
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">Personalization settings are located in the main console and must be configured <strong>before starting a meeting</strong>.</p>
+              
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">How to access:</p>
+              <ol style="margin:0 0 28px 0;padding-left:24px;">
+                <li style="margin:0 0 12px 0;">Go to the <strong>Main Console</strong></li>
+                <li style="margin:0 0 12px 0;">Click on <strong>Personalization</strong> in the navigation menu</li>
+                <li style="margin:0;">Configure your settings before joining or starting a meeting</li>
+              </ol>
+
+              <img 
+                src="/tutorial/personalizationlocation.png" 
+                alt="Personalization Location Screenshot" 
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
             </div>
           `
         },
@@ -503,18 +587,20 @@ questions: [
           id: 'bot-configuration',
           question: 'What is Bot Configuration?',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin:0 0 20px 0;">Bot Configuration allows you to customize the visible identity of your AI copilot during meetings.</p>
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">Bot Configuration allows you to customize the visible identity of your AI copilot during meetings.</p>
               
-              <p style="margin:0 0 12px 0;font-weight:600;">Current settings:</p>
-              <ul style="margin:0 0 20px 0;padding-left:20px;">
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">Current settings:</p>
+              <ul style="margin:0 0 28px 0;padding-left:24px;list-style-type:disc;">
                 <li style="margin:0 0 10px 0;">Default name: <strong>SpikedAI</strong></li>
                 <li style="margin:0;">Name customization is <strong>currently not available</strong> but will be implemented in future updates</li>
               </ul>
 
-              <p style="margin:0;padding:12px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Coming Soon:</strong> You'll be able to rename your AI copilot to match your branding or personal preference.
-              </p>
+              <div style="margin:0;padding:16px 20px;background:#f0f7ff;border-left:4px solid #2563EB;border-radius:6px;">
+                <p style="margin:0;font-size:14px;line-height:1.7;">
+                  <strong style="color:#1e40af;">Coming Soon:</strong> You'll be able to rename your AI copilot to match your branding or personal preference.
+                </p>
+              </div>
             </div>
           `
         },
@@ -522,49 +608,43 @@ questions: [
           id: 'customer-persona',
           question: 'How do I choose a Customer Persona?',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;margin:0 0 20px 0;">
-                <div>
-                  <p style="margin:0 0 20px 0;">Customer Persona determines your AI's communication style, depth, and focus during meetings. Choose the persona that best matches your audience.</p>
-                  
-                  <p style="margin:0 0 12px 0;font-weight:600;">Available Personas:</p>
-                  
-                  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin:0 0 10px 0;background:#fefefe;">
-                    <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:14px;">📊 Balanced</p>
-                    <p style="margin:0;color:#6b7280;font-size:13px;">Versatile profile for general business users in B2B settings.</p>
-                  </div>
-
-                  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin:0 0 10px 0;background:#fefefe;">
-                    <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:14px;">⚙️ Technical</p>
-                    <p style="margin:0;color:#6b7280;font-size:13px;">Deep technical jargon-friendly responses for engineering teams.</p>
-                  </div>
-
-                  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin:0 0 10px 0;background:#fefefe;">
-                    <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:14px;">💰 Financial</p>
-                    <p style="margin:0;color:#6b7280;font-size:13px;">ROI-driven, cost-benefit analysis focused for finance teams.</p>
-                  </div>
-
-                  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin:0;background:#fefefe;">
-                    <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:14px;">👔 Business Executive</p>
-                    <p style="margin:0;color:#6b7280;font-size:13px;">High-impact insights for C-suite executives.</p>
-                  </div>
-                </div>
-                
-                <div style="display:flex;justify-content:center;align-items:start;">
-                  <img 
-                    src="/tutorial/customerpersona.png" 
-                    alt="Customer Persona Screenshot" 
-                    style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-                  />
-                </div>
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">Customer Persona determines your AI's communication style, depth, and focus during meetings. Choose the persona that best matches your audience.</p>
+              
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">Available Personas:</p>
+              
+              <div style="margin:0 0 12px 0;border:1px solid #e5e7eb;border-radius:8px;padding:14px;background:#fefefe;">
+                <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:15px;">📊 Balanced</p>
+                <p style="margin:0;color:#6b7280;font-size:14px;">Versatile profile for general business users in B2B settings.</p>
               </div>
 
-              <p style="margin:0 0 12px 0;font-weight:600;">How to set your persona:</p>
-              <ol style="margin:0;padding-left:20px;">
+              <div style="margin:0 0 12px 0;border:1px solid #e5e7eb;border-radius:8px;padding:14px;background:#fefefe;">
+                <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:15px;">⚙️ Technical</p>
+                <p style="margin:0;color:#6b7280;font-size:14px;">Deep technical jargon-friendly responses for engineering teams.</p>
+              </div>
+
+              <div style="margin:0 0 12px 0;border:1px solid #e5e7eb;border-radius:8px;padding:14px;background:#fefefe;">
+                <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:15px;">💰 Financial</p>
+                <p style="margin:0;color:#6b7280;font-size:14px;">ROI-driven, cost-benefit analysis focused for finance teams.</p>
+              </div>
+
+              <div style="margin:0 0 28px 0;border:1px solid #e5e7eb;border-radius:8px;padding:14px;background:#fefefe;">
+                <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:15px;">👔 Business Executive</p>
+                <p style="margin:0;color:#6b7280;font-size:14px;">High-impact insights for C-suite executives.</p>
+              </div>
+
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">How to set your persona:</p>
+              <ol style="margin:0 0 28px 0;padding-left:24px;">
                 <li style="margin:0 0 10px 0;">Navigate to <strong>Personalization → Customer Persona</strong></li>
                 <li style="margin:0 0 10px 0;">Select the persona that matches your meeting audience</li>
                 <li style="margin:0;">The AI will automatically adjust its tone and depth accordingly</li>
               </ol>
+
+              <img 
+                src="/tutorial/customerpersona.png" 
+                alt="Customer Persona Screenshot" 
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
             </div>
           `
         },
@@ -572,41 +652,35 @@ questions: [
           id: 'meeting-focus',
           question: 'What is Meeting Focus and why is it important?',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;margin:0 0 20px 0;">
-                <div>
-                  <p style="margin:0 0 20px 0;"><strong>Meeting Focus</strong> is one of the most critical features in SpikedAI. It tells your AI what to prioritize and track during the meeting.</p>
-                  
-                  <div style="padding:16px;background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:8px;margin:0 0 20px 0;">
-                    <p style="margin:0;font-weight:600;color:#92400E;font-size:14px;">⚠️ IMPORTANT</p>
-                    <p style="margin:8px 0 0 0;color:#92400E;font-size:13px;">Meeting Focus <strong>must be set before starting a meeting</strong>.</p>
-                  </div>
-
-                  <p style="margin:0 0 12px 0;font-weight:600;">Why it matters:</p>
-                  <ul style="margin:0 0 20px 0;padding-left:20px;">
-                    <li style="margin:0 0 8px 0;">Directs your AI's attention to what matters most</li>
-                    <li style="margin:0 0 8px 0;">Ensures relevant insights are captured</li>
-                    <li style="margin:0 0 8px 0;">Improves post-meeting reports quality</li>
-                    <li style="margin:0;">Tracks specific objectives automatically</li>
-                  </ul>
-
-                  <p style="margin:0 0 12px 0;font-weight:600;">How to set:</p>
-                  <ol style="margin:0;padding-left:20px;">
-                    <li style="margin:0 0 8px 0;">Go to <strong>Personalization → Meeting Focus</strong></li>
-                    <li style="margin:0 0 8px 0;">Define what the meeting is about</li>
-                    <li style="margin:0 0 8px 0;">Specify key topics to track</li>
-                    <li style="margin:0;">Save before joining the meeting</li>
-                  </ol>
-                </div>
-                
-                <div style="display:flex;justify-content:center;align-items:start;">
-                  <img 
-                    src="/tutorial/meetingfocus.png" 
-                    alt="Meeting Focus Screenshot" 
-                    style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-                  />
-                </div>
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;"><strong>Meeting Focus</strong> is one of the most critical features in SpikedAI. It tells your AI what to prioritize and track during the meeting.</p>
+              
+              <div style="padding:16px 20px;background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:8px;margin:0 0 28px 0;">
+                <p style="margin:0;font-weight:600;color:#92400E;font-size:14px;">⚠️ IMPORTANT</p>
+                <p style="margin:8px 0 0 0;color:#92400E;font-size:13px;">Meeting Focus <strong>must be set before starting a meeting</strong>.</p>
               </div>
+
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">Why it matters:</p>
+              <ul style="margin:0 0 28px 0;padding-left:24px;list-style-type:disc;">
+                <li style="margin:0 0 8px 0;">Directs your AI's attention to what matters most</li>
+                <li style="margin:0 0 8px 0;">Ensures relevant insights are captured</li>
+                <li style="margin:0 0 8px 0;">Improves post-meeting reports quality</li>
+                <li style="margin:0;">Tracks specific objectives automatically</li>
+              </ul>
+
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">How to set:</p>
+              <ol style="margin:0 0 28px 0;padding-left:24px;">
+                <li style="margin:0 0 8px 0;">Go to <strong>Personalization → Meeting Focus</strong></li>
+                <li style="margin:0 0 8px 0;">Define what the meeting is about</li>
+                <li style="margin:0 0 8px 0;">Specify key topics to track</li>
+                <li style="margin:0;">Save before joining the meeting</li>
+              </ol>
+
+              <img 
+                src="/tutorial/meetingfocus.png" 
+                alt="Meeting Focus Screenshot" 
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
             </div>
           `
         },
@@ -614,32 +688,34 @@ questions: [
           id: 'system-prompt',
           question: 'What is the System Prompt and can I customize it?',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin:0 0 20px 0;">The System Prompt is the underlying instruction set that guides your AI's behavior during meetings.</p>
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">The System Prompt is the underlying instruction set that guides your AI's behavior during meetings.</p>
               
-              <p style="margin:0 0 12px 0;font-weight:600;">How System Prompt works:</p>
-              <ul style="margin:0 0 20px 0;padding-left:20px;">
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">How System Prompt works:</p>
+              <ul style="margin:0 0 28px 0;padding-left:24px;list-style-type:disc;">
                 <li style="margin:0 0 10px 0;"><strong>Automatic Mode:</strong> Generated based on your chosen Customer Persona</li>
                 <li style="margin:0;"><strong>Custom Mode:</strong> Write your own system prompt to fine-tune AI behavior</li>
               </ul>
 
-              <p style="margin:0 0 12px 0;font-weight:600;">When to customize:</p>
-              <ul style="margin:0 0 20px 0;padding-left:20px;">
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">When to customize:</p>
+              <ul style="margin:0 0 28px 0;padding-left:24px;list-style-type:disc;">
                 <li style="margin:0 0 8px 0;">You need specific AI behavior not covered by default personas</li>
                 <li style="margin:0 0 8px 0;">You want to add company-specific guidelines</li>
                 <li style="margin:0;">You have unique meeting requirements</li>
               </ul>
 
-              <p style="margin:0 0 12px 0;font-weight:600;">How to customize:</p>
-              <ol style="margin:0 0 20px 0;padding-left:20px;">
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">How to customize:</p>
+              <ol style="margin:0 0 28px 0;padding-left:24px;">
                 <li style="margin:0 0 8px 0;">Navigate to <strong>Personalization → System Prompt</strong></li>
                 <li style="margin:0 0 8px 0;">Write your custom instructions</li>
                 <li style="margin:0;">Save and test in a practice meeting</li>
               </ol>
 
-              <p style="margin:0;padding:12px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Tip:</strong> Start with the automatic system prompt and only customize if needed.
-              </p>
+              <div style="margin:0;padding:16px 20px;background:#f0f7ff;border-left:4px solid #2563EB;border-radius:6px;">
+                <p style="margin:0;font-size:14px;line-height:1.7;">
+                  <strong style="color:#1e40af;">Tip:</strong> Start with the automatic system prompt and only customize if needed.
+                </p>
+              </div>
             </div>
           `
         },
@@ -647,59 +723,50 @@ questions: [
           id: 'answering-styles',
           question: 'What are the 12 Answering Styles?',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;margin:0 0 20px 0;">
-                <div>
-                  <p style="margin:0 0 20px 0;">Answering Styles determine how your AI formats and delivers responses during meetings. You can select multiple styles to suit different needs.</p>
-                  
-                  <p style="margin:0 0 12px 0;font-weight:600;">Available Styles:</p>
-                  
-                  <div style="display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 20px 0;">
-                    <div style="border:1px solid #e5e7eb;border-radius:6px;padding:10px;background:#fefefe;">
-                      <p style="margin:0;font-weight:600;color:#111827;font-size:13px;">📝 Concise Answer</p>
-                      <p style="margin:4px 0 0 0;color:#6b7280;font-size:12px;">Brief, to-the-point responses</p>
-                    </div>
-                    <div style="border:1px solid #e5e7eb;border-radius:6px;padding:10px;background:#fefefe;">
-                      <p style="margin:0;font-weight:600;color:#111827;font-size:13px;">📚 In-Depth Answer</p>
-                      <p style="margin:4px 0 0 0;color:#6b7280;font-size:12px;">Detailed explanations</p>
-                    </div>
-                    <div style="border:1px solid #e5e7eb;border-radius:6px;padding:10px;background:#fefefe;">
-                      <p style="margin:0;font-weight:600;color:#111827;font-size:13px;">• Answer in Points</p>
-                      <p style="margin:4px 0 0 0;color:#6b7280;font-size:12px;">Structured bullet-point format</p>
-                    </div>
-                    <div style="border:1px solid #e5e7eb;border-radius:6px;padding:10px;background:#fefefe;">
-                      <p style="margin:0;font-weight:600;color:#111827;font-size:13px;">🔄 Use Analogy</p>
-                      <p style="margin:4px 0 0 0;color:#6b7280;font-size:12px;">Relatable comparisons</p>
-                    </div>
-                    <div style="border:1px solid #e5e7eb;border-radius:6px;padding:10px;background:#fefefe;">
-                      <p style="margin:0;font-weight:600;color:#111827;font-size:13px;">⚙️ Technical Terms</p>
-                      <p style="margin:4px 0 0 0;color:#6b7280;font-size:12px;">Simplify complex terminology</p>
-                    </div>
-                    <div style="border:1px solid #e5e7eb;border-radius:6px;padding:10px;background:#fefefe;">
-                      <p style="margin:0;font-weight:600;color:#111827;font-size:13px;">💼 Sales Points</p>
-                      <p style="margin:4px 0 0 0;color:#6b7280;font-size:12px;">Value propositions</p>
-                    </div>
-                  </div>
-
-                  <p style="margin:0 0 12px 0;font-weight:600;">How to select:</p>
-                  <ol style="margin:0;padding-left:20px;">
-                    <li style="margin:0 0 8px 0;">Go to <strong>Personalization → Answering Styles</strong></li>
-                    <li style="margin:0 0 8px 0;">Check boxes for relevant styles</li>
-                    <li style="margin:0;">Select multiple styles simultaneously</li>
-                  </ol>
-                </div>
-                
-                <div style="display:flex;justify-content:center;align-items:start;">
-                  <img 
-                    src="/tutorial/answerstyles.png" 
-                    alt="Answering Styles Screenshot" 
-                    style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-                  />
-                </div>
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">Answering Styles determine how your AI formats and delivers responses during meetings. You can select multiple styles to suit different needs.</p>
+              
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">Available Styles:</p>
+              
+              <div style="margin:0 0 10px 0;border:1px solid #e5e7eb;border-radius:6px;padding:12px;background:#fefefe;">
+                <p style="margin:0;font-weight:600;color:#111827;font-size:14px;">📝 Concise Answer</p>
+                <p style="margin:4px 0 0 0;color:#6b7280;font-size:13px;">Brief, to-the-point responses</p>
+              </div>
+              
+              <div style="margin:0 0 10px 0;border:1px solid #e5e7eb;border-radius:6px;padding:12px;background:#fefefe;">
+                <p style="margin:0;font-weight:600;color:#111827;font-size:14px;">📚 In-Depth Answer</p>
+                <p style="margin:4px 0 0 0;color:#6b7280;font-size:13px;">Detailed explanations</p>
+              </div>
+              
+              <div style="margin:0 0 10px 0;border:1px solid #e5e7eb;border-radius:6px;padding:12px;background:#fefefe;">
+                <p style="margin:0;font-weight:600;color:#111827;font-size:14px;">• Answer in Points</p>
+                <p style="margin:4px 0 0 0;color:#6b7280;font-size:13px;">Structured bullet-point format</p>
+              </div>
+              
+              <div style="margin:0 0 10px 0;border:1px solid #e5e7eb;border-radius:6px;padding:12px;background:#fefefe;">
+                <p style="margin:0;font-weight:600;color:#111827;font-size:14px;">🔄 Use Analogy</p>
+                <p style="margin:4px 0 0 0;color:#6b7280;font-size:13px;">Relatable comparisons</p>
+              </div>
+              
+              <div style="margin:0 0 10px 0;border:1px solid #e5e7eb;border-radius:6px;padding:12px;background:#fefefe;">
+                <p style="margin:0;font-weight:600;color:#111827;font-size:14px;">⚙️ Technical Terms</p>
+                <p style="margin:4px 0 0 0;color:#6b7280;font-size:13px;">Simplify complex terminology</p>
+              </div>
+              
+              <div style="margin:0 0 28px 0;border:1px solid #e5e7eb;border-radius:6px;padding:12px;background:#fefefe;">
+                <p style="margin:0;font-weight:600;color:#111827;font-size:14px;">💼 Sales Points</p>
+                <p style="margin:4px 0 0 0;color:#6b7280;font-size:13px;">Value propositions</p>
               </div>
 
-              <p style="margin:0 0 8px 0;font-weight:600;">Additional Styles:</p>
-              <ul style="margin:0;padding-left:20px;">
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">How to select:</p>
+              <ol style="margin:0 0 28px 0;padding-left:24px;">
+                <li style="margin:0 0 8px 0;">Go to <strong>Personalization → Answering Styles</strong></li>
+                <li style="margin:0 0 8px 0;">Check boxes for relevant styles</li>
+                <li style="margin:0;">Select multiple styles simultaneously</li>
+              </ol>
+
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:16px;">Additional Styles:</p>
+              <ul style="margin:0 0 28px 0;padding-left:24px;list-style-type:disc;">
                 <li style="margin:0 0 6px 0;">📊 Key Statistics</li>
                 <li style="margin:0 0 6px 0;">📖 Case Study Summary</li>
                 <li style="margin:0 0 6px 0;">⚔️ Competitive Comparison</li>
@@ -707,6 +774,12 @@ questions: [
                 <li style="margin:0 0 6px 0;">ℹ️ Information Gap</li>
                 <li style="margin:0;">💵 Pricing Overview</li>
               </ul>
+
+              <img 
+                src="/tutorial/answerstyles.png" 
+                alt="Answering Styles Screenshot" 
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
             </div>
           `
         },
@@ -714,25 +787,27 @@ questions: [
           id: 'custom-goals-intro',
           question: 'Do I need to set Custom Goals before a meeting?',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin:0 0 20px 0;">Custom Goals tell your AI what specific outcomes and objectives to track throughout the meeting.</p>
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">Custom Goals tell your AI what specific outcomes and objectives to track throughout the meeting.</p>
 
-              <div style="padding:16px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin:0 0 20px 0;">
+              <div style="padding:16px 20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin:0 0 28px 0;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:14px;">🎯 DEFAULT GOAL</p>
                 <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:13px;">A default custom goal is automatically created for new users. You'll receive a reminder to add your own custom goals when you're ready.</p>
               </div>
 
-              <p style="margin:0 0 12px 0;font-weight:600;">Why Custom Goals are important:</p>
-              <ul style="margin:0 0 20px 0;padding-left:20px;">
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">Why Custom Goals are important:</p>
+              <ul style="margin:0 0 28px 0;padding-left:24px;list-style-type:disc;">
                 <li style="margin:0 0 8px 0;">Focus AI on your specific meeting objectives</li>
                 <li style="margin:0 0 8px 0;">Generate relevant post-meeting summaries</li>
                 <li style="margin:0 0 8px 0;">Track measurable outcomes automatically</li>
                 <li style="margin:0;">Improve follow-up action items</li>
               </ul>
 
-              <p style="margin:0;padding:12px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Note:</strong> For detailed information on creating and managing Custom Goals, refer to the dedicated Custom Goals tutorial section.
-              </p>
+              <div style="margin:0;padding:16px 20px;background:#f0f7ff;border-left:4px solid #2563EB;border-radius:6px;">
+                <p style="margin:0;font-size:14px;line-height:1.7;">
+                  <strong style="color:#1e40af;">Note:</strong> For detailed information on creating and managing Custom Goals, refer to the dedicated Custom Goals tutorial section.
+                </p>
+              </div>
             </div>
           `
         },
@@ -740,10 +815,10 @@ questions: [
           id: 'personalization-checklist',
           question: 'Complete Personalization Checklist Before a Meeting',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin:0 0 20px 0;">Use this checklist to ensure you've configured all personalization settings before your meeting:</p>
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">Use this checklist to ensure you've configured all personalization settings before your meeting:</p>
               
-              <div style="border:1px solid #e5e7eb;border-radius:8px;padding:20px;background:#fefefe;margin:0 0 20px 0;">
+              <div style="border:1px solid #e5e7eb;border-radius:8px;padding:20px;background:#fefefe;margin:0 0 28px 0;">
                 <p style="margin:0 0 16px 0;font-weight:700;color:#111827;font-size:16px;">✅ Pre-Meeting Checklist</p>
                 
                 <div style="display:flex;flex-direction:column;gap:10px;">
@@ -779,7 +854,7 @@ questions: [
                 </div>
               </div>
 
-              <div style="padding:16px;background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:8px;">
+              <div style="padding:16px 20px;background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:8px;">
                 <p style="margin:0;font-weight:600;color:#92400E;font-size:14px;">💡 Pro Tip</p>
                 <p style="margin:8px 0 0 0;color:#92400E;font-size:13px;">Save your personalization settings as templates for recurring meeting types.</p>
               </div>
@@ -806,25 +881,29 @@ questions: [
           id: 'why-upload-docs',
           question: 'Why should I upload documents before a meeting?',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Uploading documents <strong>before your meeting starts</strong> is crucial for ensuring your AI provides accurate, relevant answers based on your specific materials.</p>
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">Uploading documents <strong>before your meeting starts</strong> is crucial for ensuring your AI provides accurate, relevant answers based on your specific materials.</p>
               
-              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin:0 0 28px 0;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🎯 KEY BENEFIT</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Your AI fetches answers directly from your uploaded documents, ensuring responses are accurate and aligned with your company's information — not vague or generic answers.</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;line-height:1.7;">Your AI fetches answers directly from your uploaded documents, ensuring responses are accurate and aligned with your company's information — not vague or generic answers.</p>
               </div>
 
-              <p style="margin-bottom:12px;font-weight:600;">How your AI uses documents:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Primary Source:</strong> AI prioritizes information from your uploaded documents</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Accurate Responses:</strong> Answers are grounded in your actual materials, not generic knowledge</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Fallback Option:</strong> If information isn't in your documents, AI can provide broader context when appropriate</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Contextual Awareness:</strong> AI understands your product details, pricing, features, and policies</li>
-              </ul>
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">How your AI uses documents:</p>
+              
+              <p style="margin:0 0 16px 0;"><strong>Primary Source:</strong> AI prioritizes information from your uploaded documents</p>
+              
+              <p style="margin:0 0 16px 0;"><strong>Accurate Responses:</strong> Answers are grounded in your actual materials, not generic knowledge</p>
+              
+              <p style="margin:0 0 16px 0;"><strong>Fallback Option:</strong> If information isn't in your documents, AI can provide broader context when appropriate</p>
+              
+              <p style="margin:0 0 28px 0;"><strong>Contextual Awareness:</strong> AI understands your product details, pricing, features, and policies</p>
 
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Best Practice:</strong> Upload all relevant documents before your meeting to ensure your AI is fully prepared to assist you.
-              </p>
+              <div style="margin:0;padding:16px 20px;background:#f0f7ff;border-left:4px solid #2563EB;border-radius:6px;">
+                <p style="margin:0;font-size:14px;line-height:1.7;">
+                  <strong style="color:#1e40af;">Best Practice:</strong> Upload all relevant documents before your meeting to ensure your AI is fully prepared to assist you.
+                </p>
+              </div>
             </div>
           `
         },
@@ -832,62 +911,52 @@ questions: [
           id: 'where-to-upload',
           question: 'Where can I upload my documents?',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">You can access and upload documents from <strong>two different locations</strong> in SpikedAI:</p>
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">You can access and upload documents from <strong>two different locations</strong> in SpikedAI:</p>
               
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
-                
-                <div>
-                  <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;background:#fefefe;">
-                    <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:16px;">📋 Method 1: Main Console (Quick Access)</p>
-                    <ol style="margin:0 0 12px 0;padding-left:24px;">
-                      <li style="margin-bottom:10px;padding-left:8px;">Go to the <strong>Main Console</strong></li>
-                      <li style="margin-bottom:10px;padding-left:8px;">Click the <strong>Documents</strong> button in the console</li>
-                      <li style="margin-bottom:10px;padding-left:8px;">Click <strong>Choose File</strong> or drag and drop your file</li>
-                      <li style="margin-bottom:0;padding-left:8px;">Your document will be uploaded and ready to use</li>
-                    </ol>
-                    <p style="margin:12px 0 0 0;padding:12px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:13px;">
-                      <strong>Use this when:</strong> You need to quickly upload a document right before a meeting.
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <img 
-                    src="/tutorial/doc-location2.png" 
-                    alt="Document Location 2 Screenshot" 
-                    style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
-                  />
-                </div>
-
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">📋 Method 1: Main Console (Quick Access)</p>
+              
+              <p style="margin:0 0 16px 0;">Go to the <strong>Main Console</strong></p>
+              
+              <p style="margin:0 0 16px 0;">Click the <strong>Documents</strong> button in the console</p>
+              
+              <p style="margin:0 0 16px 0;">Click <strong>Choose File</strong> or drag and drop your file</p>
+              
+              <p style="margin:0 0 28px 0;">Your document will be uploaded and ready to use</p>
+              
+              <div style="margin:0 0 28px 0;padding:16px 20px;background:#f0f7ff;border-left:4px solid #2563EB;border-radius:6px;">
+                <p style="margin:0;font-size:14px;line-height:1.7;">
+                  <strong style="color:#1e40af;">Use this when:</strong> You need to quickly upload a document right before a meeting.
+                </p>
               </div>
 
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
-                
-                <div>
-                  <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;background:#fefefe;">
-                    <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:16px;">🗂️ Method 2: Content Hub (Full Management)</p>
-                    <ol style="margin:0 0 12px 0;padding-left:24px;">
-                      <li style="margin-bottom:10px;padding-left:8px;">Click on your <strong>Profile</strong> (top-right corner)</li>
-                      <li style="margin-bottom:10px;padding-left:8px;">Navigate to <strong>Content Hub</strong></li>
-                      <li style="margin-bottom:10px;padding-left:8px;">Go to the <strong>Documents</strong> section</li>
-                      <li style="margin-bottom:0;padding-left:8px;">Upload files and add descriptions, spaces, and additional metadata</li>
-                    </ol>
-                    <p style="margin:12px 0 0 0;padding:12px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:13px;">
-                      <strong>Use this when:</strong> You want to organize documents, add descriptions, or manage your document library in detail.
-                    </p>
-                  </div>
-                </div>
+              <img 
+                src="/tutorial/doc-location2.png" 
+                alt="Document Location 2 Screenshot" 
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin:0 0 28px 0;image-rendering:-webkit-optimize-contrast;"
+              />
 
-                <div>
-                  <img 
-                    src="/tutorial/doc-location.png" 
-                    alt="Document Location Screenshot" 
-                    style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
-                  />
-                </div>
-
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">🗂️ Method 2: Content Hub (Full Management)</p>
+              
+              <p style="margin:0 0 16px 0;">Click on your <strong>Profile</strong> (top-right corner)</p>
+              
+              <p style="margin:0 0 16px 0;">Navigate to <strong>Content Hub</strong></p>
+              
+              <p style="margin:0 0 16px 0;">Go to the <strong>Documents</strong> section</p>
+              
+              <p style="margin:0 0 28px 0;">Upload files and add descriptions, spaces, and additional metadata</p>
+              
+              <div style="margin:0 0 28px 0;padding:16px 20px;background:#f0f7ff;border-left:4px solid #2563EB;border-radius:6px;">
+                <p style="margin:0;font-size:14px;line-height:1.7;">
+                  <strong style="color:#1e40af;">Use this when:</strong> You want to organize documents, add descriptions, or manage your document library in detail.
+                </p>
               </div>
+
+              <img 
+                src="/tutorial/doc-location.png" 
+                alt="Document Location Screenshot" 
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:0;image-rendering:-webkit-optimize-contrast;"
+              />
             </div>
           `
         },
@@ -895,42 +964,38 @@ questions: [
           id: 'supported-formats',
           question: 'What file types can I upload?',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">SpikedAI supports a variety of document formats to accommodate different types of business materials:</p>
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">SpikedAI supports a variety of document formats to accommodate different types of business materials:</p>
               
-              <p style="margin-bottom:12px;font-weight:600;">Supported File Formats:</p>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
-                <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fefefe;">
-                  <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:15px;">📄 PDF Files</p>
-                  <p style="margin:0;color:#6b7280;font-size:13px;">Portable Document Format (.pdf)</p>
-                </div>
-                <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fefefe;">
-                  <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:15px;">📝 Word Documents</p>
-                  <p style="margin:0;color:#6b7280;font-size:13px;">Microsoft Word (.doc, .docx)</p>
-                </div>
-                <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fefefe;">
-                  <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:15px;">📊 Presentations</p>
-                  <p style="margin:0;color:#6b7280;font-size:13px;">PowerPoint (.ppt, .pptx)</p>
-                </div>
-                <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fefefe;">
-                  <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:15px;">📈 Spreadsheets</p>
-                  <p style="margin:0;color:#6b7280;font-size:13px;">Excel (.xls, .xlsx)</p>
-                </div>
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">Supported File Formats:</p>
+              
+              <p style="margin:0 0 16px 0;"><strong>📄 PDF Files</strong> — Portable Document Format (.pdf)</p>
+              
+              <p style="margin:0 0 16px 0;"><strong>📝 Word Documents</strong> — Microsoft Word (.doc, .docx)</p>
+              
+              <p style="margin:0 0 16px 0;"><strong>📊 Presentations</strong> — PowerPoint (.ppt, .pptx)</p>
+              
+              <p style="margin:0 0 28px 0;"><strong>📈 Spreadsheets</strong> — Excel (.xls, .xlsx)</p>
+
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">Common use cases:</p>
+              
+              <p style="margin:0 0 16px 0;"><strong>Sales Playbooks</strong> — Product information, objection handling, pricing guides</p>
+              
+              <p style="margin:0 0 16px 0;"><strong>Product Documentation</strong> — Technical specs, feature lists, user guides</p>
+              
+              <p style="margin:0 0 16px 0;"><strong>FAQs</strong> — Frequently asked questions and answers</p>
+              
+              <p style="margin:0 0 16px 0;"><strong>Case Studies</strong> — Success stories and customer testimonials</p>
+              
+              <p style="margin:0 0 16px 0;"><strong>Pricing Sheets</strong> — Cost breakdowns and package details</p>
+              
+              <p style="margin:0 0 28px 0;"><strong>Competitive Analysis</strong> — Comparison documents and market research</p>
+
+              <div style="margin:0;padding:16px 20px;background:#f0f7ff;border-left:4px solid #2563EB;border-radius:6px;">
+                <p style="margin:0;font-size:14px;line-height:1.7;">
+                  <strong style="color:#1e40af;">File Size Limit:</strong> For best performance, keep individual files under <strong>25MB</strong>.
+                </p>
               </div>
-
-              <p style="margin-bottom:12px;font-weight:600;">Common use cases:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Sales Playbooks</strong> — Product information, objection handling, pricing guides</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Product Documentation</strong> — Technical specs, feature lists, user guides</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>FAQs</strong> — Frequently asked questions and answers</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Case Studies</strong> — Success stories and customer testimonials</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Pricing Sheets</strong> — Cost breakdowns and package details</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Competitive Analysis</strong> — Comparison documents and market research</li>
-              </ul>
-
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>File Size Limit:</strong> For best performance, keep individual files under <strong>25MB</strong>.
-              </p>
             </div>
           `
         },
@@ -938,57 +1003,41 @@ questions: [
           id: 'content-hub-features',
           question: 'What is the Content Hub and how do I use it?',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">The <strong>Content Hub</strong> is your centralized document management center where you can organize, describe, and categorize all your uploaded materials.</p>
               
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
-                
-                <div>
-                  <p style="margin-bottom:20px;">The <strong>Content Hub</strong> is your centralized document management center where you can organize, describe, and categorize all your uploaded materials.</p>
-                  
-                  <p style="margin-bottom:12px;font-weight:600;">How to access Content Hub:</p>
-                  <ol style="margin:0 0 24px 0;padding-left:24px;">
-                    <li style="margin-bottom:10px;padding-left:8px;">Click on your <strong>Profile</strong> icon (top-right corner)</li>
-                    <li style="margin-bottom:10px;padding-left:8px;">Select <strong>Content Hub</strong> from the menu</li>
-                    <li style="margin-bottom:0;padding-left:8px;">Navigate to the <strong>Documents</strong> section</li>
-                  </ol>
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">How to access Content Hub:</p>
+              
+              <p style="margin:0 0 16px 0;">Click on your <strong>Profile</strong> icon (top-right corner)</p>
+              
+              <p style="margin:0 0 16px 0;">Select <strong>Content Hub</strong> from the menu</p>
+              
+              <p style="margin:0 0 28px 0;">Navigate to the <strong>Documents</strong> section</p>
 
-                  <p style="margin-bottom:12px;font-weight:600;">Key Features in Content Hub:</p>
-                  
-                  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px;background:#fefefe;">
-                    <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">📝 Document Descriptions</p>
-                    <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Add detailed descriptions to help your AI better understand what each document contains. Descriptions improve answer accuracy by providing context about the document's purpose and content.</p>
-                  </div>
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">Key Features in Content Hub:</p>
+              
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">📝 Document Descriptions</p>
+              <p style="margin:0 0 20px 0;">Add detailed descriptions to help your AI better understand what each document contains. Descriptions improve answer accuracy by providing context about the document's purpose and content.</p>
 
-                  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px;background:#fefefe;">
-                    <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">🏷️ Spaces</p>
-                    <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Organize documents into custom spaces (categories or folders) for better organization. Group related documents together for easier management.</p>
-                  </div>
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">🏷️ Spaces</p>
+              <p style="margin:0 0 20px 0;">Organize documents into custom spaces (categories or folders) for better organization. Group related documents together for easier management.</p>
 
-                  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px;background:#fefefe;">
-                    <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">🌐 Website Integration</p>
-                    <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Upload website URLs to allow your AI to reference online content during meetings. This feature enables access to dynamic web-based resources.</p>
-                  </div>
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">🌐 Website Integration</p>
+              <p style="margin:0 0 20px 0;">Upload website URLs to allow your AI to reference online content during meetings. This feature enables access to dynamic web-based resources.</p>
 
-                  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;background:#fefefe;">
-                    <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">📥 Download & Delete Options</p>
-                    <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Easily download copies of your uploaded documents or remove outdated files with simple one-click actions.</p>
-                  </div>
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">📥 Download & Delete Options</p>
+              <p style="margin:0 0 28px 0;">Easily download copies of your uploaded documents or remove outdated files with simple one-click actions.</p>
 
-                  <div style="padding:20px;background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:8px;">
-                    <p style="margin:0;font-weight:600;color:#92400E;font-size:14px;">💡 Why Descriptions Matter</p>
-                    <p style="margin:8px 0 0 0;color:#92400E;font-size:13px;">Adding descriptions helps your AI understand what information is in each PDF. This makes it easier for the AI to fetch relevant answers from the right document during meetings, improving response accuracy.</p>
-                  </div>
-                </div>
-
-                <div>
-                  <img 
-                    src="/tutorial/doocumments.png" 
-                    alt="Documents Screenshot" 
-                    style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
-                  />
-                </div>
-
+              <div style="padding:20px;background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:8px;margin:0 0 28px 0;">
+                <p style="margin:0;font-weight:600;color:#92400E;font-size:14px;">💡 Why Descriptions Matter</p>
+                <p style="margin:8px 0 0 0;color:#92400E;font-size:13px;line-height:1.7;">Adding descriptions helps your AI understand what information is in each PDF. This makes it easier for the AI to fetch relevant answers from the right document during meetings, improving response accuracy.</p>
               </div>
+
+              <img 
+                src="/tutorial/doocumments.png" 
+                alt="Documents Screenshot" 
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:0;image-rendering:-webkit-optimize-contrast;"
+              />
             </div>
           `
         },
@@ -996,21 +1045,24 @@ questions: [
           id: 'expand-view-button',
           question: 'What does the Expand view do?',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">The <strong>Expand view</strong> button in the Main Console documents section provides quick access to the full Content Hub interface.</p>
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">The <strong>Expand view</strong> button in the Main Console documents section provides quick access to the full Content Hub interface.</p>
               
-              <p style="margin-bottom:12px;font-weight:600;">How it works:</p>
-              <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;">Click the <strong>Expand view</strong> button next to your document in the Main Console</li>
-                <li style="margin-bottom:10px;padding-left:8px;">You'll be redirected to the <strong>Content Hub</strong></li>
-                <li style="margin-bottom:0;padding-left:8px;">You can now add descriptions, organize into spaces, and manage document metadata</li>
-              </ol>
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">How it works:</p>
+              
+              <p style="margin:0 0 16px 0;">Click the <strong>Expand view</strong> button next to your document in the Main Console</p>
+              
+              <p style="margin:0 0 16px 0;">You'll be redirected to the <strong>Content Hub</strong></p>
+              
+              <p style="margin:0 0 24px 0;">You can now add descriptions, organize into spaces, and manage document metadata</p>
 
-              <p style="margin-bottom:20px;">This button essentially bridges the quick upload interface in the Main Console with the comprehensive document management features in the Content Hub.</p>
+              <p style="margin:0 0 24px 0;">This button essentially bridges the quick upload interface in the Main Console with the comprehensive document management features in the Content Hub.</p>
 
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Use Case:</strong> Upload a document quickly in the Main Console, then click Extend to immediately add descriptions and organize it properly.
-              </p>
+              <div style="margin:0;padding:16px 20px;background:#f0f7ff;border-left:4px solid #2563EB;border-radius:6px;">
+                <p style="margin:0;font-size:14px;line-height:1.7;">
+                  <strong style="color:#1e40af;">Use Case:</strong> Upload a document quickly in the Main Console, then click Extend to immediately add descriptions and organize it properly.
+                </p>
+              </div>
             </div>
           `
         },
@@ -1018,26 +1070,28 @@ questions: [
           id: 'manage-docs',
           question: 'How do I download or delete documents?',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Both the Main Console and Content Hub provide simple options to manage your uploaded documents.</p>
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">Both the Main Console and Content Hub provide simple options to manage your uploaded documents.</p>
               
-              <p style="margin-bottom:12px;font-weight:600;">Download Documents:</p>
-              <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;">Navigate to your documents (Main Console or Content Hub)</li>
-                <li style="margin-bottom:10px;padding-left:8px;">Locate the document you want to download</li>
-                <li style="margin-bottom:0;padding-left:8px;">Click the <strong>Download</strong> button next to the document</li>
-              </ol>
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">Download Documents:</p>
+              
+              <p style="margin:0 0 16px 0;">Navigate to your documents (Main Console or Content Hub)</p>
+              
+              <p style="margin:0 0 16px 0;">Locate the document you want to download</p>
+              
+              <p style="margin:0 0 28px 0;">Click the <strong>Download</strong> button next to the document</p>
 
-              <p style="margin-bottom:12px;font-weight:600;">Delete Documents:</p>
-              <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;">Find the document you want to remove</li>
-                <li style="margin-bottom:10px;padding-left:8px;">Click the <strong>Delete</strong> button</li>
-                <li style="margin-bottom:0;padding-left:8px;">Confirm the deletion when prompted</li>
-              </ol>
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">Delete Documents:</p>
+              
+              <p style="margin:0 0 16px 0;">Find the document you want to remove</p>
+              
+              <p style="margin:0 0 16px 0;">Click the <strong>Delete</strong> button</p>
+              
+              <p style="margin:0 0 28px 0;">Confirm the deletion when prompted</p>
 
               <div style="padding:20px;background:#FEE2E2;border-left:4px solid #DC2626;border-radius:8px;">
                 <p style="margin:0;font-weight:600;color:#991B1B;font-size:14px;">⚠️ Warning</p>
-                <p style="margin:8px 0 0 0;color:#991B1B;font-size:13px;">Deleting a document is permanent and cannot be undone. Make sure you have a backup copy before deleting.</p>
+                <p style="margin:8px 0 0 0;color:#991B1B;font-size:13px;line-height:1.7;">Deleting a document is permanent and cannot be undone. Make sure you have a backup copy before deleting.</p>
               </div>
             </div>
           `
@@ -1046,277 +1100,31 @@ questions: [
           id: 'doc-best-practices',
           question: 'What are the best practices for document management?',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Follow these best practices to maximize the effectiveness of your uploaded documents:</p>
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">Follow these best practices to maximize the effectiveness of your uploaded documents:</p>
               
-              <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px;background:#fefefe;">
-                <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:15px;">⏰ Upload Before Meetings</p>
-                <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Always upload and organize documents <strong>before starting a meeting</strong>. This ensures your AI has time to process and index the content for accurate responses.</p>
-              </div>
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">⏰ Upload Before Meetings</p>
+              <p style="margin:0 0 20px 0;">Always upload and organize documents <strong>before starting a meeting</strong>. This ensures your AI has time to process and index the content for accurate responses.</p>
 
-              <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px;background:#fefefe;">
-                <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:15px;">📝 Add Meaningful Descriptions</p>
-                <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Write clear descriptions that explain what each document contains. For example: "Product pricing guide for Enterprise customers" or "Technical FAQ for API integration questions."</p>
-              </div>
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">📝 Add Meaningful Descriptions</p>
+              <p style="margin:0 0 20px 0;">Write clear descriptions that explain what each document contains. For example: "Product pricing guide for Enterprise customers" or "Technical FAQ for API integration questions."</p>
 
-              <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px;background:#fefefe;">
-                <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:15px;">🗂️ Organize with Spaces</p>
-                <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Group related documents into logical spaces (e.g., "Sales Materials", "Product Docs", "Pricing", "Case Studies"). This makes documents easier to find and manage.</p>
-              </div>
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">🗂️ Organize with Spaces</p>
+              <p style="margin:0 0 20px 0;">Group related documents into logical spaces (e.g., "Sales Materials", "Product Docs", "Pricing", "Case Studies"). This makes documents easier to find and manage.</p>
 
-              <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px;background:#fefefe;">
-                <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:15px;">🔄 Keep Documents Updated</p>
-                <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Regularly review and update documents when information changes. Remove outdated documents to prevent your AI from referencing incorrect information.</p>
-              </div>
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">🔄 Keep Documents Updated</p>
+              <p style="margin:0 0 20px 0;">Regularly review and update documents when information changes. Remove outdated documents to prevent your AI from referencing incorrect information.</p>
 
-              <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px;background:#fefefe;">
-                <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:15px;">📏 Optimize File Sizes</p>
-                <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Keep files under 25MB for optimal performance. If you have large documents, consider splitting them into smaller, more focused files.</p>
-              </div>
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">📏 Optimize File Sizes</p>
+              <p style="margin:0 0 20px 0;">Keep files under 25MB for optimal performance. If you have large documents, consider splitting them into smaller, more focused files.</p>
 
-              <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:24px;background:#fefefe;">
-                <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:15px;">✅ Use Consistent Naming</p>
-                <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Use clear, descriptive file names. Good: "Product_Pricing_Q1_2025.pdf" | Bad: "Document1.pdf"</p>
-              </div>
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">✅ Use Consistent Naming</p>
+              <p style="margin:0 0 28px 0;">Use clear, descriptive file names. Good: "Product_Pricing_Q1_2025.pdf" | Bad: "Document1.pdf"</p>
 
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Pro Tip:</strong> Create a "meeting prep checklist" that includes verifying all relevant documents are uploaded and up-to-date before each important call.
-              </p>
-            </div>
-          `
-        }
-      ]
-    }
-  ]
-},
-{
-  id: 'theme-setup',
-  title: 'Theme & Appearance',
-  description: 'Customize your SpikedAI workspace with light and dark themes for optimal viewing comfort.',
-  questions: [
-    {
-      id: 'change-theme',
-      title: 'Theme Settings',
-      emoji: '🌓',
-      description: 'Complete guide to managing your visual preferences.',
-      subQuestions: [
-        {
-          id: 'where-theme-settings',
-          question: 'Where do I find the Theme settings?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
-                
-                <div>
-                  <p style="margin-bottom:20px;">Theme settings are accessible from your admin page and allow you to customize the visual appearance of your entire SpikedAI workspace.</p>
-                  
-                  <p style="margin-bottom:12px;font-weight:600;">How to access Theme settings:</p>
-                  <ol style="margin:0 0 24px 0;padding-left:24px;">
-                    <li style="margin-bottom:12px;padding-left:8px;">Navigate to your <strong>Admin Page</strong></li>
-                    <li style="margin-bottom:12px;padding-left:8px;">Click on the <strong>Settings</strong> icon in the navigation menu</li>
-                    <li style="margin-bottom:0;padding-left:8px;">Select <strong>Theme & Appearance</strong> from the settings options</li>
-                  </ol>
-                </div>
-
-                <div>
-                  <img 
-                    src="/tutorial/theme loc.png" 
-                    alt="Theme location Screenshot" 
-                    style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
-                  />
-                </div>
-
-              </div>
-            </div>
-          `
-        },
-        {
-          id: 'enable-dark-mode',
-          question: 'How do I switch between light and dark mode?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
-                
-                <div>
-                  <p style="margin-bottom:20px;">SpikedAI offers both light and dark themes to match your preference and reduce eye strain during extended use.</p>
-                  
-                  <p style="margin-bottom:12px;font-weight:600;">Steps to change your theme:</p>
-                  <ol style="margin:0 0 24px 0;padding-left:24px;">
-                    <li style="margin-bottom:12px;padding-left:8px;">Go to <strong>Admin Page → Settings → Theme & Appearance</strong></li>
-                    <li style="margin-bottom:12px;padding-left:8px;">You'll see two theme options:
-                      <ul style="margin-top:10px;list-style-type:disc;padding-left:24px;">
-                        <li style="margin-bottom:6px;"><strong>Light Mode</strong> – Clean, bright interface ideal for well-lit environments</li>
-                        <li style="margin-bottom:0;"><strong>Dark Mode</strong> – Darker color scheme that reduces eye strain in low-light conditions</li>
-                      </ul>
-                    </li>
-                    <li style="margin-bottom:12px;padding-left:8px;">Click on your preferred theme</li>
-                    <li style="margin-bottom:0;padding-left:8px;">The change applies <strong>instantly</strong> across your entire workspace</li>
-                  </ol>
-
-                  <div style="padding:20px;background:#EFF6FF;border-left:4px solid #2563EB;border-radius:8px;">
-                    <p style="margin:0;font-weight:600;color:#1E40AF;font-size:14px;">💡 Pro Tip</p>
-                    <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:13px;">Dark mode can help reduce eye fatigue during long meetings or late-night work sessions.</p>
-                  </div>
-                </div>
-
-                <div>
-                  <img 
-                    src="/tutorial/theme toggle.png" 
-                    alt="Theme Toggle Screenshot" 
-                    style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
-                  />
-                </div>
-
-              </div>
-            </div>
-          `
-        },
-        {
-          id: 'global-theme',
-          question: 'Does the theme apply to all pages?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
-                
-                <div>
-                  <p style="margin-bottom:20px;"><strong>Yes</strong>, SpikedAI uses a <strong>global theme system</strong>. When you set a theme, it applies universally across your entire workspace.</p>
-                  
-                  <p style="margin-bottom:12px;font-weight:600;">What this means:</p>
-                  <ul style="margin:0 0 24px 0;padding-left:24px;">
-                    <li style="margin-bottom:10px;padding-left:8px;">If you select <strong>Light Mode</strong>, all pages, dashboards, and features will display in light theme</li>
-                    <li style="margin-bottom:10px;padding-left:8px;">If you select <strong>Dark Mode</strong>, everything switches to dark theme</li>
-                    <li style="margin-bottom:10px;padding-left:8px;">You cannot have different themes for different pages</li>
-                    <li style="margin-bottom:0;padding-left:8px;">The theme persists across browser sessions and devices when logged in</li>
-                  </ul>
-
-                  <p style="margin-bottom:12px;font-weight:600;">Affected areas include:</p>
-                  <ul style="margin:0;padding-left:24px;">
-                    <li style="margin-bottom:8px;padding-left:8px;">Main Dashboard</li>
-                    <li style="margin-bottom:8px;padding-left:8px;">Console (meeting interface)</li>
-                    <li style="margin-bottom:8px;padding-left:8px;">Personalization settings</li>
-                    <li style="margin-bottom:8px;padding-left:8px;">Documents section</li>
-                    <li style="margin-bottom:8px;padding-left:8px;">Playbook and Note Taker</li>
-                    <li style="margin-bottom:8px;padding-left:8px;">Simulator and all other features</li>
-                    <li style="margin-bottom:0;padding-left:8px;">Settings pages</li>
-                  </ul>
-                </div>
-
-                <div>
-                  <img
-                    src="/tutorial/theme comparision.png"
-                    alt="Theme Comparison Screenshot"
-                    style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;image-rendering:-webkit-optimize-contrast;"
-                  />
-                </div>
-
-              </div>
-            </div>
-          `
-        },
-        {
-          id: 'theme-instant-change',
-          question: 'How quickly does the theme change take effect?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Theme changes in SpikedAI are <strong>instant</strong> – there's no need to refresh your page or restart your session.</p>
-              
-              <p style="margin-bottom:12px;font-weight:600;">What happens when you change themes:</p>
-              <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;">The moment you select a new theme, the interface immediately updates</li>
-                <li style="margin-bottom:10px;padding-left:8px;">All colors, backgrounds, and text automatically adjust</li>
-                <li style="margin-bottom:10px;padding-left:8px;">No interruption to your current work or active meetings</li>
-                <li style="margin-bottom:0;padding-left:8px;">The new theme is saved to your account preferences</li>
-              </ol>
-
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Note:</strong> Your theme preference is saved automatically, so you'll see the same theme every time you log in, even from different devices.
-              </p>
-            </div>
-          `
-        },
-        {
-          id: 'theme-benefits',
-          question: 'What are the benefits of each theme?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Each theme is designed with specific use cases and benefits in mind:</p>
-              
-              <div style="border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin-bottom:16px;background:#fefefe;">
-                <p style="margin:0 0 10px 0;font-weight:600;color:#111827;font-size:16px;">☀️ Light Mode Benefits</p>
-                <ul style="margin:0;padding-left:24px;">
-                  <li style="margin-bottom:8px;padding-left:8px;">Better readability in bright environments</li>
-                  <li style="margin-bottom:8px;padding-left:8px;">Traditional, professional appearance</li>
-                  <li style="margin-bottom:8px;padding-left:8px;">Ideal for daytime work</li>
-                  <li style="margin-bottom:8px;padding-left:8px;">Higher contrast for text and graphics</li>
-                  <li style="margin-bottom:0;padding-left:8px;">Suitable for screen sharing and presentations</li>
-                </ul>
-              </div>
-
-              <div style="border:1px solid #e5e7eb;border-radius:8px;padding:20px;background:#fefefe;">
-                <p style="margin:0 0 10px 0;font-weight:600;color:#111827;font-size:16px;">🌙 Dark Mode Benefits</p>
-                <ul style="margin:0;padding-left:24px;">
-                  <li style="margin-bottom:8px;padding-left:8px;">Reduces eye strain in low-light environments</li>
-                  <li style="margin-bottom:8px;padding-left:8px;">Less blue light emission for evening use</li>
-                  <li style="margin-bottom:8px;padding-left:8px;">Modern, sleek aesthetic</li>
-                  <li style="margin-bottom:8px;padding-left:8px;">Saves battery life on OLED screens</li>
-                  <li style="margin-bottom:8px;padding-left:8px;">Perfect for late-night meetings or work sessions</li>
-                  <li style="margin-bottom:0;padding-left:8px;">Reduces screen glare</li>
-                </ul>
-              </div>
-
-              <p style="margin:24px 0 0 0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Recommendation:</strong> Try both themes to see which works best for your environment and personal preference. You can switch anytime without affecting your data or settings.
-              </p>
-            </div>
-          `
-        },
-        {
-          id: 'theme-reset',
-          question: 'Can I reset my theme to default?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">SpikedAI's default theme is <strong>Light Mode</strong>. You can return to the default theme anytime by following these steps:</p>
-              
-              <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:12px;padding-left:8px;">Navigate to <strong>Admin Page → Settings → Theme & Appearance</strong></li>
-                <li style="margin-bottom:12px;padding-left:8px;">Select <strong>Light Mode</strong></li>
-                <li style="margin-bottom:0;padding-left:8px;">Your interface will immediately switch back to the default light theme</li>
-              </ol>
-
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Note:</strong> Changing themes does not affect any of your other settings, personalization preferences, or saved data.
-              </p>
-            </div>
-          `
-        },
-        {
-          id: 'theme-troubleshooting',
-          question: 'What if my theme doesn\'t change?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">If you're experiencing issues with theme changes not applying, try these troubleshooting steps:</p>
-              
-              <p style="margin-bottom:12px;font-weight:600;">Common solutions:</p>
-              <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:12px;padding-left:8px;"><strong>Refresh your browser</strong> – Press F5 or Ctrl+R (Cmd+R on Mac)</li>
-                <li style="margin-bottom:12px;padding-left:8px;"><strong>Clear browser cache</strong> – Sometimes cached files can prevent theme updates
-                  <ul style="margin-top:8px;list-style-type:disc;padding-left:24px;">
-                    <li style="margin-bottom:4px;">Chrome/Edge: Ctrl+Shift+Delete</li>
-                    <li style="margin-bottom:0;">Firefox: Ctrl+Shift+Delete</li>
-                  </ul>
-                </li>
-                <li style="margin-bottom:12px;padding-left:8px;"><strong>Try a different browser</strong> – Test if the issue is browser-specific</li>
-                <li style="margin-bottom:12px;padding-left:8px;"><strong>Disable browser extensions</strong> – Some extensions can interfere with themes</li>
-                <li style="margin-bottom:12px;padding-left:8px;"><strong>Log out and log back in</strong> – This refreshes your session</li>
-                <li style="margin-bottom:0;padding-left:8px;">If the issue persists, contact <strong>support@Spiked.ai</strong></li>
-              </ol>
-
-              <div style="padding:20px;background:#FEF2F2;border-left:4px solid #EF4444;border-radius:8px;">
-                <p style="margin:0;font-weight:600;color:#991B1B;font-size:14px;">⚠️ Still Having Issues?</p>
-                <p style="margin:8px 0 0 0;color:#991B1B;font-size:13px;">Reach out to our support team with details about your browser, operating system, and the specific issue you're experiencing.</p>
+              <div style="margin:0;padding:16px 20px;background:#f0f7ff;border-left:4px solid #2563EB;border-radius:6px;">
+                <p style="margin:0;font-size:14px;line-height:1.7;">
+                  <strong style="color:#1e40af;">Pro Tip:</strong> Create a "meeting prep checklist" that includes verifying all relevant documents are uploaded and up-to-date before each important call.
+                </p>
               </div>
             </div>
           `
@@ -1325,6 +1133,7 @@ questions: [
     }
   ]
 },
+
 {
   id: 'account-settings',
   title: 'Account & Security',
@@ -1332,7 +1141,7 @@ questions: [
   questions: [
     {
       id: 'security-setup',
-      title: 'How do I manage my security settings?',
+      title: 'Security Settings',
       emoji: '🔒',
       description: 'Everything related to login and account access.',
       subQuestions: [
@@ -1340,8 +1149,26 @@ questions: [
           id: 'change-password',
           question: 'Can I change my password manually?',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Yes. Go to <strong>Settings → Security → Change Password</strong> and follow the steps.</p>
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">Yes, you can change your password anytime from your security settings.</p>
+              
+              <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">How to change your password:</p>
+              
+              <p style="margin:0 0 16px 0;">Go to <strong>Settings → Security</strong></p>
+              
+              <p style="margin:0 0 16px 0;">Click on <strong>Change Password</strong></p>
+              
+              <p style="margin:0 0 16px 0;">Enter your <strong>current password</strong></p>
+              
+              <p style="margin:0 0 16px 0;">Enter your <strong>new password</strong> and confirm it</p>
+              
+              <p style="margin:0 0 24px 0;">Click <strong>Update Password</strong> to save</p>
+
+              <div style="margin:0;padding:16px 20px;background:#f0f7ff;border-left:4px solid #2563EB;border-radius:6px;">
+                <p style="margin:0;font-size:14px;line-height:1.7;">
+                  <strong style="color:#1e40af;">Security Tip:</strong> Use a strong password with at least 8 characters, including uppercase, lowercase, numbers, and special characters.
+                </p>
+              </div>
             </div>
           `
         },
@@ -1349,15 +1176,55 @@ questions: [
           id: 'two-factor',
           question: 'Does SpikedAI support two-factor authentication?',
           answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Two-factor authentication (2FA) is coming soon as part of our advanced security update.</p>
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">Two-factor authentication (2FA) is coming soon as part of our advanced security update.</p>
+              
+              <p style="margin:0 0 24px 0;">Two-factor authentication adds an extra layer of security to your account by requiring a second verification step beyond your password.</p>
+
+              <div style="margin:0;padding:16px 20px;background:#f0f7ff;border-left:4px solid #2563EB;border-radius:6px;">
+                <p style="margin:0;font-size:14px;line-height:1.7;">
+                  <strong style="color:#1e40af;">Coming Soon:</strong> We're working on implementing 2FA to provide you with enhanced account security. Stay tuned for updates!
+                </p>
+              </div>
+            </div>
+          `
+        },
+        {
+          id: 'account-security-best-practices',
+          question: 'What are the best practices for account security?',
+          answer: `
+            <div style="line-height:1.9;color:#374151;font-size:15px;">
+              <p style="margin:0 0 24px 0;">Follow these security best practices to keep your SpikedAI account safe:</p>
+              
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">🔐 Use a Strong Password</p>
+              <p style="margin:0 0 20px 0;">Create a password with at least 8 characters, mixing uppercase, lowercase, numbers, and special characters. Avoid using common words or personal information.</p>
+
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">🔄 Change Password Regularly</p>
+              <p style="margin:0 0 20px 0;">Update your password every 3-6 months or immediately if you suspect unauthorized access.</p>
+
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">🚫 Never Share Credentials</p>
+              <p style="margin:0 0 20px 0;">Keep your login information private. SpikedAI support will never ask for your password.</p>
+
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">💻 Use Trusted Devices</p>
+              <p style="margin:0 0 20px 0;">Only log in from secure, trusted devices. Enable "Keep me signed in" only on personal devices.</p>
+
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">🔓 Log Out When Done</p>
+              <p style="margin:0 0 20px 0;">Always log out when using shared or public computers.</p>
+
+              <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">📧 Verify Email Communications</p>
+              <p style="margin:0 0 28px 0;">Be cautious of phishing attempts. Always verify that emails claiming to be from SpikedAI are legitimate.</p>
+
+              <div style="padding:20px;background:#FEE2E2;border-left:4px solid #DC2626;border-radius:8px;">
+                <p style="margin:0;font-weight:600;color:#991B1B;font-size:14px;">⚠️ Security Alert</p>
+                <p style="margin:8px 0 0 0;color:#991B1B;font-size:13px;line-height:1.7;">If you notice any suspicious activity on your account, change your password immediately and contact <strong>support@spiked.ai</strong>.</p>
+              </div>
             </div>
           `
         }
       ]
     }
   ]
-}  ]
+}]
 },
 console: {
   cardId: 'card-console',
@@ -1377,181 +1244,179 @@ console: {
       emoji: '🤖',
       description: 'Everything you need to know about connecting your SpikedAI bot to meetings.',
       subQuestions: [
-        {
-          id: 'how-to-connect-bot',
-          question: 'How do I connect the bot to my meeting?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Connecting your SpikedAI bot to a meeting is simple and takes just a few steps.</p>
-              
-              <p style="margin-bottom:12px;font-weight:600;">Steps to connect:</p>
-              <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:12px;padding-left:8px;">Copy your meeting URL from <strong>Google Meet</strong>, <strong>Microsoft Teams</strong>, or <strong>Zoom</strong></li>
-                <li style="margin-bottom:12px;padding-left:8px;">Go to the <strong>Console</strong> in SpikedAI</li>
-                <li style="margin-bottom:12px;padding-left:8px;">Paste the meeting URL in the <strong>Meeting URL</strong> section</li>
-                <li style="margin-bottom:12px;padding-left:8px;">Click the <strong>Connect Meet</strong> button</li>
-                <li style="margin-bottom:12px;padding-left:8px;">In your meeting platform, you'll receive a request to <strong>admit the SpikedAI bot</strong></li>
-                <li style="margin-bottom:0;padding-left:8px;">Click <strong>Admit</strong> to allow the bot to join</li>
-              </ol>
-              <img 
-  src="/tutorial/meeting link.png" 
-  alt="Meeting Link Screenshot" 
-  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-/>
+    {
+      id: 'how-to-connect-bot',
+      question: 'How do I connect the bot to my meeting?',
+      answer: `
+        <div style="line-height:1.8;color:#374151;font-size:15px;">
+          <p style="margin-bottom:20px;">Connecting your SpikedAI bot to a meeting is simple and takes just a few steps.</p>
+          
+          <p style="margin-bottom:12px;font-weight:600;">Steps to connect:</p>
+          <ol style="margin:0 0 24px 0;padding-left:24px;">
+            <li style="margin-bottom:12px;padding-left:8px;">Copy your meeting URL from <strong>Google Meet</strong>, <strong>Microsoft Teams</strong>, or <strong>Zoom</strong></li>
+            <li style="margin-bottom:12px;padding-left:8px;">Go to the <strong>Console</strong> in SpikedAI</li>
+            <li style="margin-bottom:12px;padding-left:8px;">Paste the meeting URL in the <strong>Meeting URL</strong> section</li>
+            <li style="margin-bottom:12px;padding-left:8px;">Click the <strong>Connect Meet</strong> button</li>
+            <li style="margin-bottom:12px;padding-left:8px;">In your meeting platform, you'll receive a request to <strong>admit the SpikedAI bot</strong></li>
+            <li style="margin-bottom:0;padding-left:8px;">Click <strong>Admit</strong> to allow the bot to join</li>
+          </ol>
 
+          <img 
+            src="/tutorial/meeting link.png" 
+            alt="Meeting Link Screenshot" 
+            style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+          />
 
-              <img 
-  src="/tutorial/admit bot.png" 
-  alt="Admit Bot Screenshot" 
-  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-/>
+          <img 
+            src="/tutorial/admit bot.png" 
+            alt="Admit Bot Screenshot" 
+            style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+          />
 
-              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
-                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">⏱️ QUICK START</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">After admitting the bot, it will start recording and transcribing within <strong>5-10 seconds</strong>.</p>
-              </div>
+          <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;margin-top:24px;">
+            <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">⏱️ QUICK START</p>
+            <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">After admitting the bot, it will start recording and transcribing within <strong>5-10 seconds</strong>.</p>
+          </div>
 
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Pro Tip:</strong> Connect your bot before the meeting starts to ensure it captures the entire conversation from the beginning.
-              </p>
-             
-
+          <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+            <strong>Pro Tip:</strong> Connect your bot before the meeting starts to ensure it captures the entire conversation from the beginning.
+          </p>
+        </div>
+      `
+    },
+    {
+      id: 'supported-platforms',
+      question: 'Which meeting platforms are supported?',
+      answer: `
+        <div style="line-height:1.8;color:#374151;font-size:15px;">
+          <p style="margin-bottom:20px;">SpikedAI currently supports the three most popular meeting platforms for bot connection.</p>
+          
+          <p style="margin-bottom:12px;font-weight:600;">Supported Platforms:</p>
+          <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:24px;">
+            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fefefe;">
+              <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:15px;">🔹 Google Meet</p>
+              <p style="margin:0;color:#6b7280;font-size:13px;">Fully supported – paste your meet.google.com URL</p>
             </div>
-          `
-        },
-        {
-          id: 'supported-platforms',
-          question: 'Which meeting platforms are supported?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">SpikedAI currently supports the three most popular meeting platforms for bot connection.</p>
-              
-              <p style="margin-bottom:12px;font-weight:600;">Supported Platforms:</p>
-              <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:24px;">
-                <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fefefe;">
-                  <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:15px;">🔹 Google Meet</p>
-                  <p style="margin:0;color:#6b7280;font-size:13px;">Fully supported – paste your meet.google.com URL</p>
-                </div>
-                <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fefefe;">
-                  <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:15px;">💼 Microsoft Teams</p>
-                  <p style="margin:0;color:#6b7280;font-size:13px;">Fully supported – paste your teams.microsoft.com URL</p>
-                </div>
-                <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fefefe;">
-                  <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:15px;">🎥 Zoom</p>
-                  <p style="margin:0;color:#6b7280;font-size:13px;">Fully supported – paste your zoom.us URL</p>
-                </div>
-              </div>
-
-              <div style="padding:20px;background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:8px;">
-                <p style="margin:0;font-weight:600;color:#92400E;font-size:14px;">⚠️ Important Note</p>
-                <p style="margin:8px 0 0 0;color:#92400E;font-size:13px;">Other meeting platforms are not currently supported. Only Google Meet, Microsoft Teams, and Zoom URLs will work with the bot connection feature.</p>
-              </div>
+            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fefefe;">
+              <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:15px;">💼 Microsoft Teams</p>
+              <p style="margin:0;color:#6b7280;font-size:13px;">Fully supported – paste your teams.microsoft.com URL</p>
             </div>
-          `
-        },
-        {
-          id: 'bot-admission-process',
-          question: 'What happens when the bot joins my meeting?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">When you connect the SpikedAI bot, here's what happens step by step:</p>
-              
-              <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px;background:#fefefe;">
-                <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:16px;">1️⃣ Bot Request Appears</p>
-                <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Your meeting platform will show a request notification that <strong>"SpikedAI"</strong> wants to join the meeting. This appears to all meeting participants with host/co-host permissions.</p>
-              </div>
-
-              <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px;background:#fefefe;">
-                <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:16px;">2️⃣ Admit the Bot</p>
-                <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Click <strong>Admit</strong> to allow the bot into your meeting. The bot will appear as a participant named "SpikedAI".</p>
-              </div>
-
-              <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px;background:#fefefe;">
-                <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:16px;">3️⃣ Recording Begins</p>
-                <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Within <strong>5-10 seconds</strong> of admission, the bot starts capturing audio and generating real-time transcriptions.</p>
-              </div>
-
-              <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:24px;background:#fefefe;">
-                <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:16px;">4️⃣ Live Analysis Active</p>
-                <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">The bot begins analyzing conversations in real-time, providing transcriptions, sentiment analysis, and smart suggestions in your Console.</p>
-              </div>
-
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Privacy Note:</strong> The bot only processes audio for transcription and analysis. All participants will see the bot in the meeting, ensuring transparency.
-              </p>
+            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fefefe;">
+              <p style="margin:0 0 6px 0;font-weight:600;color:#111827;font-size:15px;">🎥 Zoom</p>
+              <p style="margin:0;color:#6b7280;font-size:13px;">Fully supported – paste your zoom.us URL</p>
             </div>
-          `
-        },
-        {
-          id: 'bot-connection-troubleshooting',
-          question: 'What if the bot doesn\'t connect?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">If you're having trouble connecting your bot, try these troubleshooting steps:</p>
-              
-              <p style="margin-bottom:12px;font-weight:600;">Common Issues & Solutions:</p>
-              
-              <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px;background:#fefefe;">
-                <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">❌ Invalid URL Format</p>
-                <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Make sure you're copying the <strong>complete meeting URL</strong> from Google Meet, Microsoft Teams, or Zoom. The URL should start with the correct domain (meet.google.com, teams.microsoft.com, or zoom.us).</p>
-              </div>
+          </div>
 
-              <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px;background:#fefefe;">
-                <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">🔒 Meeting Permissions</p>
-                <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Ensure you have <strong>host or co-host permissions</strong> to admit participants. If you're a regular attendee, ask the host to admit the bot.</p>
-              </div>
+          <div style="padding:20px;background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:8px;">
+            <p style="margin:0;font-weight:600;color:#92400E;font-size:14px;">⚠️ Important Note</p>
+            <p style="margin:8px 0 0 0;color:#92400E;font-size:13px;">Other meeting platforms are not currently supported. Only Google Meet, Microsoft Teams, and Zoom URLs will work with the bot connection feature.</p>
+          </div>
+        </div>
+      `
+    },
+    {
+      id: 'bot-admission-process',
+      question: 'What happens when the bot joins my meeting?',
+      answer: `
+        <div style="line-height:1.8;color:#374151;font-size:15px;">
+          <p style="margin-bottom:20px;">When you connect the SpikedAI bot, here's what happens step by step:</p>
+          
+          <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px;background:#fefefe;">
+            <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:16px;">1️⃣ Bot Request Appears</p>
+            <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Your meeting platform will show a request notification that <strong>"SpikedAI"</strong> wants to join the meeting. This appears to all meeting participants with host/co-host permissions.</p>
+          </div>
 
-              <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px;background:#fefefe;">
-                <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">⏱️ Connection Delay</p>
-                <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Wait a few moments after clicking "Connect Meet". The bot request may take 10-15 seconds to appear in your meeting.</p>
-              </div>
+          <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px;background:#fefefe;">
+            <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:16px;">2️⃣ Admit the Bot</p>
+            <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Click <strong>Admit</strong> to allow the bot into your meeting. The bot will appear as a participant named "SpikedAI".</p>
+          </div>
 
-              <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;background:#fefefe;">
-                <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">🌐 Platform Compatibility</p>
-                <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Verify you're using a <strong>supported platform</strong> (Google Meet, Microsoft Teams, or Zoom). Other platforms won't accept the bot connection.</p>
-              </div>
+          <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px;background:#fefefe;">
+            <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:16px;">3️⃣ Recording Begins</p>
+            <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Within <strong>5-10 seconds</strong> of admission, the bot starts capturing audio and generating real-time transcriptions.</p>
+          </div>
 
-              <p style="margin:0;padding:16px;background:#FEE2E2;border-left:3px solid #DC2626;border-radius:4px;font-size:14px;">
-                <strong>Still having issues?</strong> Try refreshing your Console page and reconnecting, or contact support at <strong>support@Spiked.ai</strong> for assistance.
-              </p>
-            </div>
-          `
-        },
-        {
-          id: 'disconnect-bot',
-          question: 'How do I disconnect the bot from a meeting?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">You can disconnect the SpikedAI bot at any time during or after your meeting.</p>
-              
-              <p style="margin-bottom:12px;font-weight:600;">Method 1: Stop the bot in Console</p>
-              <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;">Go to your <strong>Console</strong></li>
-                <li style="margin-bottom:10px;padding-left:8px;">Click the <strong>Stop Bot</strong> button in the bot controls</li>
-                <li style="margin-bottom:0;padding-left:8px;">The bot will disconnect and leave the meeting immediately</li>
-              </ol>
+          <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:24px;background:#fefefe;">
+            <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:16px;">4️⃣ Live Analysis Active</p>
+            <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">The bot begins analyzing conversations in real-time, providing transcriptions, sentiment analysis, and smart suggestions in your Console.</p>
+          </div>
 
-              <p style="margin-bottom:12px;font-weight:600;">Method 2: Kick from meeting platform</p>
-              <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;">Locate <strong>"SpikedAI"</strong> in your participants list</li>
-                <li style="margin-bottom:10px;padding-left:8px;">Click on the bot participant</li>
-                <li style="margin-bottom:0;padding-left:8px;">Select <strong>Remove</strong> or <strong>Kick</strong> from the menu</li>
-              </ol>
+          <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+            <strong>Privacy Note:</strong> The bot only processes audio for transcription and analysis. All participants will see the bot in the meeting, ensuring transparency.
+          </p>
+        </div>
+      `
+    },
+    {
+      id: 'bot-connection-troubleshooting',
+      question: 'What if the bot doesn\'t connect?',
+      answer: `
+        <div style="line-height:1.8;color:#374151;font-size:15px;">
+          <p style="margin-bottom:20px;">If you're having trouble connecting your bot, try these troubleshooting steps:</p>
+          
+          <p style="margin-bottom:12px;font-weight:600;">Common Issues & Solutions:</p>
+          
+          <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px;background:#fefefe;">
+            <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">❌ Invalid URL Format</p>
+            <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Make sure you're copying the <strong>complete meeting URL</strong> from Google Meet, Microsoft Teams, or Zoom. The URL should start with the correct domain (meet.google.com, teams.microsoft.com, or zoom.us).</p>
+          </div>
 
-              <div style="padding:20px;background:#FEE2E2;border-left:4px solid #DC2626;border-radius:8px;margin-bottom:24px;">
-                <p style="margin:0;font-weight:600;color:#991B1B;font-size:15px;">⚠️ CRITICAL WARNING</p>
-                <p style="margin:8px 0 0 0;color:#991B1B;font-size:14px;"><strong>Always disconnect or stop the bot before ending your meeting.</strong> If you end the meeting without properly disconnecting the bot, it may lead to a <strong>dark blue screen error</strong>. Be careful to stop the bot first!</p>
-              </div>
+          <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px;background:#fefefe;">
+            <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">🔒 Meeting Permissions</p>
+            <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Ensure you have <strong>host or co-host permissions</strong> to admit participants. If you're a regular attendee, ask the host to admit the bot.</p>
+          </div>
 
-              <div style="padding:20px;background:#EFF6FF;border-left:4px solid #2563EB;border-radius:8px;">
-                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:14px;">💡 Good to Know</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:13px;">All transcriptions and insights captured before disconnection are automatically saved and remain accessible in your Console.</p>
-              </div>
-            </div>
-          `
-        }
-      ]
+          <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px;background:#fefefe;">
+            <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">⏱️ Connection Delay</p>
+            <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Wait a few moments after clicking "Connect Meet". The bot request may take 10-15 seconds to appear in your meeting.</p>
+          </div>
+
+          <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;background:#fefefe;">
+            <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">🌐 Platform Compatibility</p>
+            <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Verify you're using a <strong>supported platform</strong> (Google Meet, Microsoft Teams, or Zoom). Other platforms won't accept the bot connection.</p>
+          </div>
+
+          <p style="margin:0;padding:16px;background:#FEE2E2;border-left:3px solid #DC2626;border-radius:4px;font-size:14px;">
+            <strong>Still having issues?</strong> Try refreshing your Console page and reconnecting, or contact support at <strong>support@Spiked.ai</strong> for assistance.
+          </p>
+        </div>
+      `
+    },
+    {
+      id: 'disconnect-bot',
+      question: 'How do I disconnect the bot from a meeting?',
+      answer: `
+        <div style="line-height:1.8;color:#374151;font-size:15px;">
+          <p style="margin-bottom:20px;">You can disconnect the SpikedAI bot at any time during or after your meeting.</p>
+          
+          <p style="margin-bottom:12px;font-weight:600;">Method 1: Stop the bot in Console</p>
+          <ol style="margin:0 0 24px 0;padding-left:24px;">
+            <li style="margin-bottom:10px;padding-left:8px;">Go to your <strong>Console</strong></li>
+            <li style="margin-bottom:10px;padding-left:8px;">Click the <strong>Stop Bot</strong> button in the bot controls</li>
+            <li style="margin-bottom:0;padding-left:8px;">The bot will disconnect and leave the meeting immediately</li>
+          </ol>
+
+          <p style="margin-bottom:12px;font-weight:600;">Method 2: Kick from meeting platform</p>
+          <ol style="margin:0 0 24px 0;padding-left:24px;">
+            <li style="margin-bottom:10px;padding-left:8px;">Locate <strong>"SpikedAI"</strong> in your participants list</li>
+            <li style="margin-bottom:10px;padding-left:8px;">Click on the bot participant</li>
+            <li style="margin-bottom:0;padding-left:8px;">Select <strong>Remove</strong> or <strong>Kick</strong> from the menu</li>
+          </ol>
+
+          <div style="padding:20px;background:#FEE2E2;border-left:4px solid #DC2626;border-radius:8px;margin-bottom:24px;">
+            <p style="margin:0;font-weight:600;color:#991B1B;font-size:15px;">⚠️ CRITICAL WARNING</p>
+            <p style="margin:8px 0 0 0;color:#991B1B;font-size:14px;"><strong>Always disconnect or stop the bot before ending your meeting.</strong> If you end the meeting without properly disconnecting the bot, it may lead to a <strong>dark blue screen error</strong>. Be careful to stop the bot first!</p>
+          </div>
+
+          <div style="padding:20px;background:#EFF6FF;border-left:4px solid #2563EB;border-radius:8px;">
+            <p style="margin:0;font-weight:600;color:#1E40AF;font-size:14px;">💡 Good to Know</p>
+            <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:13px;">All transcriptions and insights captured before disconnection are automatically saved and remain accessible in your Console.</p>
+          </div>
+        </div>
+      `
     }
+  ]
+}
   ]
 },
 {
@@ -1572,8 +1437,6 @@ console: {
             <div style="line-height:1.8;color:#374151;font-size:15px;">
               <p style="margin-bottom:20px;"><strong>Live Transcription</strong> is SpikedAI's real-time meeting analysis feature that captures every spoken word and provides instant insights during your calls.</p>
               
-             
-
               <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🎯 KEY CAPABILITY</p>
                 <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Live Transcription captures conversations in real-time, analyzes speaker patterns, and provides actionable meeting insights as the conversation unfolds.</p>
@@ -1588,7 +1451,13 @@ console: {
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Action Items:</strong> Automatically identifies tasks, questions, and follow-up items</li>
               </ul>
 
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+              <img 
+                src="/tutorial/live transcription.png" 
+                alt="Live Transcription Screenshot" 
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
+
+              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;margin-top:24px;">
                 <strong>Recording Starts:</strong> Live Transcription begins automatically 5-10 seconds after you admit the SpikedAI bot to your meeting.
               </p>
             </div>
@@ -1653,7 +1522,6 @@ console: {
             </div>
           `
         },
-       
         {
           id: 'view-transcriptions',
           question: 'How can I view my transcriptions?',
@@ -1668,13 +1536,14 @@ console: {
                 <li style="margin-bottom:12px;padding-left:8px;">Select the meeting you want to review</li>
                 <li style="margin-bottom:0;padding-left:8px;">View the complete transcription with timestamps and speaker identification</li>
               </ol>
-<img 
-  src="/tutorial/live transcription view.png" 
-  alt="Live Transcription View Screenshot" 
-  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-/>
 
-              <p style="margin-bottom:12px;font-weight:600;">What you can do with transcriptions:</p>
+              <img 
+                src="/tutorial/live transcription view.png" 
+                alt="Live Transcription View Screenshot" 
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
+
+              <p style="margin-bottom:12px;font-weight:600;margin-top:24px;">What you can do with transcriptions:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Review Conversations:</strong> Read through the complete meeting transcript</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Search Content:</strong> Find specific keywords or topics discussed</li>
@@ -1692,8 +1561,7 @@ console: {
               </p>
             </div>
           `
-        },
-        
+        }
       ]
     }
   ]
@@ -1729,9 +1597,6 @@ console: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Ask Beyond:</strong> Access web information when answers aren't in your documents</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Track History:</strong> Review past questions and answers with toggle history</li>
               </ul>
-              <img 
-  
-
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
                 <strong>Pro Tip:</strong> The AI Copilot gets smarter as you add more documents and conduct more meetings.
@@ -1753,13 +1618,14 @@ console: {
                 <li style="margin-bottom:12px;padding-left:8px;">Type your question in the input field</li>
                 <li style="margin-bottom:0;padding-left:8px;">The AI will search your documents and transcriptions to provide an answer</li>
               </ol>
-              <img 
-  src="/tutorial/ask documents.png" 
-  alt="Ask Documents Screenshot"
-  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-/>
 
-              <p style="margin-bottom:12px;font-weight:600;">Method 2: Meeting Questions (Smart Suggestions)</p>
+              <img 
+                src="/tutorial/ask documents.png" 
+                alt="Ask Documents Screenshot"
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
+
+              <p style="margin-bottom:12px;font-weight:600;margin-top:24px;">Method 2: Meeting Questions (Smart Suggestions)</p>
               <ol style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:12px;padding-left:8px;">During your meeting, check the <strong>Smart Suggestions</strong> panel</li>
                 <li style="margin-bottom:12px;padding-left:8px;">Look for the <strong>Meeting Questions</strong> section</li>
@@ -1767,14 +1633,14 @@ console: {
                 <li style="margin-bottom:12px;padding-left:8px;">Click on any question to automatically get an answer</li>
                 <li style="margin-bottom:0;padding-left:8px;">The AI searches your documents and provides relevant information</li>
               </ol>
+
               <img 
-  src="/tutorial/meeting questions.png" 
-  alt="Meeting Questions Screenshot"
-  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-/>
+                src="/tutorial/meeting questions.png" 
+                alt="Meeting Questions Screenshot"
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
 
-
-              <p style="margin-bottom:12px;font-weight:600;">Method 3: Transcription-Based Questions</p>
+              <p style="margin-bottom:12px;font-weight:600;margin-top:24px;">Method 3: Transcription-Based Questions</p>
               <ol style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:12px;padding-left:8px;">During live transcription, locate the <strong>question button</strong></li>
                 <li style="margin-bottom:12px;padding-left:8px;">Click the button to capture the entire transcription</li>
@@ -1782,12 +1648,12 @@ console: {
               </ol>
 
               <img 
-  src="/tutorial/question locate.png" 
-  alt="Question Locate Screenshot"
-  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-/>
+                src="/tutorial/question locate.png" 
+                alt="Question Locate Screenshot"
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
 
-              <div style="padding:20px;background:#EFF6FF;border-left:4px solid #2563EB;border-radius:8px;">
+              <div style="padding:20px;background:#EFF6FF;border-left:4px solid #2563EB;border-radius:8px;margin-top:24px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:14px;">💡 Smart Integration</p>
                 <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:13px;">Meeting Questions are generated based on the Meeting Focus you set during Personalization in the Getting Started section.</p>
               </div>
@@ -1805,8 +1671,6 @@ console: {
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🎯 HOW IT WORKS</p>
                 <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Before your meeting, you set a <strong>Meeting Focus</strong> in the Personalization section (Getting Started). The AI uses this focus to generate relevant questions during your meeting that can be answered from your document knowledge base.</p>
               </div>
-
-              
 
               <p style="margin-bottom:12px;font-weight:600;">How to use Meeting Questions:</p>
               <ol style="margin:0 0 24px 0;padding-left:24px;">
@@ -1844,12 +1708,12 @@ console: {
               </ol>
 
               <img 
-  src="/tutorial/ask beyond.png" 
-  alt="Ask Beyond Screenshot"
-  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-/>
+                src="/tutorial/ask beyond.png" 
+                alt="Ask Beyond Screenshot"
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
 
-              <p style="margin-bottom:12px;font-weight:600;">When to use Ask Beyond:</p>
+              <p style="margin-bottom:12px;font-weight:600;margin-top:24px;">When to use Ask Beyond:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;">When information is not available in your documents</li>
                 <li style="margin-bottom:10px;padding-left:8px;">For real-time or current information needs</li>
@@ -1877,22 +1741,16 @@ console: {
                 <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">View your past questions and answers. Click the toggle history button to show or hide your conversation history with the AI Copilot.</p>
               </div>
 
-              
-
               <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;background:#fefefe;">
-                <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">📝 Question Input</p>
+                <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">🔍 Question Input</p>
                 <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Type custom questions directly to get answers from your documents and transcriptions.</p>
               </div>
-
-              
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
                 <strong>Pro Tip:</strong> Use toggle history to review previous answers and build on earlier conversations.
               </p>
             </div>
-            
           `
-          
         },
         {
           id: 'transcription-questions',
@@ -1915,7 +1773,6 @@ console: {
                 <li style="margin-bottom:0;padding-left:8px;">The AI answers those questions directly if the information is available in your documents</li>
               </ol>
 
-             
               <p style="margin-bottom:12px;font-weight:600;">Benefits:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Catch Missed Questions:</strong> Capture questions that weren't auto-generated</li>
@@ -1934,7 +1791,7 @@ console: {
     }
   ]
 },
-    {
+   {
   id: 'smart-suggestions',
   title: 'Smart Suggestions',
   description: 'Get AI-powered real-time insights during and after meetings with intelligent analysis and recommendations.',
@@ -1967,8 +1824,6 @@ console: {
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Playbook Suggestions:</strong> AI-recommended actions based on conversation flow</li>
               </ul>
 
-              
-
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
                 <strong>Pro Tip:</strong> Smart Suggestions work best when you set a clear Meeting Focus in Personalization before starting your meeting.
               </p>
@@ -1997,12 +1852,12 @@ console: {
               </ol>
 
               <img 
-  src="/tutorial/meeting questions.png" 
-  alt="Meeting Questions Screenshot"
-  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-/>
+                src="/tutorial/meeting questions.png" 
+                alt="Meeting Questions Screenshot"
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
 
-              <p style="margin-bottom:12px;font-weight:600;">Key features:</p>
+              <p style="margin-bottom:12px;font-weight:600;margin-top:24px;">Key features:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Topic-Specific:</strong> Questions are relevant to your meeting focus and subject</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Document-Backed:</strong> Answers come from your uploaded knowledge base</li>
@@ -2031,11 +1886,8 @@ console: {
               <p style="margin-bottom:12px;font-weight:600;">What Sources provide:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Document References:</strong> Shows which uploaded documents were used</li>
-               
-               
               </ul>
 
-              
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
                 <strong>Pro Tip:</strong> Always check Sources to ensure the AI's answers align with your most current documentation.
               </p>
@@ -2060,26 +1912,27 @@ console: {
                 <li style="margin-bottom:10px;padding-left:8px;">Helps identify client concerns and information needs</li>
                 <li style="margin-bottom:0;padding-left:8px;">Useful for follow-up and ensuring all client queries are addressed</li>
               </ul>
-<img 
-  src="/tutorial/client questions.png" 
-  alt="Client Questions Screenshot"
-  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-/>
-              <p style="margin-bottom:12px;font-weight:600;">User Questions:</p>
+
+              <img 
+                src="/tutorial/client questions.png" 
+                alt="Client Questions Screenshot"
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
+
+              <p style="margin-bottom:12px;font-weight:600;margin-top:24px;">User Questions:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;">Questions asked by you or your team members during the meeting</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Track internal queries and knowledge gaps</li>
                 <li style="margin-bottom:0;padding-left:8px;">Identify areas where additional documentation may be needed</li>
               </ul>
 
-<img 
-  src="/tutorial/user questions.png" 
-  alt="User Questions Screenshot"
-  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-/>
-              
+              <img 
+                src="/tutorial/user questions.png" 
+                alt="User Questions Screenshot"
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
+              />
 
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;margin-top:24px;">
                 <strong>Use Case:</strong> Review Client Questions after meetings to ensure comprehensive follow-up and client satisfaction.
               </p>
             </div>
@@ -2130,7 +1983,7 @@ console: {
               </div>
 
               <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px;background:#fefefe;">
-                <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">👔 Decision Maker Identification</p>
+                <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">💡 Decision Maker Identification</p>
                 <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">The AI identifies whether participants are decision makers based on their language and engagement patterns.</p>
               </div>
 
@@ -2138,8 +1991,6 @@ console: {
                 <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">🔄 Reset Sentiment</p>
                 <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Reset the sentiment analysis to start fresh. Useful when transitioning to a new topic or starting a new discussion phase.</p>
               </div>
-
-              
 
               <p style="margin-bottom:12px;font-weight:600;">Sentiment Indicators:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -2173,8 +2024,6 @@ console: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Response Strategies:</strong> Suggestions on how to address concerns or objections</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Conversation Guidance:</strong> Stay on track with meeting objectives</li>
               </ul>
-
-              
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
                 <strong>Use Case:</strong> Follow Playbook Suggestions to improve meeting outcomes and ensure you cover all critical points.
@@ -2474,7 +2323,7 @@ livePlaybook: {
   icon: <BookOpen style={{ width: '20px', height: '20px' }} />,
   emoji: '📘',
   items: [
-    {
+{
   id: 'playbook-analysis-section',
   title: 'Playbook Analysis',
   description: 'Automatically analyze sales meetings and track key decision-making factors in real-time.',
@@ -2497,7 +2346,11 @@ livePlaybook: {
                 <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">When the bot joins a meeting and transcriptions are recorded, Playbook Analysis automatically identifies and tracks key sales information discussed during the conversation.</p>
               </div>
 
-              
+              <img 
+                src="/tutorial/medpic list.png" 
+                alt="Medpic List Screenshot"
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-bottom:24px;image-rendering:-webkit-optimize-contrast;"
+              />
 
               <p style="margin-bottom:12px;font-weight:600;">Key analysis categories:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -2508,11 +2361,7 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Pain Points:</strong> Problems and challenges the prospect is facing</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Champion:</strong> Internal advocate supporting your solution</li>
               </ul>
-<img 
-  src="/tutorial/medpic list.png" 
-  alt="Medpic List Screenshot"
-  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-/>
+
               <p style="margin-bottom:12px;font-weight:600;">How it works:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;">Bot joins the meeting and starts recording transcriptions</li>
@@ -2521,7 +2370,6 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;">Generate summary button provides detailed insights for each category</li>
                 <li style="margin-bottom:0;padding-left:8px;">Information updates automatically during the meeting</li>
               </ul>
-              
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
                 <strong>Example:</strong> If someone mentions "Sundar Pichai is our champion at Google," Playbook Analysis will record this in the Champion category, mark it as "Discussed," and generate a summary explaining why this was identified.
@@ -2550,7 +2398,6 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Quantify value:</strong> Capture metrics and ROI discussions to justify investments</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Better deal strategy:</strong> Use insights to develop winning sales strategies</li>
               </ul>
-
 
               <p style="margin-bottom:12px;font-weight:600;">Sales benefits:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -2604,8 +2451,6 @@ livePlaybook: {
                 <li style="margin-bottom:0;padding-left:8px;">What matters most in making the decision</li>
               </ul>
 
-              
-
               <p style="margin-bottom:12px;font-weight:600;">4. Decision Process</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;">How the organization makes purchasing decisions</li>
@@ -2648,18 +2493,18 @@ livePlaybook: {
                 <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Status indicators help you quickly see which critical sales information has been covered in the conversation.</p>
               </div>
 
+              <img 
+                src="/tutorial/medpic analyzed.png" 
+                alt="Medpic Analyzed Screenshot"
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-bottom:24px;image-rendering:-webkit-optimize-contrast;"
+              />
+
               <p style="margin-bottom:12px;font-weight:600;">Status types:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Discussed:</strong> The topic was mentioned and information was captured</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Analyzed:</strong> The information has been processed and summarized</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Not Discussed:</strong> The topic hasn't been covered in the meeting yet</li>
               </ul>
-
-              <img 
-  src="/tutorial/medpic analyzed.png" 
-  alt="Medpic Analyzed Screenshot"
-  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-/>
 
               <p style="margin-bottom:12px;font-weight:600;">How to use status indicators:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -2697,7 +2542,6 @@ livePlaybook: {
                 <li style="margin-bottom:0;padding-left:8px;">Summary includes context and relevant details</li>
               </ol>
 
-             
               <p style="margin-bottom:12px;font-weight:600;">Example:</p>
               <div style="padding:16px;background:#f9fafb;border-left:3px solid #10B981;border-radius:4px;margin-bottom:24px;">
                 <p style="margin:0 0 8px 0;font-weight:600;">Meeting discussion:</p>
@@ -2733,6 +2577,12 @@ livePlaybook: {
                 <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Analysis updates automatically every 90 seconds to capture new information as the conversation unfolds.</p>
               </div>
 
+              <img 
+                src="/tutorial/goal analysis settings.png" 
+                alt="Goal Settings Screenshot" 
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-bottom:24px;image-rendering:-webkit-optimize-contrast;"
+              />
+
               <p style="margin-bottom:12px;font-weight:600;">Auto-refresh features:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>90-second interval:</strong> Default automatic refresh every 90 seconds</li>
@@ -2741,13 +2591,6 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Real-time updates:</strong> Latest information appears as it's analyzed</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Continuous monitoring:</strong> Works throughout the entire meeting</li>
               </ul>
-
-             <img 
-  src="/tutorial/goal analysis settings.png" 
-  alt="Goal Settings Screenshot" 
-  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-/>
-
 
               <p style="margin-bottom:12px;font-weight:600;">Using the refresh button:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -2766,7 +2609,6 @@ livePlaybook: {
                 <li style="margin-bottom:0;padding-left:8px;">Auto-refresh starts working with new interval</li>
               </ol>
 
-              
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #EF4444;border-radius:4px;font-size:14px;">
                 <strong>Important:</strong> Do not click the refresh button multiple times. It is advised to wait for the current refresh to complete before clicking again to avoid system overload.
               </p>
@@ -2804,8 +2646,6 @@ livePlaybook: {
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Plan follow-up:</strong> Schedule meetings to address missing information</li>
               </ul>
 
-             
-
               <p style="margin-bottom:12px;font-weight:600;">Key strategies:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Complete coverage:</strong> Try to discuss all six categories in discovery calls</li>
@@ -2826,7 +2666,7 @@ livePlaybook: {
     }
   ]
 },
-    {
+   {
   id: 'buying-signals-section',
   title: 'Buying Signals',
   description: 'Automatically detect and track buying intent signals during sales conversations.',
@@ -2849,7 +2689,20 @@ livePlaybook: {
                 <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">During the meeting conversation, Buying Signals identifies when prospects show purchase interest and automatically assigns point values to each signal detected.</p>
               </div>
 
-              
+              <img 
+  src="/tutorial/buying signals.png" 
+  alt="Buying Signals Screenshot"
+  style="
+    width: 500px;           /* Make image smaller */
+    height: auto;
+    display: block;
+    border-radius: 8px;
+    object-fit: contain;
+    margin-bottom: 24px;
+    image-rendering: -webkit-optimize-contrast;
+  "
+/>
+
 
               <p style="margin-bottom:12px;font-weight:600;">Key features:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -2869,12 +2722,6 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;">"I'd like to discuss pricing"</li>
                 <li style="margin-bottom:0;padding-left:8px;">"Can you send over the contract?"</li>
               </ul>
-              <img 
-  src="/tutorial/buying signals.png" 
-  alt="Buying Signals Screenshot" 
-  style="width:100%;max-width:500px;height:auto;display:block;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:sticky;top:20px;"
-/>
-
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
                 <strong>How it works:</strong> When a prospect says something like "I am finalizing the product," Buying Signals detects this, assigns points (e.g., 25 points), and generates an AI summary explaining why this indicates buying intent.
@@ -2903,8 +2750,6 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;">Points are automatically assigned to the signal</li>
                 <li style="margin-bottom:0;padding-left:8px;">AI summary explains why it's a buying signal</li>
               </ol>
-
-              
 
               <p style="margin-bottom:12px;font-weight:600;">What the AI looks for:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -2943,7 +2788,6 @@ livePlaybook: {
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Signal tracking:</strong> Each signal contributes to overall score</li>
               </ul>
 
-             
               <p style="margin-bottom:12px;font-weight:600;">How to use the score:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Prioritize leads:</strong> Focus on prospects with higher scores</li>
@@ -2988,8 +2832,6 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Significance:</strong> What this means for the sales opportunity</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Recommended actions:</strong> Potential next steps based on the signal</li>
               </ul>
-
-              
 
               <p style="margin-bottom:12px;font-weight:600;">Example summary:</p>
               <div style="padding:16px;background:#f9fafb;border-left:3px solid #10B981;border-radius:4px;margin-bottom:24px;">
@@ -3045,8 +2887,6 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Update CRM:</strong> Record buying signals and scores</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Plan next steps:</strong> Create action plan based on detected intent</li>
               </ul>
-
-              
 
               <p style="margin-bottom:12px;font-weight:600;">Using scores for prioritization:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -3108,7 +2948,7 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Progress tracking:</strong> See which goals have been addressed</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>AI-generated summaries:</strong> Get instant insights on goal completion</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Customizable analysis:</strong> Configure how and when goals are analyzed</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Universal access:</strong> Available in both Note-Taker and main console</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Universal access:</strong> Available in both Analyser and main console</li>
               </ul>
 
               <p style="margin-bottom:12px;font-weight:600;">How it works:</p>
@@ -3193,19 +3033,19 @@ livePlaybook: {
           question: 'Where can I view Custom Goals during a meeting?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Custom Goals can be viewed in two locations during your meeting: within the Note-Taker interface and on the main console. Both views provide the same functionality and real-time analysis.</p>
+              <p style="margin-bottom:20px;">Custom Goals can be viewed in two locations during your meeting: within the Analyser interface and on the main console. Both views provide the same functionality and real-time analysis.</p>
               
               <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">📍 DUAL ACCESS</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Access your Custom Goals from either Note-Taker or main console - both display the same information and update in real-time.</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Access your Custom Goals from either Analyser or main console - both display the same information and update in real-time.</p>
               </div>
 
               
 
-              <p style="margin-bottom:12px;font-weight:600;">Note-Taker view:</p>
+              <p style="margin-bottom:12px;font-weight:600;">Analyser view:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Integrated interface:</strong> Custom Goals appear alongside other meeting features</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Click on Note-Taker:</strong> Select Custom Goals tab when bot joins meeting</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Click on Analyser:</strong> Select Custom Goals tab when bot joins meeting</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>All-in-one view:</strong> See goals with transcription, chat, and AI features</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Convenient access:</strong> Switch between features without leaving interface</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Same functionality:</strong> All features available as in main console</li>
@@ -3217,7 +3057,7 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Direct access:</strong> Navigate to Custom Goals section in console</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Larger display:</strong> More screen real estate for goal analysis</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Detailed view:</strong> See all goal details and analysis at once</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Same information:</strong> Identical content as Note-Taker view</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Same information:</strong> Identical content as Analyser view</li>
               </ul>
 
               <p style="margin-bottom:12px;font-weight:600;">What you'll see in both views:</p>
@@ -3230,7 +3070,7 @@ livePlaybook: {
               </ul>
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Pro Tip:</strong> Choose Note-Taker view for multitasking during meetings, or main console view when you want to focus specifically on goal tracking.
+                <strong>Pro Tip:</strong> Choose Analyser view for multitasking during meetings, or main console view when you want to focus specifically on goal tracking.
               </p>
             </div>
           `
@@ -3436,7 +3276,7 @@ livePlaybook: {
 
               <p style="margin-bottom:12px;font-weight:600;">How to access settings:</p>
               <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;">Navigate to Custom Goals in Note-Taker or main console</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Navigate to Custom Goals in Analyser or main console</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Look for "Goal Analysis Settings" button or option</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Click to open settings panel</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Configure your preferred options</li>
@@ -3505,7 +3345,7 @@ livePlaybook: {
 
               <p style="margin-bottom:12px;font-weight:600;">During the meeting:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Start transcription immediately:</strong> Click Note-Taker when bot joins to capture from beginning</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Start transcription immediately:</strong> Click Analyser when bot joins to capture from beginning</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Monitor progress:</strong> Check goal status periodically throughout meeting</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Use refresh strategically:</strong> Manual refresh after covering important topics</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Reference in real-time:</strong> Check which goals still need attention</li>
@@ -3552,7 +3392,7 @@ livePlaybook: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Adding goals mid-meeting:</strong> Can't be done - must add before meeting starts</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Too many goals:</strong> More than 10 becomes difficult to track effectively</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Vague objectives:</strong> Makes AI detection and analysis less accurate</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Forgetting to activate:</strong> Must click Note-Taker for tracking to work</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Forgetting to activate:</strong> Must click Analyser for tracking to work</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Never refreshing:</strong> Won't see latest analysis without updates</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Ignoring unaddressed goals:</strong> Check status and address missed objectives</li>
               </ul>
@@ -3870,8 +3710,8 @@ livePlaybook: {
 }
   ]
 },
-notetaker: {
-  cardId: 'card-notetaker',
+Analyser: {
+  cardId: 'card-Analyser',
   cardTitle: 'Note Taker',
   cardDescription:
     'Your intelligent meeting assistant — capture insights, build templates, set goals, and generate summaries effortlessly.',
@@ -3879,8 +3719,8 @@ notetaker: {
   emoji: '🧾',
   items: [
     {
-  id: 'ai-template-notetaker',
-  title: 'AI Template in Note-Taker',
+  id: 'ai-template-analyser',
+  title: 'AI Template in Analyser',
   description: 'Leverage pre-built and custom AI templates to automatically generate meeting insights, summaries, and analysis.',
   questions: [
     {
@@ -3891,7 +3731,7 @@ notetaker: {
       subQuestions: [
         {
           id: 'what-is-ai-template',
-          question: 'What is AI Template in Note-Taker?',
+          question: 'What is AI Template in Analyser?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
               <p style="margin-bottom:20px;"><strong>AI Template</strong> is a powerful feature that allows you to automatically generate structured meeting outputs with a single click. When you select a template, it instantly directs you to the AI assistant and generates the requested content.</p>
@@ -4089,7 +3929,7 @@ notetaker: {
 
               <p style="margin-bottom:12px;font-weight:600;">Using Pre-built Templates:</p>
               <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;">Navigate to the <strong>AI Template</strong> section in Note-Taker</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Navigate to the <strong>AI Template</strong> section in Analyser</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Browse available Pre-built Templates</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Click on the template that matches your needs</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Automatically redirected to AI assistant</li>
@@ -5095,7 +4935,7 @@ notetaker: {
 
               <p style="margin-bottom:12px;font-weight:600;">How it works:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;">Click on Note-Taker when the bot joins the meeting</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Click on Analyser when the bot joins the meeting</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Transcription starts with a 10-15 second delay</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Words appear in real-time as people speak</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Continues recording throughout the entire meeting</li>
@@ -5113,17 +4953,17 @@ notetaker: {
           question: 'How do I start Live Transcription?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Live Transcription starts automatically when you click on the Note-Taker after the bot joins your meeting.</p>
+              <p style="margin-bottom:20px;">Live Transcription starts automatically when you click on the Analyser after the bot joins your meeting.</p>
               
               <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">▶️ QUICK START</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Simply click on Note-Taker as soon as the bot joins to ensure you capture the complete meeting from the very beginning.</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Simply click on Analyser as soon as the bot joins to ensure you capture the complete meeting from the very beginning.</p>
               </div>
 
               <p style="margin-bottom:12px;font-weight:600;">Step-by-step guide:</p>
               <ol style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;">Wait for the bot to join your meeting</li>
-                <li style="margin-bottom:10px;padding-left:8px;">Click on the <strong>Note-Taker</strong> option</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Click on the <strong>Analyser</strong> option</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Wait 10-15 seconds for transcription to initialize</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Transcription begins and text starts appearing</li>
                 <li style="margin-bottom:0;padding-left:8px;">Continue your meeting normally while transcription runs</li>
@@ -5140,7 +4980,7 @@ notetaker: {
               </ul>
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Pro Tip:</strong> Click on Note-Taker immediately when the bot joins to ensure no content is missed from the beginning of your meeting.
+                <strong>Pro Tip:</strong> Click on Analyser immediately when the bot joins to ensure no content is missed from the beginning of your meeting.
               </p>
             </div>
           `
@@ -5177,7 +5017,7 @@ notetaker: {
 
               <p style="margin-bottom:12px;font-weight:600;">How to minimize missed content:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Click immediately:</strong> Activate Note-Taker as soon as the bot joins</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Click immediately:</strong> Activate Analyser as soon as the bot joins</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Wait before starting:</strong> Give the system 15 seconds to initialize before important discussions</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Use introductions:</strong> Allow delay time for greetings and small talk</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Plan accordingly:</strong> Factor in initialization time when scheduling</li>
@@ -5194,18 +5034,18 @@ notetaker: {
           question: 'How do I ensure transcription captures from the beginning?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">To capture your meeting from the very beginning, it's crucial to click on Note-Taker immediately when the bot joins, before any important discussion starts.</p>
+              <p style="margin-bottom:20px;">To capture your meeting from the very beginning, it's crucial to click on Analyser immediately when the bot joins, before any important discussion starts.</p>
               
               <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🎬 COMPLETE CAPTURE</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Activating Note-Taker immediately ensures no transcriptions are missing and you have a complete record of your entire meeting.</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Activating Analyser immediately ensures no transcriptions are missing and you have a complete record of your entire meeting.</p>
               </div>
 
               <p style="margin-bottom:12px;font-weight:600;">Best practices for complete capture:</p>
               <ol style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:12px;padding-left:8px;">
                   <strong>Click immediately when bot joins</strong><br>
-                  <span style="font-size:14px;color:#6B7280;">Don't wait - activate Note-Taker the moment the bot enters the meeting</span>
+                  <span style="font-size:14px;color:#6B7280;">Don't wait - activate Analyser the moment the bot enters the meeting</span>
                 </li>
                 <li style="margin-bottom:12px;padding-left:8px;">
                   <strong>Account for 10-15 second delay</strong><br>
@@ -5237,14 +5077,14 @@ notetaker: {
               <p style="margin-bottom:12px;font-weight:600;">Meeting preparation tips:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Schedule bot early:</strong> Have the bot join a minute before meeting start</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Be ready to click:</strong> Know where the Note-Taker button is located</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Be ready to click:</strong> Know where the Analyser button is located</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Brief participants:</strong> Let others know you're waiting for transcription to start</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Buffer time:</strong> Build in 20-30 seconds before agenda items begin</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Visual confirmation:</strong> Always verify transcription is running before proceeding</li>
               </ul>
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Critical:</strong> To ensure no transcriptions are missing, click on Note-Taker immediately when the bot joins the meeting. This is the most important step for complete capture.
+                <strong>Critical:</strong> To ensure no transcriptions are missing, click on Analyser immediately when the bot joins the meeting. This is the most important step for complete capture.
               </p>
             </div>
           `
@@ -5254,7 +5094,7 @@ notetaker: {
           question: 'How does Live Transcription compare to main console transcription?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Live Transcription in Note-Taker works the same as the live transcriptions in the main console, providing consistent functionality and quality across both interfaces.</p>
+              <p style="margin-bottom:20px;">Live Transcription in Analyser works the same as the live transcriptions in the main console, providing consistent functionality and quality across both interfaces.</p>
               
               <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🔄 CONSISTENT EXPERIENCE</p>
@@ -5275,13 +5115,13 @@ notetaker: {
 
               <p style="margin-bottom:12px;font-weight:600;">Key differences:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Interface location:</strong> Note-Taker provides integrated view with other meeting tools</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Interface location:</strong> Analyser provides integrated view with other meeting tools</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Layout:</strong> May be displayed differently based on available space</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Context:</strong> Note-Taker shows transcription alongside goals, chat, and AI features</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Workflow integration:</strong> Better integrated with other Note-Taker features</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Context:</strong> Analyser shows transcription alongside goals, chat, and AI features</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Workflow integration:</strong> Better integrated with other Analyser features</li>
               </ul>
 
-              <p style="margin-bottom:12px;font-weight:600;">Why use Note-Taker transcription:</p>
+              <p style="margin-bottom:12px;font-weight:600;">Why use Analyser transcription:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>All-in-one view:</strong> Access transcription alongside other features</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Contextual reference:</strong> See transcription while using Custom Goals or AI Templates</li>
@@ -5337,7 +5177,7 @@ notetaker: {
               </ul>
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Pro Tip:</strong> You can view the transcription while using other Note-Taker features like Custom Goals or AI Templates for a complete meeting management experience.
+                <strong>Pro Tip:</strong> You can view the transcription while using other Analyser features like Custom Goals or AI Templates for a complete meeting management experience.
               </p>
             </div>
           `
@@ -7239,7 +7079,7 @@ notetaker: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Full transcripts:</strong> Complete text record of conversations</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Participant information:</strong> Number and details of attendees</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Key analytics:</strong> Performance metrics and insights</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Note-Taker access:</strong> Direct link to meeting note-taker</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Analyser access:</strong> Direct link to meeting Analyser</li>
               </ul>
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
@@ -7277,7 +7117,7 @@ notetaker: {
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Duration:</strong> How long the meeting lasted</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Participants:</strong> Number and details of attendees</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Status:</strong> Completion status and recording state</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Quick actions:</strong> Options to edit, access note-taker, or export</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Quick actions:</strong> Options to edit, access Analyser, or export</li>
               </ul>
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
@@ -7486,27 +7326,27 @@ notetaker: {
           `
         },
         {
-          id: 'accessing-note-taker',
-          question: 'How do I access the Note-Taker from Meeting Logs?',
+          id: 'accessing-Analyser',
+          question: 'How do I access the Analyser from Meeting Logs?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Meeting Logs provide a direct link to access the <strong>Note-Taker</strong> for any recorded meeting, allowing you to review all meeting features in one place.</p>
+              <p style="margin-bottom:20px;">Meeting Logs provide a direct link to access the <strong>Analyser</strong> for any recorded meeting, allowing you to review all meeting features in one place.</p>
               
               <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🔗 DIRECT ACCESS</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Click on "Go to Note-Taker" to access the full note-taking interface for any past meeting.</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Click on "Go to Analyser" to access the full note-taking interface for any past meeting.</p>
               </div>
 
-              <p style="margin-bottom:12px;font-weight:600;">How to access Note-Taker:</p>
+              <p style="margin-bottom:12px;font-weight:600;">How to access Analyser:</p>
               <ol style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;">Open Meeting Logs section</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Find the meeting you want to review</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Click "View Details" on the meeting</li>
-                <li style="margin-bottom:10px;padding-left:8px;">Look for "Go to Note-Taker" button or link</li>
-                <li style="margin-bottom:0;padding-left:8px;">Click to access the full Note-Taker interface</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Look for "Go to Analyser" button or link</li>
+                <li style="margin-bottom:0;padding-left:8px;">Click to access the full Analyser interface</li>
               </ol>
 
-              <p style="margin-bottom:12px;font-weight:600;">What you can do in Note-Taker:</p>
+              <p style="margin-bottom:12px;font-weight:600;">What you can do in Analyser:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Review transcription:</strong> See live transcription from the meeting</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Check custom goals:</strong> View custom goals that were set</li>
@@ -7515,17 +7355,17 @@ notetaker: {
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Export content:</strong> Download or share meeting content</li>
               </ul>
 
-              <p style="margin-bottom:12px;font-weight:600;">Benefits of Note-Taker access:</p>
+              <p style="margin-bottom:12px;font-weight:600;">Benefits of Analyser access:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Complete context:</strong> Access all meeting features in one place</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Detailed review:</strong> See everything that happened during meeting</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Easy navigation:</strong> Jump between logs and Note-Taker seamlessly</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Easy navigation:</strong> Jump between logs and Analyser seamlessly</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Comprehensive view:</strong> All meeting tools and data available</li>
                 <li style="margin-bottom:0;padding-left:8px;"><strong>Quick reference:</strong> Access specific meeting features instantly</li>
               </ul>
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Quick Access:</strong> The "Go to Note-Taker" option provides seamless access from Meeting Logs to the full Note-Taker interface for comprehensive meeting review.
+                <strong>Quick Access:</strong> The "Go to Analyser" option provides seamless access from Meeting Logs to the full Analyser interface for comprehensive meeting review.
               </p>
             </div>
           `

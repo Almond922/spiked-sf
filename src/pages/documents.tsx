@@ -337,8 +337,8 @@ const Sidebar = memo(
         section: "content" as SectionKey,
         title: "CONTENT",
         items: [
-          { id: "documents", label: "Documents", icon: FileText },
-          { id: "websites", label: "Websites", icon: Globe },
+          { id: "documents", label: "KnowledgeHub AI", icon: FileText },
+          { id: "websites", label: "WebAgent AI", icon: Globe },
           // { id: "connectors", label: "Connectors", icon: Link2 }, //
         ],
       },

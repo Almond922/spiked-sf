@@ -2125,7 +2125,7 @@ const AdminDashboard: React.FC = () => {
   const sidebarLinks = [
     { id: "dashboard", label: "Dashboard", icon: BarChart2 },
     // { id: "meetings", label: "Meetings", icon: Video },
-    { id: "meeting_simulator", label: "Simulator", icon: FlaskConical },
+    { id: "meeting_simulator", label: "Coach-Assist", icon: FlaskConical },
     { id: "meeting_logs", label: "Meeting Logs", icon: LayoutGrid },
     { id: "documents", label: "Content Hub", icon: FileText },
     // { id: "users", label: "Users", icon: Users },

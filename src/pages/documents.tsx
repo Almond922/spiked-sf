@@ -2992,17 +2992,17 @@ const App: React.FC = () => {
     };
   } = {
     documents: {
-      title: "Documents",
+      title: "KnowledgeHub AI",
       description: "Upload and manage your document library",
       Component: DocumentsPage,
     },
     websites: {
-      title: "Websites",
+      title: "WebAgent AI",
       description: "Crawl and index website content",
       Component: WebsitesPage,
     },
     connectors: {
-      title: "Connectors",
+      title: "Connect-Assist",
       description: "Integrate with external data sources",
       Component: ConnectorsPage,
     },

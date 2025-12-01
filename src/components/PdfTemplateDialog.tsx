@@ -22,10 +22,7 @@ interface Props {
 }
 
 const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transcriptText, sessionToken, isDarkMode, backendUrl }) => {
-	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-	// Helper to create unique key for each template
-	const getTemplateKey = (t: Template) => `${t.category}-${t.id}`;
+	const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 	const [includeTranscript, setIncludeTranscript] = useState(false);
 	const [isRunning, setIsRunning] = useState(false);
 	const [progressText, setProgressText] = useState('');
@@ -50,10 +47,10 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 		};
 	}, [templates]);
 
-	const toggle = (key: string) => {
+	const toggle = (id: number) => {
 		setSelectedIds(prev => {
 			const copy = new Set(prev);
-			if (copy.has(key)) copy.delete(key); else copy.add(key);
+			if (copy.has(id)) copy.delete(id); else copy.add(id);
 			return copy;
 		});
 	};
@@ -71,7 +68,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 		setIsRunning(true);
 		setProgressText('Preparing...');
 
-		const chosen = templates.filter(t => selectedIds.has(getTemplateKey(t)));
+		const chosen = templates.filter(t => selectedIds.has(t.id));
 		const responses: { template: Template; response: string }[] = [];
 
 		try {
@@ -127,6 +124,10 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 						doc.setFontSize(18);
 						doc.setTextColor(textPrimary);
 						doc.text('SpikedAI', margin + 11, 21);
+						doc.setFont('helvetica', 'normal');
+						doc.setFontSize(10);
+						doc.setTextColor(textSecondary);
+						doc.text('Selected Templates Report', pageWidth - margin, 20, { align: 'right' });
 						doc.setDrawColor(accentRed);
 						doc.setLineWidth(0.5);
 						doc.line(margin, 25, pageWidth - margin, 25);
@@ -334,12 +335,19 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 					addHeader();
 					yPosition = 40;
 
+					// Title
+					doc.setFont('helvetica', 'bold');
+					doc.setFontSize(20);
+					doc.setTextColor(textPrimary);
+					//doc.text('Selected Templates Output', margin, yPosition);
+					//yPosition += 12;
+
 					// timestamp
 					doc.setFont('helvetica', 'normal');
 					doc.setFontSize(9);
 					doc.setTextColor(textSecondary);
 					doc.text(`Generated: ${new Date().toLocaleString()}`, margin, yPosition);
-					yPosition += 8;
+					yPosition += 12;
 
 					for (let i = 0; i < responses.length; i++) {
 						const item = responses[i];
@@ -365,17 +373,26 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 						doc.text('Transcript', margin, yPosition);
 						yPosition += 8;
 						
-						// Render transcript as plain text with better formatting
+						// Render transcript as plain text with compact formatting
 						doc.setFont('helvetica', 'normal');
-						doc.setFontSize(9);
+						doc.setFontSize(8);
 						doc.setTextColor(textPrimary);
-						const transcriptLines = doc.splitTextToSize(transcriptText, contentWidth);
+						doc.setLineHeightFactor(1.2); // Reduce line spacing
+						
+						// Use a smaller margin for transcript content to fit more
+						const transcriptMargin = margin + 2;
+						const transcriptWidth = contentWidth - 4;
+						const transcriptLines = doc.splitTextToSize(transcriptText, transcriptWidth);
+						
 						for (let line of transcriptLines) {
-							checkPageBreak(10);
-							doc.text(line, margin, yPosition);
-							yPosition += 4;
+							checkPageBreak(6);
+							doc.text(line, transcriptMargin, yPosition);
+							yPosition += 3.5;
 						}
 						yPosition += 4;
+						
+						// Reset line height
+						doc.setLineHeightFactor(1.0);
 					}
 
 					addFooter();
@@ -437,15 +454,15 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 								Prebuilt Templates
 							</h4>
 							<span className={`text-xs px-2 py-1 rounded-full ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>
-								{grouped.prebuilt.filter(t => selectedIds.has(getTemplateKey(t))).length}/{grouped.prebuilt.length} selected
+								{grouped.prebuilt.filter(t => selectedIds.has(t.id)).length}/{grouped.prebuilt.length} selected
 							</span>
 						</div>
 						<div className="grid gap-2">
 							{grouped.prebuilt.map(t => (
 								<label 
-									key={getTemplateKey(t)} 
+									key={t.id} 
 									className={`flex items-start p-3 rounded-lg cursor-pointer transition-all border ${
-										selectedIds.has(getTemplateKey(t)) 
+										selectedIds.has(t.id) 
 											? isDarkMode 
 												? 'bg-red-900/20 border-red-500/50 shadow-sm' 
 												: 'bg-red-50 border-red-300 shadow-sm'
@@ -453,12 +470,11 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 												? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
 												: 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
 									} ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
-									onClick={(e) => { e.preventDefault(); if (!isRunning) toggle(getTemplateKey(t)); }}
 								>
 									<input 
 										type="checkbox" 
-										checked={selectedIds.has(getTemplateKey(t))} 
-										onChange={(e) => e.stopPropagation()} 
+										checked={selectedIds.has(t.id)} 
+										onChange={() => toggle(t.id)} 
 										disabled={isRunning}
 										className="mt-0.5 w-4 h-4 rounded accent-red-600 cursor-pointer"
 									/>
@@ -483,7 +499,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 							</h4>
 							{grouped.custom.length > 0 && (
 								<span className={`text-xs px-2 py-1 rounded-full ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>
-									{grouped.custom.filter(t => selectedIds.has(getTemplateKey(t))).length}/{grouped.custom.length} selected
+									{grouped.custom.filter(t => selectedIds.has(t.id)).length}/{grouped.custom.length} selected
 								</span>
 							)}
 						</div>
@@ -498,9 +514,9 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 							<div className="grid gap-2">
 								{grouped.custom.map(t => (
 									<label 
-										key={getTemplateKey(t)} 
+										key={t.id} 
 										className={`flex items-start p-3 rounded-lg cursor-pointer transition-all border ${
-											selectedIds.has(getTemplateKey(t)) 
+											selectedIds.has(t.id) 
 												? isDarkMode 
 													? 'bg-blue-900/20 border-blue-500/50 shadow-sm' 
 													: 'bg-blue-50 border-blue-300 shadow-sm'
@@ -508,12 +524,11 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 													? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
 													: 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
 										} ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
-										onClick={(e) => { e.preventDefault(); if (!isRunning) toggle(getTemplateKey(t)); }}
 									>
 										<input 
 											type="checkbox" 
-											checked={selectedIds.has(getTemplateKey(t))} 
-											onChange={(e) => e.stopPropagation()} 
+											checked={selectedIds.has(t.id)} 
+											onChange={() => toggle(t.id)} 
 											disabled={isRunning}
 											className="mt-0.5 w-4 h-4 rounded accent-blue-600 cursor-pointer"
 										/>
@@ -577,7 +592,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 						{/* Right side - Action buttons */}
 						<div className="flex items-center space-x-2">
 							<button 
-								onClick={() => { setSelectedIds(new Set(templates.map(t => getTemplateKey(t)))); }} 
+								onClick={() => { setSelectedIds(new Set(templates.map(t => t.id))); }} 
 								disabled={isRunning}
 								className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
 									isDarkMode 

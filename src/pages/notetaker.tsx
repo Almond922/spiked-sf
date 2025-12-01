@@ -11,7 +11,6 @@ import { useBotId } from '../BotIdContext';
 import { useAuth } from '../AuthContext';
 import { useTheme } from '../ThemeContext';
 import { fetchEventSource } from "@microsoft/fetch-event-source";
-import HelpChatWidget from './HelpChatWidget';
 import {
     Send,
     Users,
@@ -597,38 +596,35 @@ export default function Notetaker() {
         let promptParts: string[] = [];
 
         promptParts.push(`Based on the full transcript provided below, analyze each of the custom goals and provide a consolidated update.
-
-Your output MUST adhere to the following strict format for each goal, starting with the exact "Goal:" line. Do NOT include any conversational filler before the first "Goal:" line.
+        
+Your output MUST adhere to the following strict format for *each* goal, starting with the exact "Goal:" line. Do NOT include any conversational filler before the first "Goal:" line.
 
 Goal: [The Goal's description]
+Participants : [The names of the participants of the meeting]
 Status: [Achieved/In Progress/Not Started]
-Participants: [Names of all participants who contributed toward this goal]
 Summary/Analysis: [Your detailed summary and analysis...]
 
 Goals to analyze:
 - ${goalsText}
 `);
 
-let formatInstruction: string = `Your response MUST be a *single, raw text response* containing only the analysis for all goals, separated by the "Goal:" marker. For each goal:
-1. *Goal:* exactly as listed above.
-2. *Status:* (Achieved/In Progress/Not Started).
-3. *Participants:* List the names of all speakers who contributed relevant evidence.
-4. *Summary/Analysis:* A concise summary (around ${goalSettings.wordLimit} words).`;
+        let formatInstruction: string = `Your response MUST be a **single, raw text response** containing only the analysis for all goals, separated by the "Goal:" marker. For each goal:
+1. State the **Goal:** exactly as listed above.
+2. State its current **Status:** (Achieved/In Progress/Not Started).
+3. Provide a **Summary/Analysis:** of the progress based on the transcript, keeping the response for this summary concise, around ${goalSettings.wordLimit} words.`;
 
-if (goalSettings.format === 'detailed') {
-    formatInstruction = `Your response MUST be a *single, raw text response* containing only the analysis for all goals. For each goal, include:
-1. *Goal:* [The Goal's description]
-2. *Status:* [Achieved/In Progress/Not Started]
-3. *Participants:* Names of all participants who contributed relevant evidence.
-4. *Summary/Analysis:* A thorough analysis (strictly within ${goalSettings.wordLimit} words).
-5. *Evidence List:* A markdown list of the most relevant quotes/instances from the transcript.`;
-} else if (goalSettings.format === 'speakers_only') {
-    formatInstruction = `Your response MUST be a *single, raw text response* containing only the analysis for all goals. For each goal, include:
-1. *Goal:* [The Goal's description]
-2. *Status:* [Achieved/In Progress/Not Started]
-3. *Participants:* Names of all speakers who contributed evidence.
-4. *Summary/Analysis:* List only the names of the speakers who contributed evidence toward this goal.`;
-}
+        if (goalSettings.format === 'detailed') {
+            formatInstruction = `Your response MUST be a **single, raw text response** containing only the analysis for all goals. For each goal, include:
+1. **Goal:** [The Goal's description]
+2. **Status:** [Achieved/In Progress/Not Started]
+3. **Summary/Analysis:** A thorough analysis (strictly within ${goalSettings.wordLimit} words).
+4. **Evidence List:** A markdown list of the most relevant quotes/instances from the transcript.`;
+        } else if (goalSettings.format === 'speakers_only') {
+            formatInstruction = `Your response MUST be a **single, raw text response** containing only the analysis for all goals. For each goal, include:
+1. **Goal:** [The Goal's description]
+2. **Status:** [Achieved/In Progress/Not Started]
+3. **Summary/Analysis:** List only the names of the speakers who contributed evidence towards this goal.`;
+        }
 
         let inclusionInstruction: string = '';
         if (goalSettings.includeSpeakers) {
@@ -954,7 +950,30 @@ ${transcriptText}`;
     };
 
     const templates: Template[] = [
-        { id: 1, name: 'Summary', icon: FileText, theme: 'blue', description: 'Quickly summarize the meeting highlights, action items, and next steps.', prompt: 'Provide a concise and scannable summary of the meeting, including key discussion points, action items with owners, and clear next steps.', category: 'prebuilt' },
+        { id: 1, name: 'Summary', icon: FileText, theme: 'blue', description: 'Quickly summarize the meeting highlights, action items, and next steps.', prompt: `# Meeting Summary
+
+## Participants
+List all participants mentioned in the transcript (one per line)
+
+## Summary of Discussion
+
+### Section Title 1
+- Bullet points summarizing main points
+- Keep each bullet concise but clear
+
+### Section Title 2
+- Bullet points
+- Combine scattered mentions into coherent sections
+
+(Continue creating logical sections such as "Technical Discussion", "Clarifications Needed", "Decisions Made", etc., based on context.)
+
+## Next Steps
+- Bullet points with actionable items
+- Attribute items to people where possible (Name — task)
+
+---
+
+Based on the meeting transcript provided, please generate a meeting summary following the exact format and structure above. Extract all participants, organize the discussion into clear logical sections with descriptive titles, and list actionable next steps with owner attribution.`, category: 'prebuilt' },
         { id: 2, name: 'Stakeholder Mapper', icon: Users, theme: 'green', description: 'Map and analyze key stakeholder relationships', prompt: 'Based on the meeting transcript, identify all stakeholders mentioned, their roles, influence levels, and relationships. Create a stakeholder map with decision-making power analysis and recommend the best approach for each stakeholder.', category: 'prebuilt' },
         { id: 3, name: 'Battle Card Intelligence', icon: Shield, theme: 'red', description: 'Competitive intelligence and positioning', prompt: 'Analyze the meeting transcript for competitive mentions, concerns, or comparisons. Create a battle card with competitor strengths/weaknesses mentioned, objections raised, and recommended positioning strategies to address competitive threats.', category: 'prebuilt' },
         { id: 4, name: 'PLAYBOOK Command Center', icon: Target, theme: 'red', description: 'MEDDIC qualification framework', prompt: 'Evaluate this meeting using the MEDDIC framework: Metrics (quantifiable business impact), Economic Buyer (budget authority), Decision Criteria (evaluation factors), Decision Process (how they buy), Identify Pain (business problems), and Champion (internal advocate). Provide a detailed MEDDIC assessment with gaps and next steps.', category: 'prebuilt' },
@@ -1675,7 +1694,35 @@ ${transcriptText}`;
                     </div>
                 </div>
                 
-                
+                <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
+                    <div className="space-y-3">
+                        {meetingUrl ? (
+                            <div className="space-y-2">
+                                <div className="flex items-center space-x-2">
+                                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                                    <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                        Meeting URL:
+                                    </span>
+                                </div>
+                                <div className={`px-3 py-2 rounded-lg text-xs font-mono break-all ${
+                                        isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-white text-gray-600'
+                                    }`}>
+                                    {meetingUrl}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className={`py-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                <div className="text-center mb-3">
+                                    <div className={`p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                                        <Headphones className="w-12 h-12 text-gray-400" />
+                                    </div>
+                                    <h3 className="mb-2 text-lg font-bold text-black-600 dark:text-red-400">No Transcription Data</h3>
+                                    <p className="text-sm text-gray-500">Please connect a meeting to start live transcription.</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
                 
                 <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="flex-1 p-4 space-y-4 overflow-y-auto">

@@ -200,60 +200,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         </div>
                     </div>
 
-                    {/* Meeting Input and Connect Button */}
-                    <div className="flex items-center space-x-3">
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="🔗 Paste your meeting URL here..."
-                                value={meetingUrl}
-                                onChange={(e) => setMeetingUrl(e.target.value)}
-                                className={`pl-4 pr-12 py-3 rounded-xl border-2 w-96 transition-all duration-300 focus:ring-2 focus:ring-cerulean/50 focus:border-cerulean ${
-                                    isDarkMode
-                                        ? "bg-slate-700/50 border-slate-600 text-white placeholder-slate-400"
-                                        : "bg-white/80 border-non-photo-blue/30 text-gray-900 placeholder-slate-500 shadow-sm"
-                                }`}
-                            />
-                            {meetingUrl && (
-                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                                </div>
-                            )}
-                        </div>
-                        <button
-                            onClick={isBotRunning ? stopBot : handleConnectClick}
-                            disabled={
-                                !meetingUrl ||
-                                botStatus === "starting" ||
-                                botStatus === "stopping"
-                            }
-                            className={`px-6 py-3 rounded-xl font-semibold flex items-center space-x-2 transition-all duration-300 transform hover:scale-105 ${
-                                meetingUrl &&
-                                !(botStatus === "starting" || botStatus === "stopping")
-                                    ? isBotRunning
-                                        ? "bg-gradient-to-r from-red-pantone to-red-500 text-white hover:from-red-500 hover:to-red-pantone shadow-lg"
-                                        : "bg-gradient-to-r from-cerulean to-berkeley-blue text-white hover:from-berkeley-blue hover:to-cerulean shadow-lg"
-                                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                            }`}
-                        >
-                            {botStatus === "starting" || botStatus === "stopping" ? (
-                                <Loader className="w-5 h-5 animate-spin" />
-                            ) : isBotRunning ? (
-                                <X className="w-5 h-5" />
-                            ) : (
-                                <Bot className="w-5 h-5" />
-                            )}
-                            <span>
-                                {botStatus === "starting"
-                                    ? "Connecting..."
-                                    : botStatus === "stopping"
-                                    ? "Disconnecting..."
-                                    : isBotRunning
-                                    ? "Stop"
-                                    : "Connect Meet"}
-                            </span>
-                        </button>
-                    </div>
+                    
 
                     {/* Utility Buttons */}
                     <div className="flex items-center space-x-2">

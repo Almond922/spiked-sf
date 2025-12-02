@@ -38,6 +38,12 @@ const handleAsanaConnect = async () => {
     return Promise.resolve();
 };
 
+// Placeholder function for Notion (newly added, coming soon)
+const handleNotionConnect = async () => {
+    console.log('Notion connection is coming soon. Simulation skipped.');
+    return Promise.resolve();
+};
+
 // --- TYPES ---
 type Integration = {
     title: string;
@@ -159,14 +165,18 @@ const Integrations = () => {
     const [connectingHubSpot, setConnectingHubSpot] = useState(false);
     // Renamed state variable
     const [connectingAsana, setConnectingAsana] = useState(false); 
+    // Added state for Notion
+    const [connectingNotion, setConnectingNotion] = useState(false); 
 
     const handleJiraConnect = async () => {
         // This is now 'Coming Soon' so the actual API call logic is not needed for the button state,
         // but keeping the fetch structure for completeness if the 'Coming Soon' status is later removed.
-        if (integrationCategories.find(c => c.title === "Technical")?.integrations.find(i => i.title === "Jira")?.isComingSoon) {
-            console.log("Jira is coming soon. Skipping connection attempt.");
-            return;
-        }
+        // NOTE: integrationCategories isn't yet defined here, so this check will always fail. 
+        // We rely on the `isComingSoon` prop passed to the card component.
+        // if (integrationCategories.find(c => c.title === "Technical")?.integrations.find(i => i.title === "Jira")?.isComingSoon) {
+        //     console.log("Jira is coming soon. Skipping connection attempt.");
+        //     return;
+        // }
 
         try {
             setConnectingJira(true);
@@ -183,7 +193,6 @@ const Integrations = () => {
             window.location.href = data.auth_url;
         } catch (error) {
             console.error('Error connecting to Jira:', error);
-            // Replaced alert() with console.error()
             setConnectingJira(false);
         }
     };
@@ -204,17 +213,16 @@ const Integrations = () => {
             window.location.href = data.auth_url;
         } catch (error) {
             console.error('Error connecting to HubSpot:', error);
-            // Replaced alert() with console.error()
             setConnectingHubSpot(false);
         }
     };
     
     const handleAsanaConnection = async () => {
         // Asana is marked as 'Coming Soon', so this simulates the eventual connection or provides feedback
-        if (integrationCategories.find(c => c.title === "Project Management")?.integrations.find(i => i.title === "Asana")?.isComingSoon) {
-             console.log("Asana is coming soon. Skipping connection attempt.");
-            return;
-        }
+        // if (integrationCategories.find(c => c.title === "Project Management")?.integrations.find(i => i.title === "Asana")?.isComingSoon) {
+        //      console.log("Asana is coming soon. Skipping connection attempt.");
+        //     return;
+        // }
         
         try {
             setConnectingAsana(true);
@@ -224,6 +232,24 @@ const Integrations = () => {
         } catch (error) {
             console.error('Error connecting to Asana:', error);
             setConnectingAsana(false);
+        }
+    };
+    
+    // Handler for Notion connection (Coming Soon)
+    const handleNotionConnection = async () => {
+        // if (integrationCategories.find(c => c.title === "Project Management")?.integrations.find(i => i.title === "Notion")?.isComingSoon) {
+        //      console.log("Notion is coming soon. Skipping connection attempt.");
+        //     return;
+        // }
+
+        try {
+            setConnectingNotion(true);
+            await handleNotionConnect(); // Placeholder function
+            setConnectingNotion(false);
+            console.log("Notion connection simulated successfully.");
+        } catch (error) {
+            console.error('Error connecting to Notion:', error);
+            setConnectingNotion(false);
         }
     };
     
@@ -259,24 +285,27 @@ const Integrations = () => {
             ]
         },
         { 
-            // Updated title from 'Customer Support'
             title: "Project Management", 
-            // Updated description
             description: "Tools for tracking projects, tasks, and team collaboration.",
             integrations: [
                 {
-                    // Updated from 'Gain Sights' to 'Asana'
                     title: "Asana",
-                    // Asana logo URL
                     iconUrl: "https://cdn.worldvectorlogo.com/logos/asana-1.svg",
-                    // Updated description
                     description: "Sync project tasks and updates bi-directionally from your meeting notes.",
                     buttonColor: 'purple',
-                    // Updated handler
                     onConnect: handleAsanaConnection, 
-                    // Updated state variable
                     isConnecting: connectingAsana, 
                     isComingSoon: true, // Updated to 'Coming Soon'
+                },
+                {
+                    // NEW: Notion Integration
+                    title: "Notion",
+                    iconUrl: "https://cdn.worldvectorlogo.com/logos/notion-1.svg",
+                    description: "Connect pages, databases, and meeting notes with your workspace.",
+                    buttonColor: 'purple',
+                    onConnect: handleNotionConnection, 
+                    isConnecting: connectingNotion, 
+                    isComingSoon: true, // Set to 'Coming Soon'
                 },
             ]
         },

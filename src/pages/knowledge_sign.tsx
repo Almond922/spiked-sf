@@ -120,7 +120,7 @@ const SignInFormDemo: FC<{ currentArticleId?: string }> = ({ currentArticleId = 
     'Navigate to Sign In page',
     'Enter email address',
     'Enter password',
-    'Click “Sign In” button',
+    'Click "Sign In" button',
   ];
 
   const [completedSteps, setCompletedSteps] = useState<boolean[]>([true, false, false, false]);
@@ -160,8 +160,7 @@ const SignInFormDemo: FC<{ currentArticleId?: string }> = ({ currentArticleId = 
 
   return (
     <div
-      style={{ aspectRatio: '1.2 / 1', maxWidth: '600px', minWidth: '350px' }}
-      className="flex w-full h-full rounded-xl overflow-hidden shadow-2xl bg-white"
+      className="flex w-full max-w-full md:max-w-[600px] rounded-xl overflow-hidden shadow-2xl bg-white"
     >
       {/* LEFT DARK PANEL */}
       <div className="hidden md:flex flex-col justify-between p-6 md:p-8 w-5/12 bg-[#080808] text-white">
@@ -323,8 +322,7 @@ const PasswordResetDemo: FC<{ currentArticleId?: string }> = ({ currentArticleId
 
   return (
     <div
-      style={{ aspectRatio: '1.2 / 1', maxWidth: '600px', minWidth: '350px' }}
-      className="flex w-full h-full rounded-xl overflow-hidden shadow-2xl bg-white"
+      className="flex w-full max-w-full md:max-w-[600px] rounded-xl overflow-hidden shadow-2xl bg-white"
     >
       {/* Dark left panel with checklist */}
       <div className="hidden md:flex flex-col justify-between p-6 md:p-8 w-5/12 bg-[#080808] text-white">
@@ -517,8 +515,7 @@ const MFADemo: FC<{ currentArticleId?: string }> = ({ currentArticleId = 'mfa-lo
 
   return (
     <div
-      style={{ aspectRatio: '1.2 / 1', maxWidth: '600px', minWidth: '350px' }}
-      className="flex w-full h-full rounded-xl overflow-hidden shadow-2xl bg-white"
+      className="flex w-full max-w-full md:max-w-[600px] rounded-xl overflow-hidden shadow-2xl bg-white"
     >
       {/* Left dark panel with MFA checklist */}
       <div className="hidden md:flex flex-col justify-between p-6 md:p-8 w-5/12 bg-[#080808] text-white">
@@ -655,8 +652,7 @@ const SSOFlowDemo: FC<{ currentArticleId?: string }> = ({ currentArticleId = 'ss
 
   return (
     <div
-      style={{ maxWidth: '600px', minWidth: '350px' }}
-      className="w-full rounded-xl shadow-2xl border border-gray-100 bg-white flex flex-col md:flex-row overflow-hidden min-h-[400px]"
+      className="w-full max-w-full md:max-w-[600px] rounded-xl shadow-2xl border border-gray-100 bg-white flex flex-col md:flex-row overflow-hidden min-h-[400px]"
     >
       {/* Left dark checklist column for SSO */}
       <div className="hidden md:flex flex-col justify-between w-5/12 bg-[#080808] text-white p-6">
@@ -863,9 +859,9 @@ const App: FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 font-inter flex flex-col">
       {/* TOP BLACK BAR */}
-      <div className="w-full bg-[#020617] text-white py-3 px-4 md:px-10 flex items-center justify-between shadow-md rounded-b-xl">
-        <div className="flex items-center gap-2 md:gap-3">
-          <span className="text-xs uppercase tracking-widest text-gray-400">
+      <div className="w-full bg-[#020617] text-white py-3 px-4 md:px-10 flex flex-wrap items-center justify-between gap-2 md:gap-4 shadow-md rounded-b-xl">
+        <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-shrink">
+          <span className="text-sm md:text-base lg:text-lg uppercase tracking-widest font-semibold text-white whitespace-nowrap">
             SIGN IN JOURNEY
           </span>
         </div>
@@ -906,7 +902,7 @@ const App: FC = () => {
             );
           })}
         </div>
-        <div className="flex items-center ml-4 space-x-3">
+        <div className="flex items-center ml-0 md:ml-4 space-x-2 md:space-x-3 flex-wrap gap-2">
           <button
             onClick={handleReset}
             disabled={activeTopIndex === 0}

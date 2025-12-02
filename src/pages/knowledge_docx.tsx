@@ -423,24 +423,25 @@ const AppConsole: FC<AppConsoleProps> = ({
   // --- RENDER SECTIONS ---
 
   const renderHeader = () => (
-    <header className="flex items-center justify-between p-3 bg-white border-b border-gray-100 shadow-md flex-shrink-0">
-      <div className="flex items-center space-x-4 flex-grow">
+    <header className="flex flex-col md:flex-row items-stretch md:items-center justify-between p-2 md:p-3 bg-white border-b border-gray-100 shadow-md flex-shrink-0 gap-2 md:gap-0">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center space-y-2 md:space-y-0 md:space-x-4 flex-grow">
         {/* Logo */}
-        <div className="flex items-center font-bold text-red-600 text-lg tracking-tight pr-4 border-r border-gray-200">
-          <div className="w-6 h-6 bg-red-600 rounded flex items-center justify-center mr-2">
-            <span className="text-white text-xs font-bold">!</span>
+        <div className="flex items-center font-bold text-red-600 text-sm md:text-base lg:text-lg tracking-tight pr-2 md:pr-4 border-r border-gray-200">
+          <div className="w-5 h-5 md:w-6 md:h-6 bg-red-600 rounded flex items-center justify-center mr-1 md:mr-2">
+            <span className="text-white text-[10px] md:text-xs font-bold">!</span>
           </div>
-          SpikedAI Conversational AI Platform
-          <span className="text-xs font-normal text-gray-500 ml-1">v2.1</span>
+          <span className="hidden sm:inline">SpikedAI Conversational AI Platform</span>
+          <span className="sm:hidden">SpikedAI</span>
+          <span className="text-[10px] md:text-xs font-normal text-gray-500 ml-1">v2.1</span>
         </div>
 
         {/* Meet URL input */}
-        <div className="flex items-center border border-gray-300 rounded-full bg-gray-50 overflow-hidden flex-grow max-w-md">
-          <Paperclip className="w-4 h-4 text-gray-400 ml-3" />
+        <div className="flex items-center border border-gray-300 rounded-full bg-gray-50 overflow-hidden flex-grow max-w-full md:max-w-md">
+          <Paperclip className="w-3 h-3 md:w-4 md:h-4 text-gray-400 ml-2 md:ml-3 flex-shrink-0" />
           <input
             type="text"
             placeholder="Paste your meeting URL here..."
-            className="flex-grow p-2 bg-transparent text-sm focus:outline-none"
+            className="flex-grow p-1.5 md:p-2 bg-transparent text-xs md:text-sm focus:outline-none"
             value={meetingUrl}
             onChange={(e) => handleMeetingUrlChange(e.target.value)}
           />
@@ -448,7 +449,7 @@ const AppConsole: FC<AppConsoleProps> = ({
 
         {/* Connect button */}
         <button
-          className={`px-5 py-2 text-sm font-semibold rounded-full transition shadow-lg flex items-center space-x-2 ${
+          className={`px-3 md:px-5 py-1.5 md:py-2 text-xs md:text-sm font-semibold rounded-full transition shadow-lg flex items-center justify-center space-x-1 md:space-x-2 flex-shrink-0 ${
             isConnected
               ? "bg-green-600 text-white"
               : isConnecting
@@ -459,18 +460,21 @@ const AppConsole: FC<AppConsoleProps> = ({
           }`}
           onClick={handleConnectMeet}
         >
-          <Calendar className="w-4 h-4" />
-          <span>
+          <Calendar className="w-3 h-3 md:w-4 md:h-4" />
+          <span className="hidden sm:inline">
             {isConnected
               ? "Connected"
               : isConnecting
               ? "Connecting..."
               : "Connect Meet"}
           </span>
+          <span className="sm:hidden">
+            {isConnected ? "✓" : isConnecting ? "..." : "Connect"}
+          </span>
         </button>
       </div>
 
-      <div className="flex items-center space-x-2 border-l border-gray-200 pl-4">
+      <div className="flex items-center space-x-1 md:space-x-2 border-t md:border-t-0 md:border-l border-gray-200 pt-2 md:pt-0 md:pl-4">
         <HeaderButton
           icon={<Settings className="w-5 h-5" />}
         />
@@ -489,7 +493,7 @@ const AppConsole: FC<AppConsoleProps> = ({
   );
 
   const renderLiveTranscriptionPanel = () => (
-    <div className="w-[200px] flex-shrink-0 bg-white border-r border-gray-200 p-4 flex flex-col h-full overflow-y-auto">
+    <div className="hidden md:flex w-[200px] flex-shrink-0 bg-white border-r border-gray-200 p-4 flex flex-col h-full overflow-y-auto">
       <div className="flex items-center mb-4 text-gray-700 flex-shrink-0">
         <Headphones className="w-5 h-5 mr-2" />
         <span className="font-semibold text-sm">Live-Assist</span>
@@ -697,7 +701,7 @@ const AppConsole: FC<AppConsoleProps> = ({
     };
 
     return (
-      <div className="w-[280px] flex-shrink-0 bg-white border-l border-gray-200 p-4 flex flex-col h-full overflow-y-auto relative">
+      <div className="hidden md:flex w-[280px] flex-shrink-0 bg-white border-l border-gray-200 p-4 flex flex-col h-full overflow-y-auto relative">
         <div className="flex items-center mb-4 text-gray-700 flex-shrink-0">
           <Target className="w-5 h-5 mr-2" />
           <span className="font-semibold text-sm">Intelli-Assist</span>
@@ -1068,10 +1072,11 @@ const AppWalkthroughLayout: FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 font-sans antialiased flex flex-col">
       {/* TOP BLACK BAR */}
-      <div className="w-full bg-[#020617] text-white py-3 px-4 md:px-10 flex items-center justify-between shadow-md rounded-b-xl">
-        <div className="flex items-center gap-2 md:gap-3">
-          <span className="text-xs uppercase tracking-widest text-gray-400">
-            DOCUMENT UPLOAD & MEETING BOT JOURNEY
+      <div className="w-full bg-[#020617] text-white py-3 px-4 md:px-10 flex flex-wrap items-center justify-between gap-2 md:gap-4 shadow-md rounded-b-xl">
+        <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-shrink">
+          <span className="text-sm md:text-base lg:text-lg uppercase tracking-widest font-semibold text-white whitespace-nowrap">
+            <span className="hidden sm:inline">DOCUMENT UPLOAD & MEETING BOT JOURNEY</span>
+            <span className="sm:hidden">DOC & MEET BOT</span>
           </span>
         </div>
         <div className="flex items-center gap-1 md:gap-2 overflow-x-auto">
@@ -1112,7 +1117,7 @@ const AppWalkthroughLayout: FC = () => {
             );
           })}
         </div>
-        <div className="flex items-center ml-4 space-x-3">
+        <div className="flex items-center ml-0 md:ml-4 space-x-2 md:space-x-3 flex-wrap gap-2">
           <button
             onClick={handleSpeak}
             className={`flex items-center px-4 py-2 rounded-lg transition-colors text-sm ${
@@ -1162,15 +1167,15 @@ const AppWalkthroughLayout: FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 flex justify-center items-center p-8">
-        <div className="max-w-7xl w-full flex bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 h-[90vh]">
-        {/* Left: Article + steps */}
-        <div
-          className={`p-12 flex flex-col justify-start border-r border-gray-100 overflow-y-auto transition-all duration-300 ${
-            isDocumentsPanelOpen ? "w-1/4" : "w-1/3"
-          } flex-shrink-0`}
-        >
-          <h1 className="text-2xl font-bold text-gray-800 mb-6">
+      <div className="flex-1 flex justify-center items-center p-4 md:p-6 lg:p-8">
+        <div className="max-w-7xl w-full flex flex-col lg:flex-row bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 min-h-[90vh] lg:h-[90vh]">
+        {/* Left: Article + steps */}
+        <div
+          className={`p-4 md:p-6 lg:p-12 flex flex-col justify-start border-r-0 lg:border-r border-gray-100 overflow-y-auto transition-all duration-300 ${
+            isDocumentsPanelOpen ? "lg:w-1/4" : "lg:w-1/3"
+          } w-full lg:flex-shrink-0`}
+        >
+          <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-800 mb-4 md:mb-6">
             Article: Upload a Document & Connect Your Meeting Bot
           </h1>
 
@@ -1197,12 +1202,12 @@ const AppWalkthroughLayout: FC = () => {
           </div>
         </div>
 
-        {/* Right: App console */}
-        <div
-          className={`bg-gray-100 flex-grow flex flex-col h-full transition-all duration-300 min-w-0 ${
-            isDocumentsPanelOpen ? "w-3/4" : "w-2/3"
-          }`}
-        >
+        {/* Right: App console */}
+        <div
+          className={`bg-gray-100 flex-grow flex flex-col h-full transition-all duration-300 min-w-0 ${
+            isDocumentsPanelOpen ? "lg:w-3/4" : "lg:w-2/3"
+          } w-full`}
+        >
           <div className="w-full bg-white flex-grow h-full">
             <AppConsole
               key={resetKey}

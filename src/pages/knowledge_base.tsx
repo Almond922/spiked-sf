@@ -84,8 +84,7 @@ const SignUpFormDemo: FC<SignUpFormDemoProps> = ({ onSignUpComplete, currentStep
 
   return (
     <div
-      style={{ aspectRatio: '1.2 / 1', maxWidth: '650px', minWidth: '380px' }}
-      className="flex w-full h-full rounded-xl overflow-hidden shadow-2xl bg-white"
+      className="flex w-full max-w-full md:max-w-[650px] rounded-xl overflow-hidden shadow-2xl bg-white"
     >
       {/* LEFT: colourful checklist */}
       <div className="hidden md:flex flex-col justify-between p-5 w-5/12 bg-gradient-to-b from-[#111827] via-[#020617] to-black text-white">
@@ -127,9 +126,9 @@ const SignUpFormDemo: FC<SignUpFormDemoProps> = ({ onSignUpComplete, currentStep
       </div>
 
       {/* RIGHT: actual form */}
-      <div className="w-full md:w-7/12 p-6 md:p-8 bg-white flex flex-col justify-center">
-        <h3 className="text-xl font-semibold text-gray-900 mb-1 font-sans"><br/>Create account</h3>
-        <p className="text-sm text-gray-500 mb-6 font-sans">Get started with your free SpikedAI workspace</p>
+      <div className="w-full md:w-7/12 p-4 md:p-6 lg:p-8 bg-white flex flex-col justify-center">
+        <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-1 font-sans">Create account</h3>
+        <p className="text-xs md:text-sm text-gray-500 mb-4 md:mb-6 font-sans">Get started with your free SpikedAI workspace</p>
 
         {status === 'success' ? (
           <div className="text-center p-6 bg-emerald-50 rounded-lg border border-emerald-200">
@@ -154,7 +153,7 @@ const SignUpFormDemo: FC<SignUpFormDemoProps> = ({ onSignUpComplete, currentStep
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label htmlFor="first_name" className="text-xs font-medium text-gray-700 block mb-1 font-sans">
                   First name
@@ -1045,9 +1044,9 @@ const App: FC = () => {
       </div>
 
       {/* TOP BLACK BAR */}
-      <div className="w-full bg-[#020617] text-white py-3 px-4 md:px-10 flex items-center justify-between shadow-md rounded-b-xl">
-        <div className="flex items-center gap-2 md:gap-3">
-          <span className="text-xs uppercase tracking-widest text-gray-400">
+      <div className="w-full bg-[#020617] text-white py-3 px-4 md:px-10 flex flex-wrap items-center justify-between gap-2 md:gap-4 shadow-md rounded-b-xl">
+        <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-shrink">
+          <span className="text-sm md:text-base lg:text-lg uppercase tracking-widest font-semibold text-white whitespace-nowrap">
             SIGN UP JOURNEY
           </span>
         </div>
@@ -1083,7 +1082,7 @@ const App: FC = () => {
             );
           })}
         </div>
-        <div className="flex items-center ml-4 space-x-3">
+        <div className="flex items-center ml-0 md:ml-4 space-x-2 md:space-x-3 flex-wrap gap-2">
           <button
             onClick={handleReset}
             disabled={currentStep === 'signup-process' && completedSteps.length === 0}
@@ -1144,11 +1143,11 @@ const App: FC = () => {
           })}
         </div>
 
-        <h1 className="text-2xl font-bold mb-4 text-gray-900 flex items-center justify-between">
-          Article: {topicData.question}
+        <h1 className="text-xl md:text-2xl font-bold mb-4 text-gray-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <span>Article: {topicData.question}</span>
           <button
             onClick={handleSpeak}
-            className={`flex items-center text-sm font-semibold py-1 px-3 rounded-full transition-colors whitespace-nowrap ${
+            className={`flex items-center text-xs sm:text-sm font-semibold py-1 px-3 rounded-full transition-colors whitespace-nowrap self-start sm:self-auto ${
               isSpeaking
                 ? 'bg-red-500 text-white hover:bg-red-600'
                 : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'
@@ -1156,18 +1155,18 @@ const App: FC = () => {
           >
             {isSpeaking ? (
               <>
-                <XCircle className="w-4 h-4 mr-1" /> Stop Listening
+                <XCircle className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">Stop Listening</span><span className="sm:hidden">Stop</span>
               </>
             ) : (
               <>
-                <Send className="w-4 h-4 mr-1 transform -rotate-45" /> Read Aloud
+                <Send className="w-4 h-4 mr-1 transform -rotate-45" /> <span className="hidden sm:inline">Read Aloud</span><span className="sm:hidden">Read</span>
               </>
             )}
           </button>
         </h1>
 
         {/* Two-column layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start py-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 items-start py-5">
           <div dangerouslySetInnerHTML={{ __html: textContent }} />
           <div className="flex justify-center md:justify-end">
             <RightSideComponent />

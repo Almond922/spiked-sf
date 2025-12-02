@@ -303,17 +303,17 @@ const MeetingFocusStep: FC<{ selectedTags: FocusTag[], onTagToggle: (tag: FocusT
     const [newDomain, setNewDomain] = useState('');
     const handleAdd = (e: FormEvent) => { e.preventDefault(); if (newDomain.trim()) { onAddDomain(newDomain.trim()); setNewDomain(''); } };
     const shouldHighlight = currentStep === 0;
-    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Tag className="w-5 h-5 mr-2 text-indigo-600" />Meeting Focus<Info className="w-4 h-4 ml-2 text-gray-400 cursor-pointer" /></div><p className="text-sm text-gray-600 mb-4">Add topics to focus the AI on. (Requires at least **one tag**)</p><div className={`border border-gray-300 p-4 rounded-lg bg-gray-50 space-y-3 ${shouldHighlight ? 'shadow-[0_0_15px_rgba(99,102,241,0.5)]' : ''}`}><div className="flex flex-wrap gap-2 mb-3">{MOCK_FOCUS_TAGS.map(tag => {const isSelected = selectedTags.some(t => t.id === tag.id); return (<button key={tag.id} onClick={() => onTagToggle(tag)} className={`flex items-center text-sm px-3 py-1 rounded-full transition-colors ${isSelected ? 'bg-red-600 text-white' : shouldHighlight ? 'bg-gray-200 text-gray-700 hover:bg-gray-300 shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{tag.label}{isSelected && <X className="w-3 h-3 ml-1" />}</button>);} )}</div><form onSubmit={handleAdd} className="w-full"><input type="text" value={newDomain} onChange={(e) => setNewDomain(e.target.value)} placeholder="Add a domain (e.g., 'Databricks')" className={`w-full px-3 py-2 text-sm border-b border-gray-300 focus:border-indigo-500 focus:ring-0 outline-none transition-colors ${shouldHighlight ? 'shadow-[0_0_12px_rgba(99,102,241,0.4)]' : ''}`}/>{newDomain && (<button type="submit" className="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium"><Plus className="w-3 h-3 inline-block mr-1" /> Add "{newDomain}"</button>)}</form></div></div>);
+    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Tag className="w-5 h-5 mr-2 text-indigo-600" />Meeting Focus<Info className="w-4 h-4 ml-2 text-gray-400 cursor-pointer" /></div><p className="text-sm text-gray-600 mb-4">Add topics to focus the AI on. (Requires at least **one tag**)</p><div className={`border border-gray-300 p-4 rounded-lg bg-gray-50 space-y-3 ${shouldHighlight ? 'shadow-[0_0_20px_rgba(99,102,241,0.6)] border-indigo-300' : ''}`}><div className="flex flex-wrap gap-2 mb-3">{MOCK_FOCUS_TAGS.map(tag => {const isSelected = selectedTags.some(t => t.id === tag.id); return (<button key={tag.id} onClick={() => onTagToggle(tag)} className={`flex items-center text-sm px-3 py-1 rounded-full transition-colors ${isSelected ? 'bg-red-600 text-white' : shouldHighlight ? 'bg-gray-200 text-gray-700 hover:bg-gray-300 shadow-[0_0_15px_rgba(99,102,241,0.5)] animate-pulse' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{tag.label}{isSelected && <X className="w-3 h-3 ml-1" />}</button>);} )}</div><form onSubmit={handleAdd} className="w-full"><input type="text" value={newDomain} onChange={(e) => setNewDomain(e.target.value)} placeholder="Add a domain (e.g., 'Databricks')" className={`w-full px-3 py-2 text-sm border-b border-gray-300 focus:border-indigo-500 focus:ring-0 outline-none transition-colors ${shouldHighlight ? 'shadow-[0_0_15px_rgba(99,102,241,0.5)] border-indigo-400' : ''}`}/>{newDomain && (<button type="submit" className={`mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium ${shouldHighlight ? 'shadow-[0_0_12px_rgba(99,102,241,0.4)] px-2 py-1 rounded' : ''}`}><Plus className="w-3 h-3 inline-block mr-1" /> Add "{newDomain}"</button>)}</form></div></div>);
 };
   
 const CustomerPersonaStep: FC<{ selectedPersona: Persona | null, onSelect: (persona: Persona) => void, currentStep?: number }> = ({ selectedPersona, onSelect, currentStep = 1 }) => {
     const shouldHighlight = currentStep === 1;
-    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Users className="w-5 h-5 mr-2 text-indigo-600" />Customer Persona</div><p className="text-sm text-gray-600 mb-4">Choose **one** persona to affect the AI's tone, depth, and focus. (Requires **one selection**)</p><div className="grid grid-cols-2 gap-4">{MOCK_PERSONAS.map(persona => {const isSelected = selectedPersona?.id === persona.id; return (<div key={persona.id} onClick={() => onSelect(persona)} className={`p-4 rounded-xl border-2 transition-all cursor-pointer min-h-[120px] relative ${isSelected ? 'border-indigo-600 bg-indigo-50 shadow-lg' : shouldHighlight ? 'border-gray-200 hover:border-indigo-400 bg-white shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'border-gray-200 hover:border-indigo-400 bg-white'}`}><div className="flex justify-between items-start mb-2"><h4 className="font-semibold text-base">{persona.title}</h4>{isSelected && <Check className="w-5 h-5 text-indigo-600" />}</div><p className="text-xs text-gray-600">{persona.description}</p>{persona.id === 'technical' && isSelected && (<div className="absolute inset-0 border-4 border-purple-600 rounded-xl pointer-events-none"></div>)}</div>);})}</div><h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">System Prompt</h3><div className="p-4 bg-gray-50 border border-gray-300 rounded-lg h-40 overflow-y-auto text-sm text-gray-700">{selectedPersona ? selectedPersona.detail : "Select a persona to see the corresponding system prompt/instruction that guides the AI's output."}</div></div>);
+    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Users className="w-5 h-5 mr-2 text-indigo-600" />Customer Persona</div><p className="text-sm text-gray-600 mb-4">Choose **one** persona to affect the AI's tone, depth, and focus. (Requires **one selection**)</p><div className={`grid grid-cols-2 gap-4 ${shouldHighlight ? 'p-2 rounded-lg shadow-[0_0_20px_rgba(99,102,241,0.3)]' : ''}`}>{MOCK_PERSONAS.map(persona => {const isSelected = selectedPersona?.id === persona.id; return (<div key={persona.id} onClick={() => onSelect(persona)} className={`p-4 rounded-xl border-2 transition-all cursor-pointer min-h-[120px] relative ${isSelected ? 'border-indigo-600 bg-indigo-50 shadow-lg' : shouldHighlight ? 'border-gray-200 hover:border-indigo-400 bg-white shadow-[0_0_18px_rgba(99,102,241,0.6)] animate-pulse' : 'border-gray-200 hover:border-indigo-400 bg-white'}`}><div className="flex justify-between items-start mb-2"><h4 className="font-semibold text-base">{persona.title}</h4>{isSelected && <Check className="w-5 h-5 text-indigo-600" />}</div><p className="text-xs text-gray-600">{persona.description}</p>{persona.id === 'technical' && isSelected && (<div className="absolute inset-0 border-4 border-purple-600 rounded-xl pointer-events-none"></div>)}</div>);})}</div><h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">System Prompt</h3><div className="p-4 bg-gray-50 border border-gray-300 rounded-lg h-40 overflow-y-auto text-sm text-gray-700">{selectedPersona ? selectedPersona.detail : "Select a persona to see the corresponding system prompt/instruction that guides the AI's output."}</div></div>);
 };
   
 const AnswerStylesStep: FC<{ selectedStyles: string[], onStyleToggle: (styleId: string) => void, currentStep?: number }> = ({ selectedStyles, onStyleToggle, currentStep = 2 }) => {
     const shouldHighlight = currentStep === 2;
-    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Zap className="w-5 h-5 mr-2 text-indigo-600" />Answer Styles</div><p className="text-sm text-gray-600 mb-4">Select **multiple** styles to customize responses. (Requires at least **one selection**)</p><div className="grid grid-cols-3 gap-3">{MOCK_ANSWER_STYLES.map(style => {const isSelected = selectedStyles.includes(style.id); return (<div key={style.id} onClick={() => onStyleToggle(style.id)} className={`p-3 rounded-lg border transition-all cursor-pointer min-h-[100px] relative ${isSelected ? 'border-green-600 bg-green-50 shadow-inner' : shouldHighlight ? 'border-gray-200 hover:border-green-300 bg-white shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'border-gray-200 hover:border-green-300 bg-white'}`}><div className="flex items-start mb-1"><h4 className="font-semibold text-sm text-gray-900">{style.title}</h4><div className={`w-3 h-3 rounded-full ml-auto mt-0.5 border ${isSelected ? 'bg-green-600 border-white' : 'bg-gray-200 border-gray-400'}`}></div></div><p className="text-xs text-gray-500">{style.description}</p></div>);})}</div></div>);
+    return (<div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 h-full"><div className="flex items-center text-lg font-semibold text-gray-900 mb-4"><Zap className="w-5 h-5 mr-2 text-indigo-600" />Answer Styles</div><p className="text-sm text-gray-600 mb-4">Select **multiple** styles to customize responses. (Requires at least **one selection**)</p><div className={`grid grid-cols-3 gap-3 ${shouldHighlight ? 'p-2 rounded-lg shadow-[0_0_20px_rgba(99,102,241,0.3)]' : ''}`}>{MOCK_ANSWER_STYLES.map(style => {const isSelected = selectedStyles.includes(style.id); return (<div key={style.id} onClick={() => onStyleToggle(style.id)} className={`p-3 rounded-lg border transition-all cursor-pointer min-h-[100px] relative ${isSelected ? 'border-green-600 bg-green-50 shadow-inner' : shouldHighlight ? 'border-gray-200 hover:border-green-300 bg-white shadow-[0_0_18px_rgba(99,102,241,0.6)] animate-pulse' : 'border-gray-200 hover:border-green-300 bg-white'}`}><div className="flex items-start mb-1"><h4 className="font-semibold text-sm text-gray-900">{style.title}</h4><div className={`w-3 h-3 rounded-full ml-auto mt-0.5 border ${isSelected ? 'bg-green-600 border-white' : 'bg-gray-200 border-gray-400'}`}></div></div><p className="text-xs text-gray-500">{style.description}</p></div>);})}</div></div>);
 };
 
 
@@ -539,13 +539,11 @@ const PersonalizationPage: FC = () => {
     return (
         <div className="bg-gray-50 min-h-screen font-sans flex flex-col">
             {/* TOP BLACK BAR */}
-            <div className="w-full bg-[#020617] text-white py-3 px-4 md:px-10 flex items-center justify-between shadow-md rounded-b-xl">
-                <div className="flex items-center gap-2 md:gap-3">
-                    <button onClick={handleBack} disabled={currentStep === 0 || isCompleted} className="p-2 rounded-full text-white hover:bg-gray-700 disabled:opacity-50">
-                        <ArrowLeft className="w-5 h-5" />
-                    </button>
-                    <span className="text-xs uppercase tracking-widest text-gray-400">
-                        PERSONALISATION JOURNEY
+            <div className="w-full bg-[#020617] text-white py-3 px-4 md:px-10 flex flex-wrap items-center justify-between gap-2 md:gap-4 shadow-md rounded-b-xl">
+                <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-shrink">
+                    <span className="text-sm md:text-base lg:text-lg uppercase tracking-widest font-semibold text-white whitespace-nowrap">
+                        <span className="hidden sm:inline">PERSONALISATION JOURNEY</span>
+                        <span className="sm:hidden">PERSONALISATION</span>
                     </span>
                 </div>
                 <div className="flex items-center gap-1 md:gap-2 overflow-x-auto">
@@ -580,7 +578,7 @@ const PersonalizationPage: FC = () => {
                         );
                     })}
                 </div>
-                <div className="flex space-x-3 ml-4">
+                <div className="flex items-center space-x-2 md:space-x-3 ml-0 md:ml-4 flex-wrap gap-2">
                     <button
                         onClick={handleSpeak}
                         className={`flex items-center px-4 py-2 rounded-lg transition-colors text-sm ${
@@ -608,7 +606,9 @@ const PersonalizationPage: FC = () => {
                         disabled={!isCurrentStepValid && !isSaveMode || isCompleted}
                         className={`flex items-center px-4 py-2 rounded-lg transition-colors text-sm ${
                             isCurrentStepValid || isSaveMode
-                                ? 'bg-indigo-400 text-gray-900 font-semibold hover:bg-indigo-300 shadow-[0_0_20px_rgba(34,197,94,0.6)]' 
+                                ? isSaveMode && currentStep === 3
+                                    ? 'bg-indigo-400 text-gray-900 font-semibold hover:bg-indigo-300 shadow-[0_0_25px_rgba(34,197,94,0.8)] animate-pulse'
+                                    : 'bg-indigo-400 text-gray-900 font-semibold hover:bg-indigo-300 shadow-[0_0_20px_rgba(34,197,94,0.6)]' 
                                 : 'bg-indigo-600 opacity-50 text-white cursor-not-allowed'
                         }`}
                     >
@@ -627,7 +627,7 @@ const PersonalizationPage: FC = () => {
             <div className="max-w-7xl mx-auto px-4 md:px-6 pt-6 pb-10">
 
                 {/* Main Step Content (3-column layout) */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[500px]">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 min-h-[500px]">
                     
                     {/* LEFT COLUMN: Bot Configuration and Guide */}
                     <div className="lg:col-span-1 space-y-6">
@@ -636,30 +636,30 @@ const PersonalizationPage: FC = () => {
                         <InteractiveGuidePanel currentStep={currentStep} stepsLength={STEPS.length} />
 
                         {/* Bot Configuration */}
-                        <div className="p-6 bg-white rounded-xl shadow-md border border-gray-100">
-                            <div className="flex items-center text-lg font-semibold text-gray-900 mb-3">
-                                <Settings className="w-5 h-5 mr-2 text-red-600" />
+                        <div className="p-4 md:p-6 bg-white rounded-xl shadow-md border border-gray-100">
+                            <div className="flex items-center text-base md:text-lg font-semibold text-gray-900 mb-3">
+                                <Settings className="w-4 h-4 md:w-5 md:h-5 mr-2 text-red-600" />
                                 Bot Configuration
                             </div>
                             <input
                                 type="text"
                                 value={botName}
                                 onChange={(e) => setBotName(e.target.value)}
-                                className="w-full p-2 border border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-indigo-500"
+                                className="w-full p-2 text-sm md:text-base border border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-indigo-500"
                             />
                         </div>
                         
                         {/* System Prompt Display */}
-                        <div className="p-6 bg-white rounded-xl shadow-md border border-gray-100">
-                            <div className="flex items-center text-lg font-semibold text-gray-900 mb-3">
-                                <Info className="w-5 h-5 mr-2 text-orange-600" />
+                        <div className="p-4 md:p-6 bg-white rounded-xl shadow-md border border-gray-100">
+                            <div className="flex items-center text-base md:text-lg font-semibold text-gray-900 mb-3">
+                                <Info className="w-4 h-4 md:w-5 md:h-5 mr-2 text-orange-600" />
                                 System Prompt
                             </div>
-                            <p className="text-sm text-gray-600 mb-2">The instruction set guiding the AI's core behavior.</p>
+                            <p className="text-xs md:text-sm text-gray-600 mb-2">The instruction set guiding the AI's core behavior.</p>
                             <textarea
                                 value={customerPersona?.detail || "Select a persona to load the System Prompt..."}
                                 readOnly
-                                className="w-full p-3 border border-gray-300 rounded-lg text-sm text-gray-700 bg-gray-50 h-48 focus:border-indigo-500 focus:ring-indigo-500"
+                                className="w-full p-3 border border-gray-300 rounded-lg text-xs md:text-sm text-gray-700 bg-gray-50 h-32 md:h-48 focus:border-indigo-500 focus:ring-indigo-500"
                             />
                         </div>
                     </div>

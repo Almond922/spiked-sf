@@ -816,7 +816,7 @@ const DocumentUploadModal = ({
               or drag and drop
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              PDF, DOC, TXT, etc. (Max 50 MB) {/* --- MODIFIED --- */}
+              PDF, DOC, TXT, etc. (Max 20 MB) {/* --- MODIFIED --- */}
             </p>
             <input
               ref={fileInputRef}
@@ -1332,7 +1332,10 @@ const SourcesListPage = ({
               {sources.length}
             </span>
             <span className="text-gray-500"> / {SOURCE_LIMIT}</span>
-          </div>
+          </div>  {countLabel === "Documents" && (
+              <span className="text-gray-500"> (Max size 20MB per document)</span>
+            )}
+           
           {/* --- END NEW --- */}
         </div>
         {/* --- END MODIFIED --- */}

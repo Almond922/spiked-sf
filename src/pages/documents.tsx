@@ -1332,7 +1332,10 @@ const SourcesListPage = ({
               {sources.length}
             </span>
             <span className="text-gray-500"> / {SOURCE_LIMIT}</span>
-          </div>
+          </div>  {countLabel === "Documents" && (
+              <span className="text-gray-500"> (Max size 20MB per document)</span>
+            )}
+           
           {/* --- END NEW --- */}
         </div>
         {/* --- END MODIFIED --- */}

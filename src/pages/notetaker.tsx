@@ -1714,10 +1714,10 @@ Based on the meeting transcript provided, please generate a meeting summary foll
                             <div className={`py-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                 <div className="text-center mb-3">
                                     <div className={`p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
-                                        <Headphones className="w-12 h-12 text-gray-400" />
+                                        <Headphones className="w-12 h-12 text-gray-400 animate-pulse" />
                                     </div>
-                                    <h3 className="mb-2 text-lg font-bold text-black-600 dark:text-red-400">No Transcription Data</h3>
-                                    <p className="text-sm text-gray-500">Please connect a meeting to start live transcription.</p>
+                                    <h3 className="mb-2 text-lg font-bold text-black-600 dark:text-red-400">Connecting AI Agent...</h3>
+                                    <p className="text-sm text-gray-500">Your AI agent is connecting. Please wait a few moments for the transcriptions to appear. Do not refresh or leave the page. You may navigate once the transcriptions are visible.</p>
                                 </div>
                             </div>
                         )}
@@ -1751,10 +1751,10 @@ Based on the meeting transcript provided, please generate a meeting summary foll
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full p-8 text-center">
                             <div className={`p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
-                                <Headphones className="w-12 h-12 text-gray-400" />
+                                <Headphones className="w-12 h-12 text-gray-400 animate-pulse" />
                             </div>
-                            <h3 className="mb-2 text-lg font-bold text-black-600 dark:text-red-400">No Transcription Data</h3>
-                            <p className="text-sm text-gray-500">Enter a meeting URL and click Start to begin recording.</p>
+                            <h3 className="mb-2 text-lg font-bold text-black-600 dark:text-red-400">Connecting AI Agent...</h3>
+                            <p className="text-sm text-gray-500">Your AI agent is connecting. Please wait a few moments for the transcriptions to appear. Do not refresh or leave the page. You may navigate once the transcriptions are visible.</p>
                         </div>
                     )}
                     <div ref={transcriptEndRef} />

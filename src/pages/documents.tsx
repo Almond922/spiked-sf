@@ -970,7 +970,7 @@ const DocumentUploadModal = ({
       const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 
       if (selectedFile.size > MAX_FILE_SIZE) {
-        setError("File size cannot exceed 50 MB.");
+        setError("File size cannot exceed 20 MB.");
         setFile(null);
         // Clear the file input so the user can re-select
         if (fileInputRef.current) {

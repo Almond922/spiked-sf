@@ -46,7 +46,7 @@ import { saveAs } from "file-saver";
 
 // --- CONFIGURATION ---
 const API_BASE_URL =
-  "http://127.0.0.1:8000";
+  "https://spikedai-production-application-409019309412.us-central1.run.app";
 // const BEARER_TOKEN = ""; // This was already commented out, which is good practice.
 
 // --- MOCK AUTH HOOK ---

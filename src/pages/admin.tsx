@@ -64,6 +64,7 @@ import {
   Sun,
   Moon,
   Pencil,
+  Route,
 } from "lucide-react";
 import SpikedAILogo from "/SpikedAI.png";
 import RecallLogo from "/recall.png";
@@ -2133,7 +2134,7 @@ const AdminDashboard: React.FC = () => {
     // { id: "api_keys", label: "API Keys", icon: KeyRound },
     { id: "support", label: "Support", icon: HelpCircle },
     { id: "tutorial", label: "Tutorial", icon: BookOpen },
-    {id:"knowledge_base",label:"User Journey",icon:BookOpen}
+    {id:"knowledge_base",label:"User Journey",icon:Route}
   ];
 
   const handleViewDetails = (id: string) => setSelectedMeetingId(id);

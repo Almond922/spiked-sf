@@ -116,9 +116,12 @@ const FULL_STEPS = [
 interface ReviewShareStepProps {
     onStartNew: () => void;
     onViewArticle: () => void;
+    currentStep?: number;
 }
 
-const ReviewShareStep: FC<ReviewShareStepProps> = ({ onStartNew, onViewArticle }) => (
+const ReviewShareStep: FC<ReviewShareStepProps> = ({ onStartNew, onViewArticle, currentStep = 4 }) => {
+    const shouldHighlightShare = currentStep === 4;
+    return (
     <div className="flex flex-col h-full w-full bg-gray-50 p-10 justify-center items-center">
         <div className="max-w-xl w-full bg-white p-10 rounded-xl shadow-lg border border-gray-200 text-center">
             <Mail className="w-12 h-12 mx-auto text-red-600 mb-4" />
@@ -129,7 +132,9 @@ const ReviewShareStep: FC<ReviewShareStepProps> = ({ onStartNew, onViewArticle }
                 The AI analysis is complete. Review the final report and distribute it to your team.
             </p>
             <div className="flex justify-center space-x-4">
-                <button className="py-3 px-6 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 flex items-center">
+                <button className={`py-3 px-6 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 flex items-center transition-all ${
+                    shouldHighlightShare ? 'shadow-[0_0_25px_rgba(239,68,68,0.8)] animate-pulse' : ''
+                }`}>
                     <Share2 className="w-5 h-5 mr-2" /> Share Final Report
                 </button>
                 <button onClick={onStartNew} className="py-3 px-6 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 flex items-center">
@@ -144,7 +149,8 @@ const ReviewShareStep: FC<ReviewShareStepProps> = ({ onStartNew, onViewArticle }
             </button>
         </div>
     </div>
-);
+    );
+};
 
 /* ======================================================================
     3. ARTICLE COMPONENT (Helper/Documentation View)
@@ -421,10 +427,13 @@ const GoalCard: FC<GoalCardProps> = ({ title, icon, status }) => {
 interface DashboardDemoProps {
     onViewArticle: () => void;
     onNext: () => void;
+    currentStep?: number;
 }
 
-const DashboardDemo: FC<DashboardDemoProps> = ({ onViewArticle, onNext }) => {
+const DashboardDemo: FC<DashboardDemoProps> = ({ onViewArticle, onNext, currentStep = 0 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const shouldHighlightTemplate = currentStep === 1;
+    const shouldHighlightCreateTemplate = currentStep === 1;
 
     const customGoals = [
         { title: 'status of jira', icon: <Activity className="w-3 h-3" />, status: 'No detected evidence' },
@@ -436,9 +445,9 @@ const DashboardDemo: FC<DashboardDemoProps> = ({ onViewArticle, onNext }) => {
         <div className="flex flex-col h-full w-full bg-gray-100 overflow-hidden text-gray-900">
             {/* The StepsBar is now managed by the parent NoteTakerFlow */}
 
-            <div className="flex flex-1">
+            <div className="flex flex-col lg:flex-row flex-1">
                 {/* LEFT SIDEBAR */}
-                <div className="w-72 bg-white border-r border-gray-200 flex flex-col p-4 shadow-md overflow-y-auto">
+                <div className="w-full lg:w-72 bg-white border-r-0 lg:border-r border-gray-200 flex flex-col p-4 shadow-md overflow-y-auto">
                     <div className="flex items-center mb-6">
                         <button 
                             onClick={onViewArticle}
@@ -453,7 +462,9 @@ const DashboardDemo: FC<DashboardDemoProps> = ({ onViewArticle, onNext }) => {
                     
                     <button 
                         onClick={() => setIsModalOpen(true)}
-                        className="flex items-center p-3 mb-6 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-red-700 font-medium text-sm transition"
+                        className={`flex items-center p-3 mb-6 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-red-700 font-medium text-sm transition ${
+                            shouldHighlightCreateTemplate ? 'shadow-[0_0_20px_rgba(239,68,68,0.6)] animate-pulse' : ''
+                        }`}
                     >
                         <Plus className="w-4 h-4 mr-2" />
                         Create Custom Template
@@ -480,7 +491,12 @@ const DashboardDemo: FC<DashboardDemoProps> = ({ onViewArticle, onNext }) => {
                             </p>
                             <ChevronDown className="w-4 h-4 text-gray-400" />
                         </div>
-                        <div className="flex items-start p-3 bg-red-50/50 hover:bg-red-100 cursor-pointer rounded-lg border border-red-200" onClick={onNext}>
+                        <div 
+                            className={`flex items-start p-3 bg-red-50/50 hover:bg-red-100 cursor-pointer rounded-lg border border-red-200 transition-all ${
+                                shouldHighlightTemplate ? 'shadow-[0_0_20px_rgba(239,68,68,0.6)] animate-pulse border-red-400' : ''
+                            }`} 
+                            onClick={onNext}
+                        >
                             <List className="w-5 h-5 text-red-600 mr-3 mt-0.5" />
                             <div>
                                 <p className="text-sm font-medium">Summary (Selected)</p>
@@ -493,9 +509,9 @@ const DashboardDemo: FC<DashboardDemoProps> = ({ onViewArticle, onNext }) => {
                 </div>
                 
                 {/* CENTER */}
-                <div className="flex-grow flex flex-col p-6 bg-gray-50 border-r border-gray-200">
-                    <h1 className="text-xl font-semibold mb-1">Live Transcription</h1>
-                    <p className="text-sm text-gray-500 mb-8">Real-time meeting notes</p>
+                <div className="flex-grow flex flex-col p-4 md:p-6 bg-gray-50 border-r-0 lg:border-r border-gray-200">
+                    <h1 className="text-lg md:text-xl font-semibold mb-1">Live Transcription</h1>
+                    <p className="text-xs md:text-sm text-gray-500 mb-4 md:mb-8">Real-time meeting notes</p>
                     
                     <div className="flex-grow flex flex-col items-center justify-center p-8 bg-white rounded-xl shadow-inner border border-dashed border-gray-300">
                         <Headphones className="w-10 h-10 text-gray-300 mb-4" />
@@ -506,20 +522,20 @@ const DashboardDemo: FC<DashboardDemoProps> = ({ onViewArticle, onNext }) => {
                 </div>
                 
                 {/* RIGHT SIDEBAR */}
-                <div className="w-80 bg-white flex flex-col border-l border-gray-200 shadow-md">
-                    <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                        <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-                            <Zap className="w-5 h-5 text-red-600 mr-2" /> 
+                <div className="w-full lg:w-80 bg-white flex flex-col border-l-0 lg:border-l border-gray-200 shadow-md">
+                    <div className="flex items-center justify-between p-3 md:p-4 border-b border-gray-200">
+                        <h2 className="text-base md:text-lg font-semibold text-gray-800 flex items-center">
+                            <Zap className="w-4 h-4 md:w-5 md:h-5 text-red-600 mr-2" /> 
                             AI Assistant
                         </h2>
-                        <div className="flex space-x-2">
-                            <button className="flex items-center text-sm text-gray-600 hover:text-red-600 p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition">
-                                <Save className="w-4 h-4 mr-1" /> 
-                                Save PDF
+                        <div className="flex space-x-1 md:space-x-2">
+                            <button className="flex items-center text-xs md:text-sm text-gray-600 hover:text-red-600 p-1.5 md:p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition">
+                                <Save className="w-3 h-3 md:w-4 md:h-4 md:mr-1" /> 
+                                <span className="hidden sm:inline">Save PDF</span>
                             </button>
-                            <button className="flex items-center text-sm text-gray-600 hover:text-red-600 p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition">
-                                <Share2 className="w-4 h-4 mr-1" /> 
-                                Share
+                            <button className="flex items-center text-xs md:text-sm text-gray-600 hover:text-red-600 p-1.5 md:p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition">
+                                <Share2 className="w-3 h-3 md:w-4 md:h-4 md:mr-1" /> 
+                                <span className="hidden sm:inline">Share</span>
                             </button>
                         </div>
                     </div>
@@ -570,12 +586,12 @@ const NoteTakerFlow: FC = () => {
 
     // Create text content to read based on current step
     const getTextContent = () => {
-        const articleTitle = "Note-Taker Journey - AI-Powered Meeting Analysis";
+        const articleTitle = "Convo Assist - AI-Powered Meeting Analysis";
         const currentStepName = FULL_STEPS[currentStep] || "";
         const guideSteps = [
             "Connect your meeting using Google Meet, Zoom, or Microsoft Teams",
             "Select or create an AI template that matches your analysis needs",
-            "Click Note-Taker when bot joins to start live transcription",
+            "Click Convo-Assist when bot joins to start live transcription",
             "Use Custom Goals and AI Assistant to analyze your meeting",
             "Review insights and share professional summaries with your team"
         ];
@@ -597,7 +613,7 @@ const NoteTakerFlow: FC = () => {
             navigationGuidance = "You are on step 4 of 5. Complete the current step, then click the Next Step button in the header to proceed.";
         } else if (currentStep === 4) {
             stepDescription = guideSteps[4];
-            navigationGuidance = "You are on step 5 of 5. This is the final step. Complete it to finish the Note-Taker journey.";
+            navigationGuidance = "You are on step 5 of 5. This is the final step. Complete it to finish the Convo-Assist journey.";
         }
 
         const allStepsText = guideSteps.map((step, idx) => `${idx + 1}. ${step}`).join(". ");
@@ -739,12 +755,12 @@ const NoteTakerFlow: FC = () => {
         switch (currentStep) {
             case 0: // Connect Meeting
             case 1: // Select Template
-                Content = <DashboardDemo onViewArticle={handleArticleView} onNext={handleNext} />;
+                Content = <DashboardDemo onViewArticle={handleArticleView} onNext={handleNext} currentStep={currentStep} />;
                 break;
             case 2: // Start Transcription
             case 3: // Use AI Features
             case 4: // Review & Share
-                Content = <ReviewShareStep onStartNew={handleStartNew} onViewArticle={handleArticleView} />;
+                Content = <ReviewShareStep onStartNew={handleStartNew} onViewArticle={handleArticleView} currentStep={currentStep} />;
                 break;
             default:
                 Content = <DashboardDemo onViewArticle={handleArticleView} onNext={handleNext} />;
@@ -754,10 +770,10 @@ const NoteTakerFlow: FC = () => {
     return (
         <div className="min-h-screen bg-gray-50 font-sans antialiased flex flex-col">
             {/* TOP BLACK BAR */}
-            <div className="w-full bg-[#020617] text-white py-3 px-4 md:px-10 flex items-center justify-between shadow-md rounded-b-xl">
-                <div className="flex items-center gap-2 md:gap-3">
-                    <span className="text-xs uppercase tracking-widest text-gray-400">
-                        NOTE-TAKER JOURNEY
+            <div className="w-full bg-[#020617] text-white py-3 px-4 md:px-10 flex flex-wrap items-center justify-between gap-2 md:gap-4 shadow-md rounded-b-xl">
+                <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-shrink">
+                    <span className="text-sm md:text-base lg:text-lg uppercase tracking-widest font-semibold text-white whitespace-nowrap">
+                       CONVO-ASSIST JOURNEY
                     </span>
                 </div>
                 <div className="flex items-center gap-1 md:gap-2 overflow-x-auto">
@@ -797,7 +813,7 @@ const NoteTakerFlow: FC = () => {
                         );
                     })}
                 </div>
-                <div className="flex items-center ml-4 space-x-3">
+                <div className="flex items-center ml-0 md:ml-4 space-x-2 md:space-x-3 flex-wrap gap-2">
                     <button
                         onClick={handleSpeak}
                         className={`flex items-center px-4 py-2 rounded-lg transition-colors text-sm ${

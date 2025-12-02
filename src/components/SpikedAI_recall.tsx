@@ -1940,20 +1940,20 @@ useEffect(() => {
   };
 // Add this new function inside the SpikedAI functional component:
 const handleAskTranscript = async (segmentText: string) => {
-  if (isTyping || !session) return;
+  if (isTyping || !session) return;
 
-  // The question is the segment's text itself
-  const question = segmentText.trim();
-  if (!question) return;
+  // The question is the segment's text itself
+  const question = segmentText.trim();
+  if (!question) return;
 
-  // Reset the chat history view to focus on the new question/answer
-  setCurrentAnswer("");
-  setCurrentSources([]);
-  setCurrentFollowUps([]);
-  setCurrentSalesFollowUps([]);
-  setShowHistory(false); // Optionally hide history to focus on the new answer
+  // Reset the chat history view to focus on the new question/answer
+  setCurrentAnswer("");
+  setCurrentSources([]);
+  setCurrentFollowUps([]);
+  setCurrentSalesFollowUps([]);
+  setShowHistory(false); // Optionally hide history to focus on the new answer
 
-  await askQuestion(question, false); // false = not auto-generated
+  await askQuestion(question, false); // false = not auto-generated
 };
 
 
@@ -5799,21 +5799,21 @@ const refreshAllMedpicSummaries = async () => {
 
                   <div className="flex items-center space-x-2">
                   <button
-                      onClick={refreshAllCustomGoals}
-                      disabled={isAnalyzingGoals || loadingCustomGoals.size > 0}
-                      className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 ${
-                        isAnalyzingGoals || loadingCustomGoals.size > 0
-                          ? "bg-gray-200 dark:bg-gray-700 cursor-wait"
-                          : "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/50"
-                      }`}
-                      title="Refresh all Custom Goal analyses"
-                    >
-                      {isAnalyzingGoals || loadingCustomGoals.size > 0 ? (
-                        <Loader className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4" />
-                      )}
-                    </button>
+                      onClick={refreshAllCustomGoals}
+                      disabled={isAnalyzingGoals || loadingCustomGoals.size > 0}
+                      className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 ${
+                        isAnalyzingGoals || loadingCustomGoals.size > 0
+                          ? "bg-gray-200 dark:bg-gray-700 cursor-wait"
+                          : "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/50"
+                      }`}
+                      title="Refresh all Custom Goal analyses"
+                    >
+                      {isAnalyzingGoals || loadingCustomGoals.size > 0 ? (
+                        <Loader className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </button>
                     <button
                       onClick={() => setShowGoalSettingsModal(true)}
                       className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -7432,33 +7432,10 @@ const refreshAllMedpicSummaries = async () => {
                             isDarkMode ? "text-slate-400" : "text-slate-500"
                           }`}
                         >
-                          {doc.total_chunks} chunks
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <button
-                        onClick={() => downloadDocument(doc.filename)}
-                        className={`p-2 ml-2 rounded-lg transition-all duration-300 hover:scale-105 ${
-                          isDarkMode
-                            ? "bg-slate-600/50 text-slate-300 hover:bg-slate-500/50"
-                            : "bg-cerulean/10 text-cerulean hover:bg-cerulean/20"
-                        }`}
-                        title="Download"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => deleteDocument(doc.filename)}
-                        className={`p-2 rounded-lg transition-all duration-300 hover:scale-105 ${
-                          isDarkMode
-                            ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
-                            : "bg-red-pantone/10 text-red-pantone hover:bg-red-pantone/20"
-                        }`}
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
                   </div>
                 </div>

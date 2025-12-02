@@ -58,37 +58,37 @@ import {
 // --- INTERFACES ---
 
 interface KnowledgeDocument {
-  id: string;
-  name: string;
-  sizeKB: number;
-  uploadDate: Date;
-  status: "indexed" | "processing";
+  id: string;
+  name: string;
+  sizeKB: number;
+  uploadDate: Date;
+  status: "indexed" | "processing";
 }
 
 // --- MOCK DATA ---
 
 const MOCK_DOCS: KnowledgeDocument[] = [
-  {
-    id: "d1",
-    name: "Week - 04.pdf",
-    sizeKB: 3200,
-    uploadDate: new Date(Date.now() - 86400000),
-    status: "indexed",
-  },
-  {
-    id: "d2",
-    name: "Resume_(3)[1].pdf",
-    sizeKB: 850,
-    uploadDate: new Date(Date.now() - 172800000),
-    status: "indexed",
-  },
+  {
+    id: "d1",
+    name: "Week - 04.pdf",
+    sizeKB: 3200,
+    uploadDate: new Date(Date.now() - 86400000),
+    status: "indexed",
+  },
+  {
+    id: "d2",
+    name: "Resume_(3)[1].pdf",
+    sizeKB: 850,
+    uploadDate: new Date(Date.now() - 172800000),
+    status: "indexed",
+  },
 ];
 
 // --- GUIDE STEPS (UPLOAD + MEET BOT) ---
 
 interface GuideStep {
-  id: number;
-  title: string;
+  id: number;
+  title: string;
 }
 
 const FULL_GUIDE_STEPS: GuideStep[] = [
@@ -101,7 +101,7 @@ const FULL_GUIDE_STEPS: GuideStep[] = [
 // --- INTERACTIVE GUIDE ---
 
 interface InteractiveGuideProps {
-  currentStepId: number;
+  currentStepId: number;
 }
 
 const InteractiveGuide: FC<InteractiveGuideProps> = ({ currentStepId }) => {
@@ -143,47 +143,47 @@ const InteractiveGuide: FC<InteractiveGuideProps> = ({ currentStepId }) => {
 // --- DOCUMENT ITEM ---
 
 const DocumentItem: FC<{
-  doc: KnowledgeDocument;
-  onDelete: (id: string) => void;
+  doc: KnowledgeDocument;
+  onDelete: (id: string) => void;
 }> = ({ doc, onDelete }) => {
-  const DownloadButton =
-    doc.status === "indexed" ? (
-      <button
-        className="p-1 text-indigo-500 hover:text-indigo-700 transition rounded-full"
-        aria-label="Download Document"
-      >
-        <Download className="w-4 h-4" />
-      </button>
-    ) : null;
+  const DownloadButton =
+    doc.status === "indexed" ? (
+      <button
+        className="p-1 text-indigo-500 hover:text-indigo-700 transition rounded-full"
+        aria-label="Download Document"
+      >
+        <Download className="w-4 h-4" />
+      </button>
+    ) : null;
 
-  return (
-    <div className="flex items-center p-2 mb-1 bg-white rounded-lg border border-gray-100 shadow-sm transition hover:bg-gray-50 text-xs">
-      <div className="p-1 rounded-md mr-3 text-indigo-500 bg-indigo-50">
-        <FileText className="w-4 h-4" />
-      </div>
+  return (
+    <div className="flex items-center p-2 mb-1 bg-white rounded-lg border border-gray-100 shadow-sm transition hover:bg-gray-50 text-xs">
+      <div className="p-1 rounded-md mr-3 text-indigo-500 bg-indigo-50">
+        <FileText className="w-4 h-4" />
+      </div>
 
-      <div className="flex-grow min-w-0">
-        <p className="font-medium text-gray-800 truncate">{doc.name}</p>
-        <div className="flex items-center space-x-2 text-gray-500">
-          <span className="text-xs">chunks</span>
-          {doc.status === "processing" && (
-            <Clock className="w-3 h-3 text-yellow-500 animate-pulse" />
-          )}
-        </div>
-      </div>
+      <div className="flex-grow min-w-0">
+        <p className="font-medium text-gray-800 truncate">{doc.name}</p>
+        <div className="flex items-center space-x-2 text-gray-500">
+          <span className="text-xs">chunks</span>
+          {doc.status === "processing" && (
+            <Clock className="w-3 h-3 text-yellow-500 animate-pulse" />
+          )}
+        </div>
+      </div>
 
-      <div className="flex space-x-1.5 ml-4">
-        {DownloadButton}
-        <button
-          className="p-1 text-red-500 hover:text-red-700 transition rounded-full"
-          onClick={() => onDelete(doc.id)}
-          aria-label="Delete Document"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  );
+      <div className="flex space-x-1.5 ml-4">
+        {DownloadButton}
+        <button
+          className="p-1 text-red-500 hover:text-red-700 transition rounded-full"
+          onClick={() => onDelete(doc.id)}
+          aria-label="Delete Document"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
 };
 
 // --- UPLOAD AREA ---
@@ -194,36 +194,36 @@ const UploadArea: FC<{
   docCount: number;
   currentStepId?: number;
 }> = ({ onFileSelect, isUploading, docCount, currentStepId = 1 }) => {
-  const [isDragOver, setIsDragOver] = useState<boolean>(false);
+  const [isDragOver, setIsDragOver] = useState<boolean>(false);
 
-  const handleDrop = (e: DragEvent<HTMLDivElement>): void => {
-    e.preventDefault();
-    setIsDragOver(false);
-    if (e.dataTransfer.files) {
-      onFileSelect(e.dataTransfer.files);
-    }
-  };
+  const handleDrop = (e: DragEvent<HTMLDivElement>): void => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (e.dataTransfer.files) {
+      onFileSelect(e.dataTransfer.files);
+    }
+  };
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>): void => {
-    if (e.target.files) {
-      onFileSelect(e.target.files);
-      e.target.value = "";
-    }
-  };
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>): void => {
+    if (e.target.files) {
+      onFileSelect(e.target.files);
+      e.target.value = "";
+    }
+  };
 
-  const borderColor = isUploading
-    ? "border-green-500"
-    : isDragOver
-    ? "border-indigo-500"
-    : "border-gray-300";
-  const bgColor = isUploading
-    ? "bg-green-50/70"
-    : isDragOver
-    ? "bg-indigo-50/70"
-    : "bg-white";
-  const uploadAreaStyles = isUploading ? "border-solid" : "border-dashed";
+  const borderColor = isUploading
+    ? "border-green-500"
+    : isDragOver
+    ? "border-indigo-500"
+    : "border-gray-300";
+  const bgColor = isUploading
+    ? "bg-green-50/70"
+    : isDragOver
+    ? "bg-indigo-50/70"
+    : "bg-white";
+  const uploadAreaStyles = isUploading ? "border-solid" : "border-dashed";
 
-  const blinkClass = docCount === 0 && !isUploading ? "animate-pulse" : "";
+  const blinkClass = docCount === 0 && !isUploading ? "animate-pulse" : "";
 
   const shouldHighlight = currentStepId === 2;
 
@@ -262,19 +262,19 @@ const UploadArea: FC<{
           >
             + Choose File
           </div>
-          <input
-            type="file"
-            id="sidebar-file-upload"
-            multiple
-            className="hidden"
-            onChange={handleFileChange}
-            accept=".pdf,.docx,.pptx,.xlsx,.xls"
-            disabled={isUploading}
-          />
-        </label>
-      </div>
-    </div>
-  );
+          <input
+            type="file"
+            id="sidebar-file-upload"
+            multiple
+            className="hidden"
+            onChange={handleFileChange}
+            accept=".pdf,.docx,.pptx,.xlsx,.xls"
+            disabled={isUploading}
+          />
+        </label>
+      </div>
+    </div>
+  );
 };
 
 // --- MAIN APP CONSOLE ---
@@ -350,9 +350,9 @@ const AppConsole: FC<AppConsoleProps> = ({
     [currentStepId, setCurrentStepId]
   );
 
-  const deleteDocument = useCallback((id: string): void => {
-    setDocuments((prev) => prev.filter((doc) => doc.id !== id));
-  }, []);
+  const deleteDocument = useCallback((id: string): void => {
+    setDocuments((prev) => prev.filter((doc) => doc.id !== id));
+  }, []);
 
   // --- Toggle Docs panel (step 1) ---
 
@@ -420,7 +420,7 @@ const AppConsole: FC<AppConsoleProps> = ({
     }, 1500);
   };
 
-  // --- RENDER SECTIONS ---
+  // --- RENDER SECTIONS ---
 
   const renderHeader = () => (
     <header className="flex flex-col md:flex-row items-stretch md:items-center justify-between p-2 md:p-3 bg-white border-b border-gray-100 shadow-md flex-shrink-0 gap-2 md:gap-0">
@@ -1179,7 +1179,7 @@ const AppWalkthroughLayout: FC = () => {
             Article: Upload a Document & Connect Your Meeting Bot
           </h1>
 
-          <InteractiveGuide currentStepId={currentStepId} />
+          <InteractiveGuide currentStepId={currentStepId} />
 
           <div className="mt-8 p-4 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-800 rounded-md shadow-sm flex-shrink-0">
             <p className="font-semibold">Current Action:</p>
@@ -1200,7 +1200,7 @@ const AppWalkthroughLayout: FC = () => {
               </p>
             )}
           </div>
-        </div>
+        </div>
 
         {/* Right: App console */}
         <div

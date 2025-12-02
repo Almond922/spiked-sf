@@ -46,7 +46,7 @@ import { saveAs } from "file-saver";
 
 // --- CONFIGURATION ---
 const API_BASE_URL =
-  "https://spikedai-production-application-409019309412.us-central1.run.app";
+  "http://127.0.0.1:8000";
 // const BEARER_TOKEN = ""; // This was already commented out, which is good practice.
 
 // --- MOCK AUTH HOOK ---
@@ -54,7 +54,8 @@ const API_BASE_URL =
 // --- END MOCK AUTH HOOK ---
 
 // --- TYPESCRIPT INTERFACES ---
-type IngestionStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
+type RecrawlSchedule = "NONE" | "DAILY" | "WEEKLY" | "MONTHLY" | "ONCE";
+type IngestionStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "SCHEDULED"; 
 
 interface Source {
   id: string;
@@ -64,6 +65,7 @@ interface Source {
   description: string | null;
   spaces: string[] | null;
   status: IngestionStatus;
+  recrawl_schedule: RecrawlSchedule;
 }
 
 interface Chunk {
@@ -187,6 +189,25 @@ const api = {
     }
     return response.json();
   },
+  
+  // --- NEW API FUNCTION FOR RECRAWL ---
+  recrawlSource: async (
+    sourceId: string,
+    schedule: RecrawlSchedule,
+    token: string | undefined
+  ): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/sources/${sourceId}/recrawl`, {
+      method: "PATCH",
+      headers: api.getHeaders(token),
+      body: JSON.stringify({ schedule }),
+    });
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.detail || "Failed to initiate recrawl.");
+    }
+    return response.json();
+  },
+  // --- END NEW API FUNCTION ---
 
   deleteSource: async (
     sourceId: string,
@@ -524,6 +545,7 @@ const StatusIndicator = ({
   status: IngestionStatus;
   error?: string | null;
 }) => {
+  // --- MODIFIED ---
   const config = {
     COMPLETED: {
       icon: CheckCircle,
@@ -533,7 +555,9 @@ const StatusIndicator = ({
     PROCESSING: { icon: Loader, color: "text-blue-500", label: "Processing" },
     PENDING: { icon: Clock, color: "text-yellow-500", label: "Pending" },
     FAILED: { icon: AlertCircle, color: "text-red-500", label: "Failed" },
+    SCHEDULED: { icon: RefreshCw, color: "text-purple-500", label: "Scheduled Recrawl" }, // <-- ADDED
   }[status];
+  // --- END MODIFIED ---
 
   const tooltipText = error ? `${config.label}: ${error}` : config.label;
 
@@ -713,6 +737,210 @@ const WebsiteCrawlModal = ({
               <Loader className="w-4 h-4 mr-2 animate-spin" />
             )}{" "}
             Add Website
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const RecrawlModal = ({ 
+  source,
+  onClose,
+  onRecrawlInitiated,
+}: {
+  source: Source;
+  onClose: () => void;
+  onRecrawlInitiated: (updatedSource: Source) => void;
+}) => {
+  const { session } = useAuth();
+    // Schedule state reflects the selection the user wants to save
+  const [schedule, setSchedule] = useState<RecrawlSchedule>(source.recrawl_schedule || "NONE");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const scheduleOptions: { value: RecrawlSchedule; label: string }[] = [
+    { value: "NONE", label: "No Automatic Recrawl" },
+    { value: "DAILY", label: "Daily" },
+    { value: "WEEKLY", label: "Weekly" },
+    { value: "MONTHLY", label: "Monthly" },
+  ];
+
+  const handleRecrawlNow = async () => await handleSubmit("ONCE");
+  const handleSubmitSchedule = async () => await handleSubmit(schedule);
+
+  const handleSubmit = async (selectedSchedule: RecrawlSchedule) => {
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      await api.recrawlSource(source.id, selectedSchedule, session?.access_token);
+
+      const newStatus =
+        selectedSchedule === "ONCE"
+          ? "PENDING" // One-time request goes to PENDING
+          : selectedSchedule === "NONE"
+          ? "COMPLETED" // Setting 'NONE' schedule assumes previous completion
+          : "SCHEDULED"; // Recurring schedule set
+
+      onRecrawlInitiated({
+        ...source,
+        // Only update recrawl_schedule if the user saved a recurring option (not ONCE)
+        recrawl_schedule: selectedSchedule !== "ONCE" ? selectedSchedule : source.recrawl_schedule, 
+        status: newStatus,
+      });
+
+      onClose();
+    } catch (err: any) {
+      setError(err.message || "Recrawl failed.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const RecrawlRadioGroup = ({
+    label,
+    options,
+    selectedValue,
+    onChange,
+  }: {
+    label: string;
+    options: { value: RecrawlSchedule; label: string }[];
+    selectedValue: RecrawlSchedule;
+    onChange: (value: RecrawlSchedule) => void;
+  }) => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        {label}
+      </label>
+
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            onClick={() => onChange(option.value)}
+            disabled={isSubmitting}
+            className={`px-3 py-1.5 rounded-lg text-sm border font-medium transition-colors shadow-sm ${
+              selectedValue === option.value
+                ? "bg-gray-800 text-white border-gray-800 shadow-sm dark:bg-gray-200 dark:text-gray-900 dark:border-gray-200" // Highlighted state
+                : "bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" // Default state
+            } focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 dark:focus:ring-offset-gray-800`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+  // --- MODIFIED: Use the source prop for the current saved schedule ---
+  const savedScheduleLabel = scheduleOptions.find(o => o.value === source.recrawl_schedule)?.label || "N/A (None)";
+  // --- END MODIFIED ---
+  const selectedScheduleLabel = scheduleOptions.find(o => o.value === schedule)?.label || "N/A";
+
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md transform transition-all">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Manage Recrawl for "<span className="font-bold">{source.filename}</span>"
+          </h2>
+
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="p-1 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5 space-y-6">
+          
+          {/* Schedule Section */}
+          <section className="space-y-3 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-700">
+            <h3 className="text-md font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+              <RefreshCw className="w-4 h-4 text-blue-600" />
+              <span>Schedule Automatic Recrawl</span>
+            </h3>
+
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Set a recurring schedule for the system to fetch and re-index content automatically.
+            </p>
+
+            <RecrawlRadioGroup
+              label="Recrawl Frequency"
+              options={scheduleOptions}
+              selectedValue={schedule}
+              onChange={setSchedule}
+            />
+
+            <button
+              onClick={handleSubmitSchedule}
+              disabled={isSubmitting || schedule === source.recrawl_schedule} // Disable if nothing changed
+              className="w-full px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 flex items-center justify-center transition-colors shadow-md mt-3"
+            >
+              {isSubmitting && schedule !== "ONCE" && (
+                <Loader className="w-4 h-4 mr-2 animate-spin" />
+              )}
+              Save Schedule ({selectedScheduleLabel})
+            </button>
+          </section>
+
+          {/* Divider */}
+          <div className="flex items-center">
+            <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
+            <span className="px-2 text-sm text-gray-500">OR</span>
+            <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
+          </div>
+
+          {/* Recrawl Now */}
+          <section className="space-y-3">
+            <h3 className="text-md font-semibold text-gray-900 dark:text-white">Recrawl Now (One-time)</h3>
+
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Initiates an immediate re-index. This action will not change your recurring schedule:
+              <span className="font-semibold text-gray-800 dark:text-gray-200">
+                {" "}
+                {savedScheduleLabel}
+              </span>
+            </p>
+
+            <button
+              onClick={handleRecrawlNow}
+              disabled={isSubmitting}
+              className="w-full px-4 py-2.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 disabled:bg-gray-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800/50 dark:hover:bg-blue-900/50 flex items-center justify-center transition-colors"
+            >
+              {isSubmitting && schedule === "ONCE" && (
+                <Loader className="w-4 h-4 mr-2 animate-spin" />
+              )}
+              Recrawl Website Now
+            </button>
+          </section>
+
+          {/* Error */}
+          {error && (
+            <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300 text-sm rounded-lg">
+              <div className="font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                Error:
+              </div>
+              <p>{error}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-3 flex justify-end bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 rounded-b-xl">
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 disabled:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+          >
+            Close
           </button>
         </div>
       </div>
@@ -1101,17 +1329,16 @@ const SourceCard = ({
   source,
   onUpdate,
   onDelete,
-  onRecrawl,
   token,
 }: {
   source: Source;
   onUpdate: (updatedSource: Source) => void;
   onDelete: (source: Source) => void;
-  onRecrawl?: (source: Source) => void;
   token?: string;
 }) => {
   const isWebsite = !source.url.startsWith("gcs:");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showRecrawlModal, setShowRecrawlModal] = useState(false); // <-- NEW STATE
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -1170,6 +1397,11 @@ const SourceCard = ({
       alert(`Download Error: ${error.message}`);
     }
   };
+  
+  const handleRecrawl = () => { // <-- NEW HANDLER
+    setShowRecrawlModal(true);
+  };
+
 
   const handleMenuAction = (action: () => void) => {
     action();
@@ -1215,7 +1447,7 @@ const SourceCard = ({
               <MoreHorizontal className="w-4 h-4" />
             </button>
             <div
-              className={`absolute top-full right-0 mt-2 w-40 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-lg shadow-xl z-10 transition-all duration-200 ${
+              className={`absolute top-full right-0 mt-2 w-48 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-lg shadow-xl z-10 transition-all duration-200 ${
                 isMenuOpen
                   ? "opacity-100 pointer-events-auto"
                   : "opacity-0 pointer-events-none"
@@ -1243,12 +1475,12 @@ const SourceCard = ({
                 </button>
               )}
 
-              {isWebsite && onRecrawl && (
+              {isWebsite && ( // Recrawl/Schedule button // <-- MODIFIED
                 <button
-                  onClick={() => handleMenuAction(() => onRecrawl(source))}
+                  onClick={() => handleMenuAction(handleRecrawl)}
                   className="flex items-center w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
-                  <RefreshCw className="w-4 h-4 mr-2" /> Recrawl
+                  <RefreshCw className="w-4 h-4 mr-2" /> Recrawl/Schedule
                 </button>
               )}
               <button
@@ -1266,6 +1498,16 @@ const SourceCard = ({
         <EditableDescription source={source} onUpdate={onUpdate} />
         <EditableSpaces source={source} onUpdate={onUpdate} />
       </div>
+      
+      {/* --- ADD NEW MODAL --- */}
+      {showRecrawlModal && (
+        <RecrawlModal
+          source={source}
+          onClose={() => setShowRecrawlModal(false)}
+          onRecrawlInitiated={onUpdate}
+        />
+      )}
+      {/* --- END NEW MODAL --- */}
     </div>
   );
 };
@@ -1280,7 +1522,7 @@ const SourcesListPage = ({
   onAdd,
   searchQuery,
   setSearchQuery,
-  onRecrawl,
+  // onRecrawl, // <-- REMOVED
   token,
 }: {
   sources: Source[];
@@ -1292,7 +1534,7 @@ const SourcesListPage = ({
   onAdd: () => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  onRecrawl?: (source: Source) => void;
+  // onRecrawl?: (source: Source) => void; // <-- REMOVED
   token?: string;
 }) => {
   const filteredSources = sources.filter(
@@ -1371,7 +1613,7 @@ const SourcesListPage = ({
                 source={source}
                 onUpdate={onUpdate}
                 onDelete={onDelete}
-                onRecrawl={onRecrawl}
+                // onRecrawl={onRecrawl} // <-- REMOVED
                 token={token}
               />
             ))
@@ -1443,8 +1685,9 @@ const useSources = (
     if (pollInterval === 0) return; // Allow disabling polling
 
     const interval = setInterval(async () => {
+      // --- MODIFIED POLLING CONDITION ---
       const sourcesToUpdate = sources.filter(
-        (s) => s.status === "PENDING" || s.status === "PROCESSING"
+        (s) => s.status === "PENDING" || s.status === "PROCESSING" || s.status === "SCHEDULED" // <-- ADDED SCHEDULED
       );
       if (sourcesToUpdate.length > 0 && session) {
         try {
@@ -1557,12 +1800,15 @@ const WebsitesPage = () => {
     }
   };
 
+  // --- REMOVED handleRecrawl function as logic moved to SourceCard/RecrawlModal ---
+  /*
   const handleRecrawl = async (siteToRecrawl: Source) => {
     // This feature seems to have been removed from the backend,
     // so we'll just log it for now.
     console.log("Recrawl functionality not currently implemented in backend.");
     alert("Recrawl functionality is not currently available.");
   };
+  */
 
   return (
     <>
@@ -1577,7 +1823,7 @@ const WebsitesPage = () => {
         onAdd={() => setShowCrawlModal(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        onRecrawl={handleRecrawl}
+        // onRecrawl={handleRecrawl} // <-- REMOVED
         token={session?.access_token}
       />
       {showCrawlModal && (
@@ -3074,7 +3320,7 @@ const App: React.FC = () => {
       <Layout 
         title={title} 
         description={description}
-        showSave={usesSharedSave.includes(currentPage)} // Show save button for these pages
+        showSave={usesSharedSave.includes(currentPage)} 
         onSave={handleSaveSettings}
         isSaving={isSaving}
         isDirty={isDirty}

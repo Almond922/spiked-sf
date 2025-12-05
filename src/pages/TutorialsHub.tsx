@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, SVGProps } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Book, Settings, FileText, Mic, Layout, ArrowLeft, ChevronDown, Search, ChevronRight, Users, Puzzle, PenTool, LayoutGrid, Target, TrendingUp, Bot } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { topics } from './tutorialsdata';
@@ -13,6 +13,7 @@ interface Question {
   emoji: string;
   description: string;
   details?: string;
+  content?: any[];
   subQuestions?: SubQuestion[];
 }
 
@@ -188,10 +189,11 @@ const TutorialsHub: React.FC = () => {
   };
 
   const currentTopic = topics[selectedTopic];
+  const allQuestions = currentTopic?.items.flatMap(item => item.questions) || [];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
-      {/* UPDATED TOP NAV - SIDEBAR WIDTH NOW 280PX */}
+      {/* TOP NAV - NOW WITH ARTICLE TABS */}
       <nav style={{
         display: 'flex',
         alignItems: 'center',
@@ -240,49 +242,57 @@ const TutorialsHub: React.FC = () => {
           </button>
         </div>
         
-        {/* TOPIC TABS WITH LUCIDE ICONS */}
-        <div style={{ display: 'flex', gap: '12px', flex: 1, padding: '0 30px', alignItems: 'center' }}>
-          {Object.entries(topics as Record<string, Topic>).map(([key, topic]) => (
+        {/* ARTICLE TABS - NOW ON TOP */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '4px', 
+          flex: 1, 
+          padding: '0 20px', 
+          alignItems: 'center',
+          overflowX: 'auto',
+          overflowY: 'hidden'
+        }}>
+          {allQuestions.map((question) => (
             <button
-              key={key}
-              onClick={() => setSelectedTopic(key)}
+              key={question.id}
+              onClick={() => setSelectedArticle(question.id)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
                 padding: '12px 20px',
-                backgroundColor: selectedTopic === key ? '#EFF6FF' : 'transparent',
-                color: selectedTopic === key ? '#2563EB' : '#6B7280',
+                backgroundColor: selectedArticle === question.id ? '#EFF6FF' : 'transparent',
+                color: selectedArticle === question.id ? '#2563EB' : '#6B7280',
                 border: 'none',
-                borderBottom: selectedTopic === key ? '3px solid #2563EB' : '3px solid transparent',
+                borderBottom: selectedArticle === question.id ? '3px solid #2563EB' : '3px solid transparent',
                 fontSize: '14px',
-                fontWeight: selectedTopic === key ? 600 : 500,
+                fontWeight: selectedArticle === question.id ? 600 : 500,
                 cursor: 'pointer',
                 transition: 'all 0.2s',
                 height: '64px',
                 borderRadius: '0',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}
               onMouseOver={(e) => {
-                if (selectedTopic !== key) {
+                if (selectedArticle !== question.id) {
                   e.currentTarget.style.backgroundColor = '#F9FAFB';
                   e.currentTarget.style.color = '#111827';
                 }
               }}
               onMouseOut={(e) => {
-                if (selectedTopic !== key) {
+                if (selectedArticle !== question.id) {
                   e.currentTarget.style.backgroundColor = 'transparent';
                   e.currentTarget.style.color = '#6B7280';
                 }
               }}
             >
-              {topicIcons[key] || topic.icon}
-              {topic.cardTitle}
+              {question.title}
             </button>
           ))}
         </div>
         
-        {/* UPDATED SEARCH BAR WIDTH */}
+        {/* SEARCH BAR */}
         <div style={{ padding: '0 20px', display: 'flex', alignItems: 'center', minWidth: '280px', maxWidth: '350px' }}>
           <div className="search-container" style={{ position: 'relative', width: '100%' }}>
             <input
@@ -324,7 +334,7 @@ const TutorialsHub: React.FC = () => {
             {showSearchResults && searchResults.length > 0 && (
               <div style={{
                 position: 'absolute',
-                top: '50%',
+                top: '100%',
                 left: 0,
                 right: 0,
                 marginTop: '8px',
@@ -337,14 +347,7 @@ const TutorialsHub: React.FC = () => {
                 zIndex: 1000,
                 width: '350px'
               }}>
-                <div style={{
-  padding: '0 20px',
-  display: 'flex',
-  alignItems: 'center',
-  width: '100%',
-  maxWidth: '90vw'   // prevents overflow on small screens
-}}>
-
+                <div style={{ padding: '12px 16px', borderBottom: '1px solid #f3f4f6' }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     {searchResults.length} Result{searchResults.length !== 1 ? 's' : ''}
                   </span>
@@ -389,7 +392,7 @@ const TutorialsHub: React.FC = () => {
       </nav>
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* UPDATED SIDEBAR WIDTH TO 280PX */}
+        {/* SIDEBAR - NOW WITH TOPIC CATEGORIES */}
         <aside style={{
           width: '280px',
           backgroundColor: '#F9FAFB',
@@ -399,66 +402,65 @@ const TutorialsHub: React.FC = () => {
         }}>
           <div style={{ padding: '0 20px 20px 20px' }}>
             <h2 style={{ fontSize: '17px', fontWeight: 700, color: '#111827', marginBottom: '6px', letterSpacing: '-0.3px' }}>
-              Questions
+              Topics
             </h2>
             <p style={{ fontSize: '13px', color: '#6B7280', lineHeight: '1.5' }}>
-              Browse through {currentTopic?.items.reduce((acc, item) => acc + item.questions.length, 0)} articles
+              Browse through {Object.keys(topics).length} categories
             </p>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '0 16px' }}>
-            {currentTopic?.items.map((item) => (
-              <div key={item.id}>
-                {item.questions.map((question) => (
-                  <button
-                    key={question.id}
-                    onClick={() => setSelectedArticle(question.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 16px',
-                      backgroundColor: selectedArticle === question.id ? '#FFFFFF' : 'transparent',
-                      border: selectedArticle === question.id ? '1px solid #DBEAFE' : '1px solid transparent',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      fontSize: '14px',
-                      fontWeight: selectedArticle === question.id ? 600 : 500,
-                      color: selectedArticle === question.id ? '#2563EB' : '#374151',
-                      transition: 'all 0.2s',
-                      boxShadow: selectedArticle === question.id ? '0 2px 8px rgba(37, 99, 235, 0.1)' : 'none',
-                      width: '100%',
-                      marginBottom: '4px',
-                      lineHeight: '1.4'
-                    }}
-                    onMouseOver={(e) => {
-                      if (selectedArticle !== question.id) {
-                        e.currentTarget.style.backgroundColor = '#FFFFFF';
-                        e.currentTarget.style.borderColor = '#E5E7EB';
-                        e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
-                      }
-                    }}
-                    onMouseOut={(e) => {
-                      if (selectedArticle !== question.id) {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.borderColor = 'transparent';
-                        e.currentTarget.style.boxShadow = 'none';
-                      }
-                    }}
-                  >
-                    <span>{question.title}</span>
-                    {selectedArticle === question.id && (
-                      <ChevronRight size={18} style={{ color: '#2563EB', flexShrink: 0 }} />
-                    )}
-                  </button>
-                ))}
-              </div>
+            {Object.entries(topics as Record<string, Topic>).map(([key, topic]) => (
+              <button
+                key={key}
+                onClick={() => setSelectedTopic(key)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  backgroundColor: selectedTopic === key ? '#FFFFFF' : 'transparent',
+                  border: selectedTopic === key ? '1px solid #DBEAFE' : '1px solid transparent',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: selectedTopic === key ? 600 : 500,
+                  color: selectedTopic === key ? '#2563EB' : '#374151',
+                  transition: 'all 0.2s',
+                  boxShadow: selectedTopic === key ? '0 2px 8px rgba(37, 99, 235, 0.1)' : 'none',
+                  width: '100%',
+                  marginBottom: '4px',
+                  lineHeight: '1.4'
+                }}
+                onMouseOver={(e) => {
+                  if (selectedTopic !== key) {
+                    e.currentTarget.style.backgroundColor = '#FFFFFF';
+                    e.currentTarget.style.borderColor = '#E5E7EB';
+                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (selectedTopic !== key) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.borderColor = 'transparent';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {topicIcons[key] || topic.icon}
+                  <span>{topic.cardTitle}</span>
+                </div>
+                {selectedTopic === key && (
+                  <ChevronRight size={18} style={{ color: '#2563EB', flexShrink: 0 }} />
+                )}
+              </button>
             ))}
           </div>
         </aside>
 
-        {/* FIXED CONTENT AREA - NO MORE EXCESSIVE PADDING */}
+        {/* CONTENT AREA */}
         <main style={{
           flex: 1,
           overflowY: 'auto',

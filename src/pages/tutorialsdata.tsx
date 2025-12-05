@@ -553,7 +553,7 @@ your browser</li>
 {
   id: 'personalization',
   title: 'Personalization Before a Meeting',
-  description: 'Configure your AI copilot to match your communication style and objectives before every meeting.',
+  description: 'Configure your Answer-Assist to match your communication style and objectives before every meeting.',
   questions: [
     {
       id: 'setup-personalization',
@@ -588,7 +588,7 @@ your browser</li>
           question: 'What is Bot Configuration?',
           answer: `
             <div style="line-height:1.9;color:#374151;font-size:15px;">
-              <p style="margin:0 0 24px 0;">Bot Configuration allows you to customize the visible identity of your AI copilot during meetings.</p>
+              <p style="margin:0 0 24px 0;">Bot Configuration allows you to customize the visible identity of your Answer-Assist during meetings.</p>
               
               <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">Current settings:</p>
               <ul style="margin:0 0 28px 0;padding-left:24px;list-style-type:disc;">
@@ -598,7 +598,7 @@ your browser</li>
 
               <div style="margin:0;padding:16px 20px;background:#f0f7ff;border-left:4px solid #2563EB;border-radius:6px;">
                 <p style="margin:0;font-size:14px;line-height:1.7;">
-                  <strong style="color:#1e40af;">Coming Soon:</strong> You'll be able to rename your AI copilot to match your branding or personal preference.
+                  <strong style="color:#1e40af;">Coming Soon:</strong> You'll be able to rename your Answer-Assist to match your branding or personal preference.
                 </p>
               </div>
             </div>
@@ -824,7 +824,7 @@ your browser</li>
                 <div style="display:flex;flex-direction:column;gap:10px;">
                   <label style="display:flex;align-items:start;gap:10px;cursor:pointer;">
                     <input type="checkbox" style="margin-top:4px;" />
-                    <span style="color:#374151;font-size:14px;"><strong>Bot Configuration:</strong> Verify your AI copilot name</span>
+                    <span style="color:#374151;font-size:14px;"><strong>Bot Configuration:</strong> Verify your Answer-Assist name</span>
                   </label>
                   
                   <label style="display:flex;align-items:start;gap:10px;cursor:pointer;">
@@ -1229,14 +1229,14 @@ your browser</li>
 console: {
   cardId: 'card-console',
   cardTitle: 'Console',
-  cardDescription: 'Your main workspace — connect your bot, explore live transcriptions, ask questions about your documents, and monitor smart suggestions in real time.',
+  cardDescription: 'Your main workspace — connect your bot, explore live transcriptions, ask questions about your documents, and monitor Intelli-Assist in real time.',
   icon: <Layout style={{ width: '20px', height: '20px' }} />,
   emoji: '🖥️',
   items: [
 {
   id: 'bot-connection',
   title: 'Connect Your Bot',
-  description: 'Learn how to connect your AI copilot to your workspace and start analyzing meetings in real time.',
+  description: 'Learn how to connect your Answer-Assist to your workspace and start analyzing meetings in real time.',
   questions: [
     {
       id: 'connect-bot-setup',
@@ -1338,7 +1338,7 @@ console: {
 
           <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:24px;background:#fefefe;">
             <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:16px;">4️⃣ Live Analysis Active</p>
-            <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">The bot begins analyzing conversations in real-time, providing transcriptions, sentiment analysis, and smart suggestions in your Console.</p>
+            <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">The bot begins analyzing conversations in real-time, providing transcriptions, sentiment analysis, and Intelli-Assist in your Console.</p>
           </div>
 
           <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
@@ -1568,28 +1568,28 @@ console: {
 },
       {
   id: 'ai-copilot',
-  title: 'AI Copilot',
+  title: 'Answer-Assist',
   description: 'Your intelligent assistant that answers questions from your documents, transcriptions, and beyond.',
   questions: [
     {
       id: 'ai-copilot-features',
-      title: 'AI Copilot Features',
+      title: 'Answer-Assist Features',
       emoji: '🤖',
       description: 'Get instant answers from your meeting transcriptions and documents.',
       subQuestions: [
         {
           id: 'what-is-ai-copilot',
-          question: 'What is the AI Copilot?',
+          question: 'What is the Answer-Assist?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">The <strong>AI Copilot</strong> is your intelligent assistant that provides instant answers based on your meeting transcriptions, uploaded documents, and beyond.</p>
+              <p style="margin-bottom:20px;">The <strong>Answer-Assist</strong> is your intelligent assistant that provides instant answers based on your meeting transcriptions, uploaded documents, and beyond.</p>
               
               <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🎯 KEY CAPABILITY</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">AI Copilot analyzes your live transcriptions and document knowledge base to provide contextual answers during and after meetings.</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Answer-Assist analyzes your live transcriptions and document knowledge base to provide contextual answers during and after meetings.</p>
               </div>
 
-              <p style="margin-bottom:12px;font-weight:600;">What AI Copilot can do:</p>
+              <p style="margin-bottom:12px;font-weight:600;">What Answer-Assist can do:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Answer from Transcriptions:</strong> Get insights from your live and past meeting conversations</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Search Documents:</strong> Find answers from your uploaded knowledge base</li>
@@ -1599,22 +1599,22 @@ console: {
               </ul>
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Pro Tip:</strong> The AI Copilot gets smarter as you add more documents and conduct more meetings.
+                <strong>Pro Tip:</strong> The Answer-Assist gets smarter as you add more documents and conduct more meetings.
               </p>
             </div>
           `
         },
         {
           id: 'how-to-ask-questions',
-          question: 'How do I ask questions to the AI Copilot?',
+          question: 'How do I ask questions to the Answer-Assist?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">There are multiple ways to interact with your AI Copilot and get instant answers.</p>
+              <p style="margin-bottom:20px;">There are multiple ways to interact with your Answer-Assist and get instant answers.</p>
               
               <p style="margin-bottom:12px;font-weight:600;">Method 1: Manual Questions</p>
               <ol style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:12px;padding-left:8px;">Go to your <strong>Console</strong></li>
-                <li style="margin-bottom:12px;padding-left:8px;">Find the <strong>AI Copilot</strong> section</li>
+                <li style="margin-bottom:12px;padding-left:8px;">Find the <strong>Answer-Assist</strong> section</li>
                 <li style="margin-bottom:12px;padding-left:8px;">Type your question in the input field</li>
                 <li style="margin-bottom:0;padding-left:8px;">The AI will search your documents and transcriptions to provide an answer</li>
               </ol>
@@ -1625,9 +1625,9 @@ console: {
                 style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
               />
 
-              <p style="margin-bottom:12px;font-weight:600;margin-top:24px;">Method 2: Meeting Questions (Smart Suggestions)</p>
+              <p style="margin-bottom:12px;font-weight:600;margin-top:24px;">Method 2: Meeting Questions (Intelli-Assist)</p>
               <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:12px;padding-left:8px;">During your meeting, check the <strong>Smart Suggestions</strong> panel</li>
+                <li style="margin-bottom:12px;padding-left:8px;">During your meeting, check the <strong>Intelli-Assist</strong> panel</li>
                 <li style="margin-bottom:12px;padding-left:8px;">Look for the <strong>Meeting Questions</strong> section</li>
                 <li style="margin-bottom:12px;padding-left:8px;">AI-generated questions appear based on your <strong>Meeting Focus</strong> (set in Personalization)</li>
                 <li style="margin-bottom:12px;padding-left:8px;">Click on any question to automatically get an answer</li>
@@ -1662,10 +1662,10 @@ console: {
         },
         {
           id: 'meeting-questions-feature',
-          question: 'What are Meeting Questions in Smart Suggestions?',
+          question: 'What are Meeting Questions in Intelli-Assist?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;"><strong>Meeting Questions</strong> are AI-generated questions that appear in the Smart Suggestions panel based on your meeting focus.</p>
+              <p style="margin-bottom:20px;"><strong>Meeting Questions</strong> are AI-generated questions that appear in the Intelli-Assist panel based on your meeting focus.</p>
               
               <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🎯 HOW IT WORKS</p>
@@ -1674,7 +1674,7 @@ console: {
 
               <p style="margin-bottom:12px;font-weight:600;">How to use Meeting Questions:</p>
               <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:12px;padding-left:8px;">Navigate to <strong>Smart Suggestions</strong> during your meeting</li>
+                <li style="margin-bottom:12px;padding-left:8px;">Navigate to <strong>Intelli-Assist</strong> during your meeting</li>
                 <li style="margin-bottom:12px;padding-left:8px;">Find the <strong>Meeting Questions</strong> section</li>
                 <li style="margin-bottom:12px;padding-left:8px;">Review the AI-generated questions relevant to your meeting focus</li>
                 <li style="margin-bottom:12px;padding-left:8px;">Click on any question</li>
@@ -1692,7 +1692,7 @@ console: {
           question: 'What is "Ask Beyond" and how does it work?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;"><strong>Ask Beyond</strong> is a feature that allows the AI Copilot to search beyond your documents and access information from the web.</p>
+              <p style="margin-bottom:20px;"><strong>Ask Beyond</strong> is a feature that allows the Answer-Assist to search beyond your documents and access information from the web.</p>
               
               <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🌐 WEB ACCESS</p>
@@ -1701,7 +1701,7 @@ console: {
 
               <p style="margin-bottom:12px;font-weight:600;">How to use Ask Beyond:</p>
               <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:12px;padding-left:8px;">Ask your question in the AI Copilot</li>
+                <li style="margin-bottom:12px;padding-left:8px;">Ask your question in the Answer-Assist</li>
                 <li style="margin-bottom:12px;padding-left:8px;">If the answer is not in your documents, a <strong>dropdown button</strong> will appear</li>
                 <li style="margin-bottom:12px;padding-left:8px;">Click the dropdown and select <strong>"Ask Beyond"</strong></li>
                 <li style="margin-bottom:0;padding-left:8px;">The AI will search the web and provide an answer with web access enabled</li>
@@ -1729,16 +1729,16 @@ console: {
         },
         {
           id: 'ai-copilot-controls',
-          question: 'What controls are available in the AI Copilot?',
+          question: 'What controls are available in the Answer-Assist?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">The AI Copilot includes several control buttons to help you manage your questions and answers effectively.</p>
+              <p style="margin-bottom:20px;">The Answer-Assist includes several control buttons to help you manage your questions and answers effectively.</p>
               
               <p style="margin-bottom:12px;font-weight:600;">Available controls:</p>
               
               <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px;background:#fefefe;">
                 <p style="margin:0 0 8px 0;font-weight:600;color:#111827;font-size:15px;">🔄 Toggle History</p>
-                <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">View your past questions and answers. Click the toggle history button to show or hide your conversation history with the AI Copilot.</p>
+                <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">View your past questions and answers. Click the toggle history button to show or hide your conversation history with the Answer-Assist.</p>
               </div>
 
               <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;background:#fefefe;">
@@ -1793,28 +1793,28 @@ console: {
 },
    {
   id: 'smart-suggestions',
-  title: 'Smart Suggestions',
+  title: 'Intelli-Assist',
   description: 'Get AI-powered real-time insights during and after meetings with intelligent analysis and recommendations.',
   questions: [
     {
       id: 'smart-suggestions-features',
-      title: 'Smart Suggestions Features',
+      title: 'Intelli-Assist Features',
       emoji: '💡',
       description: 'Real-time AI insights during meetings—questions, sentiment, and more.',
       subQuestions: [
         {
           id: 'what-are-smart-suggestions',
-          question: 'What are Smart Suggestions?',
+          question: 'What are Intelli-Assist?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;"><strong>Smart Suggestions</strong> is your AI-powered assistant that provides real-time insights, analysis, and recommendations during your meetings.</p>
+              <p style="margin-bottom:20px;"><strong>Intelli-Assist</strong> is your AI-powered assistant that provides real-time insights, analysis, and recommendations during your meetings.</p>
               
               <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🎯 INTELLIGENT MEETING COMPANION</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Smart Suggestions analyzes your live conversations to provide contextual questions, track sentiment, identify buying signals, and recommend actions—all in real-time.</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Intelli-Assist analyzes your live conversations to provide contextual questions, track sentiment, identify buying signals, and recommend actions—all in real-time.</p>
               </div>
 
-              <p style="margin-bottom:12px;font-weight:600;">Smart Suggestions includes:</p>
+              <p style="margin-bottom:12px;font-weight:600;">Intelli-Assist includes:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Meeting Questions:</strong> AI-generated questions relevant to your meeting focus</li>
                 <li style="margin-bottom:10px;padding-left:8px;"><strong>Sources:</strong> Reference sources for answers and insights</li>
@@ -1825,14 +1825,14 @@ console: {
               </ul>
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Pro Tip:</strong> Smart Suggestions work best when you set a clear Meeting Focus in Personalization before starting your meeting.
+                <strong>Pro Tip:</strong> Intelli-Assist work best when you set a clear Meeting Focus in Personalization before starting your meeting.
               </p>
             </div>
           `
         },
         {
           id: 'meeting-questions-smart-suggestions',
-          question: 'How do Meeting Questions work in Smart Suggestions?',
+          question: 'How do Meeting Questions work in Intelli-Assist?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
               <p style="margin-bottom:20px;"><strong>Meeting Questions</strong> are AI-generated questions that appear automatically during your meeting, tailored to your specific meeting focus and topic.</p>
@@ -1846,7 +1846,7 @@ console: {
               <ol style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:12px;padding-left:8px;">Set your <strong>Meeting Focus</strong> in Personalization (Getting Started section)</li>
                 <li style="margin-bottom:12px;padding-left:8px;">Start your meeting with transcription enabled</li>
-                <li style="margin-bottom:12px;padding-left:8px;">Navigate to the <strong>Smart Suggestions</strong> panel</li>
+                <li style="margin-bottom:12px;padding-left:8px;">Navigate to the <strong>Intelli-Assist</strong> panel</li>
                 <li style="margin-bottom:12px;padding-left:8px;">View AI-generated questions in the <strong>Meeting Questions</strong> section</li>
                 <li style="margin-bottom:0;padding-left:8px;">Click any question to get instant answers from your documents</li>
               </ol>
@@ -1873,7 +1873,7 @@ console: {
         },
         {
           id: 'sources-references',
-          question: 'What are Sources in Smart Suggestions?',
+          question: 'What are Sources in Intelli-Assist?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
               <p style="margin-bottom:20px;"><strong>Sources</strong> provide references and documentation for the answers and insights provided by the AI during your meeting.</p>
@@ -1899,7 +1899,7 @@ console: {
           question: 'What are Client Questions and User Questions?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Smart Suggestions tracks questions asked during your meetings separately for <strong>Client Questions</strong> and <strong>User Questions</strong>.</p>
+              <p style="margin-bottom:20px;">Intelli-Assist tracks questions asked during your meetings separately for <strong>Client Questions</strong> and <strong>User Questions</strong>.</p>
               
               <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🎯 QUESTION TRACKING</p>
@@ -2091,15 +2091,15 @@ console: {
                 
                 <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                   <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">📊 COMPLETE OVERVIEW</p>
-                  <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Full View shows all panels including chat, transcriptions, Smart Suggestions, AI Copilot, and any other available features on your screen at once.</p>
+                  <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Full View shows all panels including chat, transcriptions, Intelli-Assist, Answer-Assist, and any other available features on your screen at once.</p>
                 </div>
 
                 <p style="margin-bottom:12px;font-weight:600;">What's visible in Full View:</p>
                 <ul style="margin:0 0 24px 0;padding-left:24px;">
                   <li><strong>Chat Panel:</strong> All conversation messages</li>
                   <li><strong>Transcription Panel:</strong> Live meeting transcriptions</li>
-                  <li><strong>Smart Suggestions Panel:</strong> AI insights and recommendations</li>
-                  <li><strong>AI Copilot Panel:</strong> Question and answer interface</li>
+                  <li><strong>Intelli-Assist Panel:</strong> AI insights and recommendations</li>
+                  <li><strong>Answer-Assist Panel:</strong> Question and answer interface</li>
                   <li><strong>Additional Panels:</strong> Any other enabled features</li>
                 </ul>
 
@@ -2174,7 +2174,7 @@ console: {
           answer: `
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;">
               <div style="flex:1;min-width:300px;line-height:1.8;color:#374151;font-size:15px;">
-                <p style="margin-bottom:20px;"><strong>Convo + AI</strong> layout shows only the chat panel and Smart Suggestions panel, providing a streamlined view focused on conversation and AI insights.</p>
+                <p style="margin-bottom:20px;"><strong>Convo + AI</strong> layout shows only the chat panel and Intelli-Assist panel, providing a streamlined view focused on conversation and AI insights.</p>
 
                 <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                   <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🤝 CONVERSATION + INTELLIGENCE</p>
@@ -2184,13 +2184,13 @@ console: {
                 <p style="margin-bottom:12px;font-weight:600;">What's visible:</p>
                 <ul style="margin:0 0 24px 0;padding-left:24px;">
                   <li><strong>Chat Panel:</strong> Full conversation interface</li>
-                  <li><strong>Smart Suggestions Panel:</strong> Meeting Questions, sentiment, buying signals, and playbook</li>
+                  <li><strong>Intelli-Assist Panel:</strong> Meeting Questions, sentiment, buying signals, and playbook</li>
                 </ul>
 
                 <p style="margin-bottom:12px;font-weight:600;">What's hidden:</p>
                 <ul style="margin:0 0 24px 0;padding-left:24px;">
                   <li>Transcription panel</li>
-                  <li>AI Copilot panel</li>
+                  <li>Answer-Assist panel</li>
                   <li>Other auxiliary features</li>
                 </ul>
 
@@ -2236,9 +2236,9 @@ console: {
 
                 <p style="margin-bottom:12px;font-weight:600;">What's hidden:</p>
                 <ul style="margin:0 0 24px 0;padding-left:24px;">
-                  <li>Smart Suggestions panel</li>
+                  <li>Intelli-Assist panel</li>
                   <li>Transcription panel</li>
-                  <li>AI Copilot panel</li>
+                  <li>Answer-Assist panel</li>
                   <li>All other features and panels</li>
                 </ul>
 
@@ -3712,7 +3712,7 @@ livePlaybook: {
 },
 Analyser: {
   cardId: 'card-Analyser',
-  cardTitle: 'Note Taker',
+  cardTitle: 'Convo-Assist',
   cardDescription:
     'Your intelligent meeting assistant — capture insights, build templates, set goals, and generate summaries effortlessly.',
   icon: <Layout style={{ width: '20px', height: '20px' }} />,
@@ -5546,8 +5546,8 @@ Analyser: {
 },
 
     simulator: {
-  cardId: 'card-simulator',
-  cardTitle: 'Simulator',
+  cardId: 'card-Coach-Assist',
+  cardTitle: 'Coach-Assist',
   cardDescription:
     'Transform your sales performance through interactive simulations — access training materials, select your target audience, configure questions, and run AI-driven quiz sessions.',
   icon: <BrainCircuit style={{ width: '20px', height: '20px', color: '#2563eb' }} />,
@@ -5556,7 +5556,7 @@ Analyser: {
     {
   id: 'training-materials-section',
   title: 'Training Materials',
-  description: 'Upload and manage materials to train yourself and enhance your knowledge through the simulator.',
+  description: 'Upload and manage materials to train yourself and enhance your knowledge through the Coach-Assist.',
   questions: [
     {
       id: 'training-materials-overview',
@@ -5569,7 +5569,7 @@ Analyser: {
           question: 'What are Training Materials?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;"><strong>Training Materials</strong> are documents, files, and resources that you upload to the simulator to gain knowledge and train yourself on specific topics or content.</p>
+              <p style="margin-bottom:20px;"><strong>Training Materials</strong> are documents, files, and resources that you upload to the Coach-Assist to gain knowledge and train yourself on specific topics or content.</p>
               
               <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">📖 KNOWLEDGE ENHANCEMENT</p>
@@ -5589,7 +5589,7 @@ Analyser: {
 
               <p style="margin-bottom:12px;font-weight:600;">How it works:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;">Upload your materials to the simulator</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Upload your materials to the Coach-Assist</li>
                 <li style="margin-bottom:10px;padding-left:8px;">System processes and organizes the content</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Access materials whenever you need to study or reference</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Train yourself at your own pace</li>
@@ -5620,7 +5620,7 @@ Analyser: {
               
               <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">⬆️ UPLOAD PROCESS</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Simply select your files and upload them to the simulator to begin building your personalized training library.</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Simply select your files and upload them to the Coach-Assist to begin building your personalized training library.</p>
               </div>
 
               
@@ -5628,7 +5628,7 @@ Analyser: {
               <ol style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:12px;padding-left:8px;">
                   <strong>Access the Training Materials section</strong><br>
-                  <span style="font-size:14px;color:#6B7280;">Navigate to the simulator and find the Training Materials area</span>
+                  <span style="font-size:14px;color:#6B7280;">Navigate to the Coach-Assist and find the Training Materials area</span>
                 </li>
                 <li style="margin-bottom:12px;padding-left:8px;">
                   <strong>Click the Upload button</strong><br>
@@ -5978,7 +5978,7 @@ Analyser: {
 
               <p style="margin-bottom:12px;font-weight:600;">Selection process:</p>
               <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;">Navigate to the Target Audience section in the simulator</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Navigate to the Target Audience section in the Coach-Assist</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Review the available audience types</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Select the option that matches your audience</li>
                 <li style="margin-bottom:10px;padding-left:8px;">System adjusts content generation accordingly</li>
@@ -6198,7 +6198,7 @@ Analyser: {
 
               <p style="margin-bottom:12px;font-weight:600;">How it works:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;">Upload your training materials to the simulator</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Upload your training materials to the Coach-Assist</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Select your target audience type</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Choose between Auto or Custom mode</li>
                 <li style="margin-bottom:10px;padding-left:8px;">System generates relevant questions and answers</li>
@@ -6503,7 +6503,7 @@ Analyser: {
 
               <p style="margin-bottom:12px;font-weight:600;">How it works:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;">Click on AI Quiz Setup in the simulator</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Click on AI Quiz Setup in the Coach-Assist</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Set your session timing preference</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Start the quiz and answer questions</li>
                 <li style="margin-bottom:10px;padding-left:8px;">Review your progress and results</li>
@@ -6534,7 +6534,7 @@ Analyser: {
               <ol style="margin:0 0 24px 0;padding-left:24px;">
                 <li style="margin-bottom:12px;padding-left:8px;">
                   <strong>Click on AI Quiz Setup</strong><br>
-                  <span style="font-size:14px;color:#6B7280;">Navigate to the AI Quiz section in the simulator</span>
+                  <span style="font-size:14px;color:#6B7280;">Navigate to the AI Quiz section in the Coach-Assist</span>
                 </li>
                 <li style="margin-bottom:12px;padding-left:8px;">
                   <strong>Set session timing</strong><br>

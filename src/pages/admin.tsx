@@ -1596,7 +1596,7 @@ const SimulatorPage: React.FC = () => {
       <div className="p-8 md:p-12 text-center">
         <Bot size={48} className="mx-auto text-blue-500 mb-4" />
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Welcome to the AI Meeting Simulator
+          Welcome to the AI Coach-Assist
         </h2>
         <p className="mt-2 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
           Prepare for any conversation by practicing with a smart, responsive AI

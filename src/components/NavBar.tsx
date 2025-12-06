@@ -264,7 +264,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                             : "bg-slate-800 text-slate-100"
                                     }`}
                                 >
-                                    Integrations
+                                    Connect-Assist
                                     <div
                                         className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
                                             isDarkMode ? "bg-slate-200" : "bg-slate-800"
@@ -294,7 +294,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                             : "bg-slate-800 text-slate-100"
                                     }`}
                                 >
-                                    Analyser
+                                    Convo-Assist
                                     <div
                                         className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
                                             isDarkMode ? "bg-slate-200" : "bg-slate-800"

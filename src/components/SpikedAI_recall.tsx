@@ -7,7 +7,6 @@ import ReactMarkdown, { Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
-import HelpChatWidget from "../pages/HelpChatWidget";
 import {
   Maximize2,
   Play,
@@ -58,20 +57,19 @@ import { useBotId } from '../BotIdContext';
 import { useTheme } from '../ThemeContext';
 
 const service_url_recall =
-  "https://recall-backend-production-409019309412.us-central1.run.app";
+  "http://localhost:8000";
 const service_url_base =
   "https://spikedai-production-application-409019309412.us-central1.run.app";
 const BASE_URL_PROD =
   "https://spikedai-production-application-409019309412.us-central1.run.app";
 const MEDPIC_CATEGORIES = {
-  "metrics": "Metrics",
+  "metrics": "Metrics & ROI",
   "economic_buyer": "Economic Buyer", 
   "decision_criteria": "Decision Criteria",
   "decision_process": "Decision Process",
   "identify_pain": "Pain Points",
   "champion": "Champion"
 };
-
 
 
 
@@ -604,20 +602,6 @@ const SpikedAI = () => {
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
   const [showDocuments, setShowDocuments] = useState(false);
   const [chatInput, setChatInput] = useState("");
-  // Inside the 'SpikedAI' component, alongside other state declarations (e.g., around line 3190)
-
-// --- NEW LOGIC FOR FOCUS NOTIFICATION STATE ---
-// This now correctly calls the defined 'loadFromSessionStorage'
-const [hasBeenNotifiedOfFocus, setHasBeenNotifiedOfFocus] = useState(
-  loadFromSessionStorage("spikedai_focus_notification", false)
-);
-
-// Persist the notification state to session storage
-useEffect(() => {
-  // This now correctly calls the defined 'saveToSessionStorage'
-  saveToSessionStorage("spikedai_focus_notification", hasBeenNotifiedOfFocus);
-}, [hasBeenNotifiedOfFocus]);
-// --- END NEW LOGIC ---
   const [selectedCategories, setSelectedCategories] = useState<string[]>([
     "all",
   ]);
@@ -630,7 +614,6 @@ useEffect(() => {
   );
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [webCrawlCount, setWebCrawlCount] = useState(0);
   const [currentSources, setCurrentSources] = useState<
     Array<{ filename: string; url?: string }>
   >([]);
@@ -754,7 +737,8 @@ useEffect(() => {
   const [expandedTrackedTasks, setExpandedTrackedTasks] = useState<Set<string>>(new Set());
 
   // ** START: HUBSPOT INTEGRATION **
-  // Add after Jira states
+  // Add after Jira statesconst fetchTrackedHubSpotTasks = async () => {
+  
   const [trackedHubSpotTasksList, setTrackedHubSpotTasksList] = useState<any[]>([]);
   const [selectedHubSpotDeals, setSelectedHubSpotDeals] = useState<any[]>([]);
   const [hubSpotDealsCount, setHubSpotDealsCount] = useState(0);
@@ -774,8 +758,10 @@ useEffect(() => {
     useState<EventSource | null>(null);
   const [speakerTimes, setSpeakerTimes] = useState<Record<string, number>>({});
   const [totalMeetingDuration, setTotalMeetingDuration] = useState(0);
+  // ... existing state
   const [dealTasks, setDealTasks] = useState<Record<string, any[]>>({}); // Map deal_id -> tasks
   const [loadingDealTasks, setLoadingDealTasks] = useState<Set<string>>(new Set());
+
   const [processedMessageIds, setProcessedMessageIds] = useState(new Set());
   const [buyingSignalsSummary, setBuyingSignalsSummary] = useState<string>("");
   const [isAnalyzingSignals, setIsAnalyzingSignals] = useState(false);
@@ -788,7 +774,7 @@ const [syncResults, setSyncResults] = useState<any>(null);
 const [trackedTaskAnalyses, setTrackedTaskAnalyses] = useState<Record<string, string>>({});
 const [loadingTrackedTasks, setLoadingTrackedTasks] = useState<Set<string>>(new Set());
 const [trackedTaskGenerationTimes, setTrackedTaskGenerationTimes] = useState<Record<string, number>>({});
-
+const [lastAutoSync, setLastAutoSync] = useState<Date | null>(null);
 // Add fetch function with other functions
 const fetchTrackedHubSpotTasks = async () => {
   if (!session?.access_token) return;
@@ -824,7 +810,6 @@ const fetchTrackedTasks = async () => {
     console.error('Error fetching tracked tasks:', error);
   }
 };
-
 const fetchTrackedHubSpotTasksList = async () => {
   if (!session?.access_token) return;
   try {
@@ -869,6 +854,7 @@ const syncProgressToJira = async () => {
     setSyncing(false);
   }
 };
+
 const fetchTasksForDeal = async (dealId: string) => {
   if (!session || loadingDealTasks.has(dealId)) return;
   
@@ -911,6 +897,9 @@ const trackHubSpotTask = async (task: any) => {
   }
 };
 // NEW: HubSpot sync function
+// (in SpikedAI_recall.tsx)
+// (in SpikedAI_recall.tsx)
+
 const syncProgressToHubSpot = async () => {
   try {
     setSyncingHubSpot(true);
@@ -1208,6 +1197,23 @@ const analyzeMEDPIC = async (dealId: string, dealName: string) => {
     });
   }
 };
+
+useEffect(() => {
+  let intervalId: NodeJS.Timeout;
+
+  if (isBotRunning && (trackedHubSpotDeals.length > 0 || trackedHubSpotTasksList.length > 0)) {
+      intervalId = setInterval(() => {
+          console.log("⚡ Auto-syncing progress to HubSpot...");
+          syncProgressToHubSpot(); // This uses the new OVERRIDE logic in backend
+          setLastAutoSync(new Date());
+      }, 30000); // 30 Seconds Interval
+  }
+
+  return () => {
+      if (intervalId) clearInterval(intervalId);
+  };
+}, [isBotRunning, trackedHubSpotDeals.length, trackedHubSpotTasksList.length]);
+
 useEffect(() => {
   if (transcript.length > 0) {
     setSentimentData(prev => ({
@@ -1455,10 +1461,6 @@ useEffect(() => {
             console.log("Starting SSE connections...");
             await establishSseConnections(newBotId);
 
-            // 🌟 ADDED POP-UP LOGIC HERE 🌟
-            alert("The bot has started and transcription is active. Click the 'Analyser' button (Notebook 📝 symbol) at the top right of the website to view real-time analysis."); 
-            // 🌟 ------------------------ 🌟
-
             setTimeout(() => {
                 fetchSentimentDataStaggered();
             }, 5000);
@@ -1482,28 +1484,6 @@ useEffect(() => {
             error instanceof Error ? error.message : String(error)
         }`);
     }
-};
-// Assuming 'startBot' is your existing function to connect the bot
-
-const handleConnectClick = () => {
-  // Check if the bot is already running or in transition (though button is disabled)
-  if (isBotRunning || botStatus === "starting" || botStatus === "stopping") {
-    return;
-  }
-
-  // 1. Check if the user has been notified
-  if (!hasBeenNotifiedOfFocus) {
-    // 2. Display the required notification/alert
-   alert("Before connecting the bot, please ensure that the meeting focus has been added to get relevant, topic-based questions.");
-
-    // 3. Set the state to true so the next click will proceed
-    setHasBeenNotifiedOfFocus(true);
-    return; // STOP execution, do not connect yet
-  }
-
-  // 4. If already notified, proceed with the original connection logic
-  // The 'startBot' function must be defined and available in this scope.
-  startBot();
 };
   
   const stopBot = async () => {
@@ -1940,20 +1920,20 @@ useEffect(() => {
   };
 // Add this new function inside the SpikedAI functional component:
 const handleAskTranscript = async (segmentText: string) => {
-  if (isTyping || !session) return;
+  if (isTyping || !session) return;
 
-  // The question is the segment's text itself
-  const question = segmentText.trim();
-  if (!question) return;
+  // The question is the segment's text itself
+  const question = segmentText.trim();
+  if (!question) return;
 
-  // Reset the chat history view to focus on the new question/answer
-  setCurrentAnswer("");
-  setCurrentSources([]);
-  setCurrentFollowUps([]);
-  setCurrentSalesFollowUps([]);
-  setShowHistory(false); // Optionally hide history to focus on the new answer
+  // Reset the chat history view to focus on the new question/answer
+  setCurrentAnswer("");
+  setCurrentSources([]);
+  setCurrentFollowUps([]);
+  setCurrentSalesFollowUps([]);
+  setShowHistory(false); // Optionally hide history to focus on the new answer
 
-  await askQuestion(question, false); // false = not auto-generated
+  await askQuestion(question, false); // false = not auto-generated
 };
 
 
@@ -2358,26 +2338,23 @@ const analyzeTrackedTask = async (taskKey: string, task: any) => {
     .map(seg => `[${Math.floor(seg.start)}s] ${seg.speaker || 'Unknown'}: ${seg.text}`)
     .join('\n');
 
-  const prompt = `Based on the transcript, analyze progress on this Jira task:
+    const prompt = `Analyze the meeting transcript for ANY discussion related to this Task.
 
-Task: ${task.title} (${taskKey})
-${task.description ? `Description: ${task.description}` : ''}
-Status: ${task.status}
-Project: ${task.project_name}
-
-Your output MUST follow this format:
-**Status:** [Discussed/In Progress/Not Mentioned]
-**Analysis:** [Concise analysis in 150 words max]
-
-Analyze if and how this task was discussed in the meeting. Include:
-- Was the task mentioned or discussed?
-- Key points or decisions made
-- Any blockers or concerns raised
-- Next steps or action items
-
----
-TRANSCRIPT:
-${transcriptText}`;
+    Task: ${task.title}
+    Context: ${task.description || 'No description'}
+    
+    Instructions:
+    1. Search broadly for any mention of this topic (e.g. if task is "procurement", look for "buying process", "finance", "sign-off").
+    2. Even if the discussion was brief, capture it.
+    3. Write a **5-6 line summary** of the current status.
+       - Start with **Status:** (e.g., Discussed, Not Mentioned).
+       - Summarize exactly what was said.
+       - State the next step if mentioned.
+    
+    If absolutely nothing was found, state "Status: Not Mentioned" and explain that the topic hasn't come up yet.
+    
+    TRANSCRIPT:
+    ${transcriptText}`;
 
   try {
     const response = await fetch(`${service_url_recall}/api/process-template`, {
@@ -3283,7 +3260,7 @@ const deleteCustomGoal = async (goalId: string) => {
   
         case "buying-signals":
           if (data.buying_signals) {
-            console.log("🔍 Buying Signals Data:", data.buying_signals); // ADD THIS DEBUG
+           
             setSentimentData((prev) => ({
               ...prev,
               buying_signals: data.buying_signals,
@@ -3317,15 +3294,18 @@ const deleteCustomGoal = async (goalId: string) => {
           }
           break;
 
-        case "tracked-tasks":
-          if (data.tracked_tasks_progress) {
-            setSentimentData((prev) => ({
-              ...prev,
-              tracked_tasks_progress: data.tracked_tasks_progress,
-              last_updated: new Date().toISOString(),
-            }));
-          }
-          break;
+          case "tracked-tasks":
+     
+            if (data.tracked_tasks_progress) {
+              
+              
+              setSentimentData((prev) => ({
+                ...prev,
+                tracked_tasks_progress: data.tracked_tasks_progress,
+                last_updated: new Date().toISOString(),
+              }));
+            } 
+            break;
       }
     } catch (error) {
       console.error(`Error fetching sentiment component ${component}:`, error);
@@ -3524,21 +3504,6 @@ const deleteCustomGoal = async (goalId: string) => {
       }
     } catch (error) {
       console.error("Failed to fetch documents:", error);
-    }
-  };
-
-  const fetchWebsitesCount = async () => { 
-    if (!session) return;
-    try {
-      const response = await fetch(`${BASE_URL_PROD}/websites`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      if (response.ok) {
-        const docs = await response.json();
-        setWebCrawlCount(docs.length);
-      }
-    } catch (error) {
-      console.error("Failed to fetch websites:", error);
     }
   };
 
@@ -4447,8 +4412,7 @@ const deleteCustomGoal = async (goalId: string) => {
   checkApiHealth();
   if (session) {
     fetchDocuments();
-    fetchCustomGoals(); 
-    fetchWebsitesCount();
+    fetchCustomGoals(); // ADD THIS LINE - this was missing!
   }
   const interval = setInterval(checkApiHealth, 30000);
   return () => {
@@ -5008,7 +4972,6 @@ const refreshAllMedpicSummaries = async () => {
 
     return (
       <div className="space-y-4">
-        <HelpChatWidget />
         {/* Proactively Detected "Suggested" Questions (from transcript) */}
         {!isAutoMode && suggestedQuestions.length > 0 && (
           <div>
@@ -5634,41 +5597,30 @@ const refreshAllMedpicSummaries = async () => {
     <div className="flex items-center justify-between mb-4">
         <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
             <span>📋</span>
-            <span>Sales Framework</span>
+            <span>Playbook</span>
         </span>
         <div className="flex items-center space-x-2"> {/* MODIFIED: Added wrapper for refresh and badge */}
-                    {/* NEW: REFRESH ALL MEDDIC BUTTON */}
-                    <button
-                        onClick={refreshAllMedpicSummaries}
-                        disabled={loadingMedpicCategories.size > 0}
-                        className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 ${
-                            loadingMedpicCategories.size > 0
-                                ? "bg-gray-200 dark:bg-gray-700 cursor-wait"
-                                : "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/50"
-                        }`}
-                        title="Refresh all Playbook summaries"
-                    >
-                        {loadingMedpicCategories.size > 0 ? (
-                            <Loader className="w-4 h-4 animate-spin" />
-                        ) : (
-                            <RefreshCw className="w-4 h-4" />
-                        )}
-                    </button>
-
-                    {/* --- ADD THIS BUTTON --- */}
-                    <button
-                      onClick={() => setShowGoalSettingsModal(true)}
-                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-                      title="Analysis Settings"
-                    >
-                      <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                    </button>
-                    {/* --- END OF ADDED BUTTON --- */}
-                    
-                    <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
-                        Sales Framework
-                    </span>
-                </div>
+            {/* NEW: REFRESH ALL MEDDIC BUTTON */}
+            <button
+                onClick={refreshAllMedpicSummaries}
+                disabled={loadingMedpicCategories.size > 0}
+                className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 ${
+                    loadingMedpicCategories.size > 0
+                        ? "bg-gray-200 dark:bg-gray-700 cursor-wait"
+                        : "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/50"
+                }`}
+                title="Refresh all Playbook summaries"
+            >
+                {loadingMedpicCategories.size > 0 ? (
+                    <Loader className="w-4 h-4 animate-spin" />
+                ) : (
+                    <RefreshCw className="w-4 h-4" />
+                )}
+            </button>
+            <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
+                Sales Framework
+            </span>
+        </div>
     </div>
 
     <div className="space-y-3">
@@ -5799,21 +5751,21 @@ const refreshAllMedpicSummaries = async () => {
 
                   <div className="flex items-center space-x-2">
                   <button
-                      onClick={refreshAllCustomGoals}
-                      disabled={isAnalyzingGoals || loadingCustomGoals.size > 0}
-                      className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 ${
-                        isAnalyzingGoals || loadingCustomGoals.size > 0
-                          ? "bg-gray-200 dark:bg-gray-700 cursor-wait"
-                          : "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/50"
-                      }`}
-                      title="Refresh all Custom Goal analyses"
-                    >
-                      {isAnalyzingGoals || loadingCustomGoals.size > 0 ? (
-                        <Loader className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4" />
-                      )}
-                    </button>
+                      onClick={refreshAllCustomGoals}
+                      disabled={isAnalyzingGoals || loadingCustomGoals.size > 0}
+                      className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 ${
+                        isAnalyzingGoals || loadingCustomGoals.size > 0
+                          ? "bg-gray-200 dark:bg-gray-700 cursor-wait"
+                          : "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/50"
+                      }`}
+                      title="Refresh all Custom Goal analyses"
+                    >
+                      {isAnalyzingGoals || loadingCustomGoals.size > 0 ? (
+                        <Loader className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </button>
                     <button
                       onClick={() => setShowGoalSettingsModal(true)}
                       className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -6145,6 +6097,10 @@ const refreshAllMedpicSummaries = async () => {
                     const lastGenerated = dealGenerationTimes[deal.id];
                     const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 60000;
                     
+                    function formatAmount(amount: any): React.ReactNode {
+                      throw new Error("Function not implemented.");
+                    }
+
                     return (
                       <details key={deal.id} className="group">
                         <summary className={`p-4 cursor-pointer rounded-lg border-2 transition-all list-none ${
@@ -6154,14 +6110,17 @@ const refreshAllMedpicSummaries = async () => {
                             ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50'
                             : 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50'
                         }`}>
-                          <div className="flex items-center justify-between">
-                            {/* Left side: Icon + Name */}
-                            <div className="flex items-center space-x-3 flex-1 min-w-0">
-                              <span className="text-xl"></span>
-                              <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
-                                {deal.title}
-                              </h4>
-                            </div>
+                      <div className="flex items-center justify-between">
+                              {/* [UPDATE] Single Line Display */}
+                              {/* "Name of deal owner, value, stage, priority, due date - all in one line" */}
+                              <div className="flex-1 min-w-0 pr-4">
+                                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                                      {deal.title}
+                                  </h4>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                                      {deal.owner_name || 'Unassigned'}, {formatAmount(deal.metadata.amount)}, {deal.status}, {deal.priority || 'Low'}, {deal.metadata.close_date ? new Date(deal.metadata.close_date).toLocaleDateString() : 'No date'}
+                                  </p>
+                              </div>
                             
                             {/* Right side: Action buttons */}
                             <div className="flex items-center space-x-2 ml-4">
@@ -6949,7 +6908,7 @@ const refreshAllMedpicSummaries = async () => {
                 >
                   Conversational AI Platform{" "}
                   <span className="ml-2 px-2 py-0.5 rounded bg-cerulean/10 text-cerulean text-xs">
-                    v2.1
+                    v1.7
                   </span>
                 </p>
               </div>
@@ -6976,7 +6935,7 @@ const refreshAllMedpicSummaries = async () => {
               )}
             </div>
             <button
-              onClick={isBotRunning ?stopBot : handleConnectClick} // Use the new wrapper function 
+              onClick={isBotRunning ? stopBot : startBot} // MODIFIED: Changed function call to simpler `startBot`
               disabled={
                 !meetingUrl ||
                 botStatus === "starting" ||
@@ -7004,15 +6963,50 @@ const refreshAllMedpicSummaries = async () => {
                   : botStatus === "stopping"
                   ? "Disconnecting..."
                   : isBotRunning
-                  ? "Stop"
+                  ? "Stop Bot"
                   : "Connect Meet"}
               </span>
             </button>
           </div>
           <div className="flex items-center space-x-2">
-            
+            <div
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl ${
+                isTranscribing
+                  ? "bg-red-pantone/10 border border-red-pantone/30"
+                  : "bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/30"
+              }`}
+            >
+              {isTranscribing ? (
+                <Mic className="w-4 h-4 text-red-pantone animate-pulse" />
+              ) : (
+                <MicOff className="w-4 h-4 text-slate-400" />
+              )}
+              <span
+                className={`text-sm font-medium ${
+                  isTranscribing
+                    ? "text-red-pantone"
+                    : "text-slate-500 dark:text-slate-400"
+                }`}
+              >
+                {isTranscribing ? "Recording" : "Paused"}
+              </span>
+            </div>
 
-           
+            <button
+              onClick={toggleTranscription}
+              disabled={!isConnected}
+              className={`p-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 ${
+                isTranscribing
+                  ? "bg-gradient-to-r from-red-pantone to-red-500 text-white hover:from-red-500 hover:to-red-pantone shadow-lg"
+                  : "bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 shadow-lg"
+              }`}
+            >
+              {isTranscribing ? (
+                <Pause className="w-5 h-5" />
+              ) : (
+                <Play className="w-5 h-5" />
+              )}
+            </button>
 
             <div className="flex items-center space-x-2 relative">
               <div className="h-8 w-px bg-slate-300 dark:bg-slate-600"></div>
@@ -7070,7 +7064,7 @@ const refreshAllMedpicSummaries = async () => {
                         : "bg-slate-800 text-slate-100"
                     }`}
                 >
-                  Content
+                  Documents
                   <div
                     className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
                       isDarkMode ? "bg-slate-200" : "bg-slate-800"
@@ -7105,7 +7099,7 @@ const refreshAllMedpicSummaries = async () => {
                       : "bg-slate-800 text-slate-100"
                   }`}
               >
-                Connect-Assist
+                Integrations
                 <div
                   className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
                     isDarkMode ? "bg-slate-200" : "bg-slate-800"
@@ -7135,7 +7129,7 @@ const refreshAllMedpicSummaries = async () => {
                         : "bg-slate-800 text-slate-100"
                     }`}
                 >
-                  Convo-Assist
+                  Note Taker
                   <div
                     className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
                       isDarkMode ? "bg-slate-200" : "bg-slate-800"
@@ -7226,7 +7220,7 @@ const refreshAllMedpicSummaries = async () => {
                         : "bg-slate-800 text-slate-100"
                     }`}
                 >
-                  Admin
+                  Profile
                   <div
                     className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
                       isDarkMode ? "bg-slate-200" : "bg-slate-800"
@@ -7432,10 +7426,33 @@ const refreshAllMedpicSummaries = async () => {
                             isDarkMode ? "text-slate-400" : "text-slate-500"
                           }`}
                         >
+                          {doc.total_chunks} chunks
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => downloadDocument(doc.filename)}
+                        className={`p-2 ml-2 rounded-lg transition-all duration-300 hover:scale-105 ${
+                          isDarkMode
+                            ? "bg-slate-600/50 text-slate-300 hover:bg-slate-500/50"
+                            : "bg-cerulean/10 text-cerulean hover:bg-cerulean/20"
+                        }`}
+                        title="Download"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => deleteDocument(doc.filename)}
+                        className={`p-2 rounded-lg transition-all duration-300 hover:scale-105 ${
+                          isDarkMode
+                            ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                            : "bg-red-pantone/10 text-red-pantone hover:bg-red-pantone/20"
+                        }`}
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -7484,7 +7501,7 @@ const refreshAllMedpicSummaries = async () => {
                       >
                         {isHotMicActive
                           ? "Hot Transcribe"
-                          : "Live-Assist"}
+                          : "Live Transcription"}
                       </h2>
                       <p
                         className={`text-xs ${
@@ -7762,7 +7779,7 @@ const refreshAllMedpicSummaries = async () => {
                       isDarkMode ? "text-white" : "text-berkeley-blue"
                     }`}
                   >
-                    Answer-Assist
+                    AI Copilot
                   </h2>
                   <span
                     className={`ml-2 px-2 py-0.5 rounded-lg text-xs font-semibold shadow-sm ${
@@ -7774,16 +7791,6 @@ const refreshAllMedpicSummaries = async () => {
                   >
                     Document: {documents.length}
                   </span>
-                  <span
-                    className={`ml-2 px-2 py-0.5 rounded-lg text-xs font-semibold shadow-sm ${
-                      isDarkMode
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                        : "bg-emerald-100/50 text-emerald-700 border border-emerald-500/40"
-                    }`}
-                    style={{ minWidth: 48, textAlign: "center" }}
-                  >
-                    Web Crawls: {webCrawlCount}
-                  </span>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
@@ -7792,14 +7799,65 @@ const refreshAllMedpicSummaries = async () => {
                 {/* Auto-Mode Toggle and Manual Trigger */}
                 <div className="flex items-center space-x-2">
                   {/* Auto/Manual Mode Toggle */}
-                  
+                  <button
+                    onClick={() => setIsAutoMode(!isAutoMode)}
+                    className={`px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-200 ease-in-out hover:shadow-sm ${
+                      isAutoMode
+                        ? "bg-green-500 text-white hover:bg-green-600"
+                        : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                    }`}
+                  >
+                    {isAutoMode ? "Auto Mode ON" : "Manual Mode ON"}
+                  </button>
 
                   {/* Manual Question Trigger */}
-                  
-                  
+                  <button
+                    onClick={handleManualQuestionDetection}
+                    disabled={
+                      isTyping || isAutoMode || suggestedQuestions.length === 0
+                    }
+                    title={
+                      isAutoMode
+                        ? "Disable Auto-Mode to trigger manually"
+                        : "Generate question from recent transcript"
+                    }
+                    className={`relative px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-200 ease-in-out hover:shadow-sm ${
+                      isTyping || isAutoMode || suggestedQuestions.length === 0
+                        ? "bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-not-allowed"
+                        : "bg-blue-500 text-white hover:bg-blue-600"
+                    }`}
+                  >
+                    {suggestedQuestions.length > 0 &&
+                      !isAutoMode &&
+                      !isTyping && (
+                        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full animate-pulse border-2 border-white dark:border-blue-500"></span>
+                      )}
+                    <RefreshCw
+                      className={`w-3.5 h-3.5 ${
+                        isTyping ? "animate-spin" : ""
+                      }`}
+                    />
+                    <span>
+                      {isTyping ? "Answering..." : "Generate Question"}
+                    </span>
+                  </button>
                 </div>
 
-                
+                <button
+                  onClick={() => setAutoAnswerEnabled(!autoAnswerEnabled)}
+                  className={`px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-300 transform hover:scale-105 ${
+                    autoAnswerEnabled
+                      ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 shadow-lg"
+                      : "bg-gradient-to-r from-slate-400 to-slate-500 text-white hover:from-slate-500 hover:to-slate-600 shadow-lg"
+                  }`}
+                  title={
+                    autoAnswerEnabled ? "Auto-Answer: ON" : "Auto-Answer: OFF"
+                  }
+                >
+                  <span>
+                    {autoAnswerEnabled ? "Auto-Answer ON" : "Auto-Answer OFF"}
+                  </span>
+                </button>
 
                 <button
                   onClick={() => setShowHistory(!showHistory)}
@@ -8675,7 +8733,7 @@ const refreshAllMedpicSummaries = async () => {
                       isDarkMode ? "text-white" : "text-berkeley-blue"
                     }`}
                   >
-                    Intelli-Assist
+                    Smart Suggestions
                   </h2>
                   <p
                     className={`text-xs ${

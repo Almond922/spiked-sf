@@ -377,15 +377,21 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 						doc.setFont('helvetica', 'normal');
 						doc.setFontSize(8);
 						doc.setTextColor(textPrimary);
-						doc.setLineHeightFactor(1.2); // Reduce line spacing
+						doc.setLineHeightFactor(1.15); // Reduce line spacing
 						
-						// Use a smaller margin for transcript content to fit more
+						// Use margins for transcript content
 						const transcriptMargin = margin + 2;
 						const transcriptWidth = contentWidth - 4;
 						const transcriptLines = doc.splitTextToSize(transcriptText, transcriptWidth);
 						
 						for (let line of transcriptLines) {
-							checkPageBreak(6);
+							// Check if we need a new page (leaving 10mm bottom margin)
+							if (yPosition + 3.5 > 270) {
+								addFooter(); 
+								doc.addPage(); 
+								addHeader(); 
+								yPosition = 40;
+							}
 							doc.text(line, transcriptMargin, yPosition);
 							yPosition += 3.5;
 						}

@@ -20,6 +20,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import Integrations from './pages/Integrations';
 import TutorialsHub from "./pages/TutorialsHub";
 import KnowledgeBase from "./pages/knowledge_base";
+import KnowledgeContent from "./pages/knowledge_content";
 import JiraDashboard from './pages/JiraDashboard';
 import HubSpotDashboard from './pages/hubspotdashboard'; 
 
@@ -271,6 +272,7 @@ function App() {
                         
                         <Route path="/tutorial" element={<TutorialsHub />} />
                         <Route path="/knowledge_base" element={<KnowledgeBase/>}/>
+                        <Route path="/knowledge_content" element={<KnowledgeContent/>}/>
                     </Route>
                 </Route>
 

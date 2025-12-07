@@ -10,6 +10,7 @@ import KnowledgeSign from '../pages/knowledge_sign';
 import KnowledgePersona from '../pages/knowledge_persona';
 import KnowledgeDocx from '../pages/knowledge_docx';
 import KnowledgeNote from '../pages/knowledge_note';
+import KnowledgeContentPage from './knowledge_content';
 
 // --- TypeScript Interfaces ---
 interface SubQuestion {
@@ -1181,6 +1182,7 @@ const App: FC = () => {
         <KnowledgePersona />
         <KnowledgeDocx />
         <KnowledgeNote />
+        <KnowledgeContentPage/>
       </div>
     </div>
   );

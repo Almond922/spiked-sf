@@ -7,6 +7,7 @@ import ReactMarkdown, { Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
+import HelpChatWidget from "../pages/HelpChatWidget";
 import {
   Maximize2,
   Play,
@@ -63,13 +64,14 @@ const service_url_base =
 const BASE_URL_PROD =
   "https://spikedai-production-application-409019309412.us-central1.run.app";
 const MEDPIC_CATEGORIES = {
-  "metrics": "Metrics & ROI",
+  "metrics": "Metrics",
   "economic_buyer": "Economic Buyer", 
   "decision_criteria": "Decision Criteria",
   "decision_process": "Decision Process",
   "identify_pain": "Pain Points",
   "champion": "Champion"
 };
+
 
 
 
@@ -602,6 +604,20 @@ const SpikedAI = () => {
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
   const [showDocuments, setShowDocuments] = useState(false);
   const [chatInput, setChatInput] = useState("");
+  // Inside the 'SpikedAI' component, alongside other state declarations (e.g., around line 3190)
+
+// --- NEW LOGIC FOR FOCUS NOTIFICATION STATE ---
+// This now correctly calls the defined 'loadFromSessionStorage'
+const [hasBeenNotifiedOfFocus, setHasBeenNotifiedOfFocus] = useState(
+  loadFromSessionStorage("spikedai_focus_notification", false)
+);
+
+// Persist the notification state to session storage
+useEffect(() => {
+  // This now correctly calls the defined 'saveToSessionStorage'
+  saveToSessionStorage("spikedai_focus_notification", hasBeenNotifiedOfFocus);
+}, [hasBeenNotifiedOfFocus]);
+// --- END NEW LOGIC ---
   const [selectedCategories, setSelectedCategories] = useState<string[]>([
     "all",
   ]);
@@ -614,6 +630,7 @@ const SpikedAI = () => {
   );
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [webCrawlCount, setWebCrawlCount] = useState(0);
   const [currentSources, setCurrentSources] = useState<
     Array<{ filename: string; url?: string }>
   >([]);
@@ -737,9 +754,7 @@ const SpikedAI = () => {
   const [expandedTrackedTasks, setExpandedTrackedTasks] = useState<Set<string>>(new Set());
 
   // ** START: HUBSPOT INTEGRATION **
-  // Add after Jira statesconst fetchTrackedHubSpotTasks = async () => {
-  
-  const [trackedHubSpotTasksList, setTrackedHubSpotTasksList] = useState<any[]>([]);
+  // Add after Jira states
   const [selectedHubSpotDeals, setSelectedHubSpotDeals] = useState<any[]>([]);
   const [hubSpotDealsCount, setHubSpotDealsCount] = useState(0);
   const [staticTrackedDeals, setStaticTrackedDeals] = useState<any[]>([]);
@@ -758,9 +773,6 @@ const SpikedAI = () => {
     useState<EventSource | null>(null);
   const [speakerTimes, setSpeakerTimes] = useState<Record<string, number>>({});
   const [totalMeetingDuration, setTotalMeetingDuration] = useState(0);
-  // ... existing state
-  const [dealTasks, setDealTasks] = useState<Record<string, any[]>>({}); // Map deal_id -> tasks
-  const [loadingDealTasks, setLoadingDealTasks] = useState<Set<string>>(new Set());
 
   const [processedMessageIds, setProcessedMessageIds] = useState(new Set());
   const [buyingSignalsSummary, setBuyingSignalsSummary] = useState<string>("");
@@ -774,31 +786,8 @@ const [syncResults, setSyncResults] = useState<any>(null);
 const [trackedTaskAnalyses, setTrackedTaskAnalyses] = useState<Record<string, string>>({});
 const [loadingTrackedTasks, setLoadingTrackedTasks] = useState<Set<string>>(new Set());
 const [trackedTaskGenerationTimes, setTrackedTaskGenerationTimes] = useState<Record<string, number>>({});
-const [lastAutoSync, setLastAutoSync] = useState<Date | null>(null);
-// Add fetch function with other functions
-const fetchTrackedHubSpotTasks = async () => {
-  if (!session?.access_token) return;
-  
-  try {
-    const response = await fetch(
-      `${service_url_recall}/integrations/hubspot/tasks/tracked`,
-      {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      }
-    );
-    
-    if (response.ok) {
-      const data = await response.json();
-      setTrackedHubSpotTasksList(data.tasks || []);
-      console.log(`✓ Fetched ${data.tasks?.length || 0} tracked HubSpot tasks`);
-    }
-  } catch (error) {
-    console.error('Error fetching tracked HubSpot tasks:', error);
-  }
-};
 
+// Add fetch function with other functions
 const fetchTrackedTasks = async () => {
   try {
     const response = await fetch(`${service_url_recall}/integrations/jira/selected-tasks-summary`, {
@@ -808,18 +797,6 @@ const fetchTrackedTasks = async () => {
     setStaticTrackedTasks(data.tasks || []);
   } catch (error) {
     console.error('Error fetching tracked tasks:', error);
-  }
-};
-const fetchTrackedHubSpotTasksList = async () => {
-  if (!session?.access_token) return;
-  try {
-    const response = await fetch(`${service_url_recall}/integrations/hubspot/tasks/tracked`, {
-      headers: { Authorization: `Bearer ${session.access_token}` }
-    });
-    const data = await response.json();
-    setTrackedHubSpotTasksList(data.tasks || []);
-  } catch (error) {
-    console.error('Error fetching tracked HubSpot tasks:', error);
   }
 };
 
@@ -854,137 +831,25 @@ const syncProgressToJira = async () => {
     setSyncing(false);
   }
 };
-
-const fetchTasksForDeal = async (dealId: string) => {
-  if (!session || loadingDealTasks.has(dealId)) return;
-  
-  setLoadingDealTasks(prev => new Set(prev).add(dealId));
-  try {
-    const response = await fetch(`${service_url_recall}/integrations/hubspot/deals/${dealId}/tasks`, {
-      headers: { Authorization: `Bearer ${session.access_token}` }
-    });
-    const data = await response.json();
-    setDealTasks(prev => ({ ...prev, [dealId]: data.tasks || [] }));
-  } catch (error) {
-    console.error("Error fetching deal tasks:", error);
-  } finally {
-    setLoadingDealTasks(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(dealId);
-      return newSet;
-    });
-  }
-};
-
-const trackHubSpotTask = async (task: any) => {
-  if (!session) return;
-  try {
-    const response = await fetch(`${service_url_recall}/integrations/hubspot/tasks/select`, {
-      method: 'POST',
-      headers: { 
-        Authorization: `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(task)
-    });
-    
-    if (response.ok) {
-      // Refresh the list so the UI updates to "Sparkle" mode immediately
-      await fetchTrackedHubSpotTasksList(); 
-    }
-  } catch (error) {
-    console.error("Error tracking task:", error);
-  }
-};
 // NEW: HubSpot sync function
-// (in SpikedAI_recall.tsx)
-// (in SpikedAI_recall.tsx)
-
 const syncProgressToHubSpot = async () => {
   try {
     setSyncingHubSpot(true);
     setHubSpotSyncResults(null);
     
-    // 🔥 Fetch and wait for response
-    
-    const response = await fetch(`${service_url_recall}/sentiment/tracked-tasks`, {
-      headers: { 
-        Authorization: `Bearer ${session?.access_token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    const trackedTasksData = await response.json();
-    const freshTrackedTasksProgress = trackedTasksData.tracked_tasks_progress || [];
-    
-    
-    
-    // 1. Prepare Deals Data
-    const dealsToSync = trackedHubSpotDeals.map(deal => {
-      const progress = freshTrackedTasksProgress.find(
-        (        p: { task: { task_key: any; }; }) => p.task?.task_key === deal.id
-      );
-      const aiSummary = trackedDealAnalyses[deal.id] || dealAnalyses[deal.id] || "No summary generated.";
-      return {
-        deal_id: deal.id,
-        deal_name: deal.title,
-        ai_summary: aiSummary,
-        achievement_percentage: progress?.achievement_percentage || 0,
-      };
-    });
-
-    // 2. Prepare Tasks Data - USE FRESH DATA
-    const tasksToSync = freshTrackedTasksProgress
-      .filter((p: { task: { project_key: string; }; }) => p.task?.project_key === 'HSTASK')
-      .map((p: { task: { task_key: string | number; title: any; status: any; }; evidences: string | any[]; }) => {
-         let summary = trackedTaskAnalyses[p.task.task_key] || "";
-         
-         if (!summary && p.evidences && p.evidences.length > 0) {
-            summary = `Discussed in meeting. Found ${p.evidences.length} references.`;
-         }
-         
-         return {
-           task_id: p.task.task_key,
-           task_title: p.task.title,
-           ai_summary: summary || "Task tracked in meeting, but no specific update generated.",
-           status: p.task.status
-         };
-      });
-
-    console.log('📋 Tasks to sync (fresh):', tasksToSync);
-
-    if (dealsToSync.length === 0 && tasksToSync.length === 0) {
-      alert("No tracked deals or tasks to sync.");
-      setSyncingHubSpot(false);
-      return;
-    }
-
-    // 3. Send to Backend
-    const syncResponse = await fetch(`${service_url_recall}/integrations/hubspot/sync-progress`, {
+    const response = await fetch(`${service_url_recall}/integrations/hubspot/sync-progress`, {
       method: 'POST',
-      headers: { 
-        Authorization: `Bearer ${session?.access_token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ 
-        deals: dealsToSync,
-        tasks: tasksToSync
-      })
+      headers: { Authorization: `Bearer ${session?.access_token}` }
     });
     
-    const data = await syncResponse.json();
-    
-    if (!syncResponse.ok) {
-      throw new Error(data.detail || "Sync failed");
-    }
-
-    setHubSpotSyncResults(data.synced_items || []);
+    const data = await response.json();
+    setHubSpotSyncResults(data.synced_deals || []);
     setTimeout(() => setHubSpotSyncResults(null), 5000);
     
     console.log('✓ Synced to HubSpot:', data);
   } catch (error) {
     console.error('Error syncing to HubSpot:', error);
-    alert(`Failed to sync: ${error instanceof Error ? error.message : "Unknown error"}`);
+    alert('Failed to sync to HubSpot. Please try again.');
   } finally {
     setSyncingHubSpot(false);
   }
@@ -1044,35 +909,26 @@ const analyzeDeal = async (dealId: string, dealName: string) => {
       .map((t: any) => `[${Math.floor(t.start)}s] ${t.speaker}: ${t.text}`)
       .join('\n');
 
-      const prompt = `Analyze this meeting transcript related to the deal "${dealName}".
+    const prompt = `Analyze this meeting transcript for MEDPIC sales qualification criteria related to the deal "${dealName}".
 
-      Transcript:
-      ${transcriptText}
-      
-      Provide a structured summary with the following sections:
-      
-      **Attendees**
-      List all participants mentioned in the meeting.
-      
-      **Topics Discussed**
-      Provide a concise summary (3-4 sentences) of the main topics and discussions.
-      
-      **Next Steps**
-      List any action items, follow-ups, or commitments made during the meeting.
-      
-      **Issues Raised**
-      List any concerns, blockers, or problems discussed.
-      
-      **MEDDPIC**
-      Briefly analyze the MEDDPIC sales qualification status:
-      - Metrics: Key metrics or ROI discussed
-      - Economic Buyer: Who holds budget authority
-      - Decision Criteria: Evaluation criteria mentioned
-      - Decision Process: Approval process and timeline
-      - Identify Pain: Pain points identified
-      - Champion: Internal advocate status
-      
-      Format as readable text with clear section headers and bolding for key terms.`;
+MEDPIC Framework:
+- **Metrics (M)**: Quantifiable ROI, cost savings, KPIs mentioned (score 0-100%)
+- **Economic Buyer (E)**: Decision-maker with budget authority identified (score 0-100%)
+- **Decision Criteria (D)**: Must-haves, evaluation criteria discussed (score 0-100%)
+- **Decision Process (D)**: Approval steps, timeline, stakeholders (score 0-100%)
+- **Identify Pain (I)**: Pain points, challenges, problems (score 0-100%)
+- **Champion (C)**: Internal advocate identified (score 0-100%)
+
+Transcript:
+${transcriptText}
+
+Provide a structured analysis with:
+1. Score for each MEDPIC criterion (0-100%)
+2. Key evidence/quotes for each criterion
+3. Overall qualification status
+4. Next steps to improve qualification
+
+Format as readable text with **bold** headers.`;
 
     const response = await fetch(`${service_url_recall}/api/process-template`, {
       method: 'POST',
@@ -1134,35 +990,26 @@ const analyzeMEDPIC = async (dealId: string, dealName: string) => {
       .map((t: any) => `${t.speaker}: ${t.text}`)
       .join('\n');
 
-      const prompt = `Analyze this meeting transcript related to the deal "${dealName}".
+    const prompt = `Analyze this meeting transcript for MEDPIC sales qualification criteria related to the deal "${dealName}".
 
-      Transcript:
-      ${transcriptText}
-      
-      Provide a structured summary with the following sections:
-      
-      **Attendees**
-      List all participants mentioned in the meeting.
-      
-      **Topics Discussed**
-      Provide a concise summary (3-4 sentences) of the main topics and discussions.
-      
-      **Next Steps**
-      List any action items, follow-ups, or commitments made during the meeting.
-      
-      **Issues Raised**
-      List any concerns, blockers, or problems discussed.
-      
-      **MEDDPIC**
-      Briefly analyze the MEDDPIC sales qualification status:
-      - Metrics: Key metrics or ROI discussed
-      - Economic Buyer: Who holds budget authority
-      - Decision Criteria: Evaluation criteria mentioned
-      - Decision Process: Approval process and timeline
-      - Identify Pain: Pain points identified
-      - Champion: Internal advocate status
-      
-      Format as readable text with clear section headers and bolding for key terms.`;
+MEDPIC Framework:
+- **Metrics (M)**: Quantifiable ROI, cost savings, KPIs mentioned (score 0-100%)
+- **Economic Buyer (E)**: Decision-maker with budget authority identified (score 0-100%)
+- **Decision Criteria (D)**: Must-haves, evaluation criteria discussed (score 0-100%)
+- **Decision Process (D)**: Approval steps, timeline, stakeholders (score 0-100%)
+- **Identify Pain (I)**: Pain points, challenges, problems (score 0-100%)
+- **Champion (C)**: Internal advocate identified (score 0-100%)
+
+Transcript:
+${transcriptText}
+
+Provide a structured analysis with:
+1. Score for each MEDPIC criterion (0-100%)
+2. Key evidence/quotes for each criterion
+3. Overall qualification status
+4. Next steps to improve qualification
+
+Format as readable text with **bold** headers.`;
 
     const response = await fetch(`${service_url_recall}/api/process-template`, {
       method: 'POST',
@@ -1197,23 +1044,6 @@ const analyzeMEDPIC = async (dealId: string, dealName: string) => {
     });
   }
 };
-
-useEffect(() => {
-  let intervalId: NodeJS.Timeout;
-
-  if (isBotRunning && (trackedHubSpotDeals.length > 0 || trackedHubSpotTasksList.length > 0)) {
-      intervalId = setInterval(() => {
-          console.log("⚡ Auto-syncing progress to HubSpot...");
-          syncProgressToHubSpot(); // This uses the new OVERRIDE logic in backend
-          setLastAutoSync(new Date());
-      }, 30000); // 30 Seconds Interval
-  }
-
-  return () => {
-      if (intervalId) clearInterval(intervalId);
-  };
-}, [isBotRunning, trackedHubSpotDeals.length, trackedHubSpotTasksList.length]);
-
 useEffect(() => {
   if (transcript.length > 0) {
     setSentimentData(prev => ({
@@ -1461,6 +1291,10 @@ useEffect(() => {
             console.log("Starting SSE connections...");
             await establishSseConnections(newBotId);
 
+            // 🌟 ADDED POP-UP LOGIC HERE 🌟
+            alert("The bot has started and transcription is active. Click the 'Analyser' button (Notebook 📝 symbol) at the top right of the website to view real-time analysis."); 
+            // 🌟 ------------------------ 🌟
+
             setTimeout(() => {
                 fetchSentimentDataStaggered();
             }, 5000);
@@ -1484,6 +1318,28 @@ useEffect(() => {
             error instanceof Error ? error.message : String(error)
         }`);
     }
+};
+// Assuming 'startBot' is your existing function to connect the bot
+
+const handleConnectClick = () => {
+  // Check if the bot is already running or in transition (though button is disabled)
+  if (isBotRunning || botStatus === "starting" || botStatus === "stopping") {
+    return;
+  }
+
+  // 1. Check if the user has been notified
+  if (!hasBeenNotifiedOfFocus) {
+    // 2. Display the required notification/alert
+   alert("Before connecting the bot, please ensure that the meeting focus has been added to get relevant, topic-based questions.");
+
+    // 3. Set the state to true so the next click will proceed
+    setHasBeenNotifiedOfFocus(true);
+    return; // STOP execution, do not connect yet
+  }
+
+  // 4. If already notified, proceed with the original connection logic
+  // The 'startBot' function must be defined and available in this scope.
+  startBot();
 };
   
   const stopBot = async () => {
@@ -1816,8 +1672,6 @@ useEffect(() => {
   if (session?.access_token) {
     fetchTrackedJiraTasks();
     fetchTrackedHubSpotDeals();
-    fetchTrackedHubSpotTasks();
-    fetchTrackedHubSpotTasksList();
   }
 }, [session?.access_token]);
 
@@ -2338,23 +2192,26 @@ const analyzeTrackedTask = async (taskKey: string, task: any) => {
     .map(seg => `[${Math.floor(seg.start)}s] ${seg.speaker || 'Unknown'}: ${seg.text}`)
     .join('\n');
 
-    const prompt = `Analyze the meeting transcript for ANY discussion related to this Task.
+  const prompt = `Based on the transcript, analyze progress on this Jira task:
 
-    Task: ${task.title}
-    Context: ${task.description || 'No description'}
-    
-    Instructions:
-    1. Search broadly for any mention of this topic (e.g. if task is "procurement", look for "buying process", "finance", "sign-off").
-    2. Even if the discussion was brief, capture it.
-    3. Write a **5-6 line summary** of the current status.
-       - Start with **Status:** (e.g., Discussed, Not Mentioned).
-       - Summarize exactly what was said.
-       - State the next step if mentioned.
-    
-    If absolutely nothing was found, state "Status: Not Mentioned" and explain that the topic hasn't come up yet.
-    
-    TRANSCRIPT:
-    ${transcriptText}`;
+Task: ${task.title} (${taskKey})
+${task.description ? `Description: ${task.description}` : ''}
+Status: ${task.status}
+Project: ${task.project_name}
+
+Your output MUST follow this format:
+**Status:** [Discussed/In Progress/Not Mentioned]
+**Analysis:** [Concise analysis in 150 words max]
+
+Analyze if and how this task was discussed in the meeting. Include:
+- Was the task mentioned or discussed?
+- Key points or decisions made
+- Any blockers or concerns raised
+- Next steps or action items
+
+---
+TRANSCRIPT:
+${transcriptText}`;
 
   try {
     const response = await fetch(`${service_url_recall}/api/process-template`, {
@@ -3260,7 +3117,7 @@ const deleteCustomGoal = async (goalId: string) => {
   
         case "buying-signals":
           if (data.buying_signals) {
-           
+            console.log("🔍 Buying Signals Data:", data.buying_signals); // ADD THIS DEBUG
             setSentimentData((prev) => ({
               ...prev,
               buying_signals: data.buying_signals,
@@ -3294,18 +3151,15 @@ const deleteCustomGoal = async (goalId: string) => {
           }
           break;
 
-          case "tracked-tasks":
-     
-            if (data.tracked_tasks_progress) {
-              
-              
-              setSentimentData((prev) => ({
-                ...prev,
-                tracked_tasks_progress: data.tracked_tasks_progress,
-                last_updated: new Date().toISOString(),
-              }));
-            } 
-            break;
+        case "tracked-tasks":
+          if (data.tracked_tasks_progress) {
+            setSentimentData((prev) => ({
+              ...prev,
+              tracked_tasks_progress: data.tracked_tasks_progress,
+              last_updated: new Date().toISOString(),
+            }));
+          }
+          break;
       }
     } catch (error) {
       console.error(`Error fetching sentiment component ${component}:`, error);
@@ -3504,6 +3358,21 @@ const deleteCustomGoal = async (goalId: string) => {
       }
     } catch (error) {
       console.error("Failed to fetch documents:", error);
+    }
+  };
+
+  const fetchWebsitesCount = async () => { 
+    if (!session) return;
+    try {
+      const response = await fetch(`${BASE_URL_PROD}/websites`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (response.ok) {
+        const docs = await response.json();
+        setWebCrawlCount(docs.length);
+      }
+    } catch (error) {
+      console.error("Failed to fetch websites:", error);
     }
   };
 
@@ -4412,7 +4281,8 @@ const deleteCustomGoal = async (goalId: string) => {
   checkApiHealth();
   if (session) {
     fetchDocuments();
-    fetchCustomGoals(); // ADD THIS LINE - this was missing!
+    fetchCustomGoals(); 
+    fetchWebsitesCount();
   }
   const interval = setInterval(checkApiHealth, 30000);
   return () => {
@@ -4972,6 +4842,7 @@ const refreshAllMedpicSummaries = async () => {
 
     return (
       <div className="space-y-4">
+        <HelpChatWidget />
         {/* Proactively Detected "Suggested" Questions (from transcript) */}
         {!isAutoMode && suggestedQuestions.length > 0 && (
           <div>
@@ -5597,30 +5468,41 @@ const refreshAllMedpicSummaries = async () => {
     <div className="flex items-center justify-between mb-4">
         <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
             <span>📋</span>
-            <span>Playbook</span>
+            <span>Sales Framework</span>
         </span>
         <div className="flex items-center space-x-2"> {/* MODIFIED: Added wrapper for refresh and badge */}
-            {/* NEW: REFRESH ALL MEDDIC BUTTON */}
-            <button
-                onClick={refreshAllMedpicSummaries}
-                disabled={loadingMedpicCategories.size > 0}
-                className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 ${
-                    loadingMedpicCategories.size > 0
-                        ? "bg-gray-200 dark:bg-gray-700 cursor-wait"
-                        : "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/50"
-                }`}
-                title="Refresh all Playbook summaries"
-            >
-                {loadingMedpicCategories.size > 0 ? (
-                    <Loader className="w-4 h-4 animate-spin" />
-                ) : (
-                    <RefreshCw className="w-4 h-4" />
-                )}
-            </button>
-            <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
-                Sales Framework
-            </span>
-        </div>
+                    {/* NEW: REFRESH ALL MEDDIC BUTTON */}
+                    <button
+                        onClick={refreshAllMedpicSummaries}
+                        disabled={loadingMedpicCategories.size > 0}
+                        className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 ${
+                            loadingMedpicCategories.size > 0
+                                ? "bg-gray-200 dark:bg-gray-700 cursor-wait"
+                                : "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/50"
+                        }`}
+                        title="Refresh all Playbook summaries"
+                    >
+                        {loadingMedpicCategories.size > 0 ? (
+                            <Loader className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <RefreshCw className="w-4 h-4" />
+                        )}
+                    </button>
+
+                    {/* --- ADD THIS BUTTON --- */}
+                    <button
+                      onClick={() => setShowGoalSettingsModal(true)}
+                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                      title="Analysis Settings"
+                    >
+                      <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </button>
+                    {/* --- END OF ADDED BUTTON --- */}
+                    
+                    <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
+                        Sales Framework
+                    </span>
+                </div>
     </div>
 
     <div className="space-y-3">
@@ -6064,20 +5946,17 @@ const refreshAllMedpicSummaries = async () => {
               <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm mt-4">
                 <div className="flex items-center justify-between mb-4">
                   <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
-                    <span>HubSpot </span>
+                    <span>💼 HubSpot Deals</span>
                   </span>
                   <div className="flex items-center space-x-2">
                     <span className="text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2.5 py-1 rounded-full font-medium">
                       {trackedHubSpotDeals.length} tracking
                     </span>
                     <button
-  onClick={() => {
-    fetchTrackedHubSpotDeals();
-    fetchTrackedHubSpotTasks(); // ADD THIS
-  }}
-  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-  title="Refresh HubSpot deals"
->
+                      onClick={fetchTrackedHubSpotDeals}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      title="Refresh HubSpot deals"
+                    >
                       <RefreshCw className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                     </button>
                   </div>
@@ -6097,10 +5976,6 @@ const refreshAllMedpicSummaries = async () => {
                     const lastGenerated = dealGenerationTimes[deal.id];
                     const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 60000;
                     
-                    function formatAmount(amount: any): React.ReactNode {
-                      throw new Error("Function not implemented.");
-                    }
-
                     return (
                       <details key={deal.id} className="group">
                         <summary className={`p-4 cursor-pointer rounded-lg border-2 transition-all list-none ${
@@ -6110,21 +5985,85 @@ const refreshAllMedpicSummaries = async () => {
                             ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50'
                             : 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50'
                         }`}>
-                      <div className="flex items-center justify-between">
-                              {/* [UPDATE] Single Line Display */}
-                              {/* "Name of deal owner, value, stage, priority, due date - all in one line" */}
-                              <div className="flex-1 min-w-0 pr-4">
-                                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                                      {deal.title}
-                                  </h4>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                                      {deal.owner_name || 'Unassigned'}, {formatAmount(deal.metadata.amount)}, {deal.status}, {deal.priority || 'Low'}, {deal.metadata.close_date ? new Date(deal.metadata.close_date).toLocaleDateString() : 'No date'}
-                                  </p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <span className="text-lg">💼</span>
+                                <span className="text-xs font-medium text-green-600 dark:text-green-400 uppercase">
+                                  DEAL
+                                </span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  isDarkMode ? "bg-slate-700" : "bg-gray-200"
+                                }`}>
+                                  {deal.status}
+                                </span>
+                                {progress && (
+                                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                                    progress.achievement_percentage >= 70 
+                                      ? 'bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300'
+                                      : progress.achievement_percentage >= 40
+                                      ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-800/50 dark:text-yellow-300'
+                                      : 'bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-300'
+                                  }`}>
+                                    {progress.achievement_percentage}% MEDPIC
+                                  </span>
+                                )}
                               </div>
+                              
+                              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                                {deal.title}
+                              </h4>
+                              
+                              <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                <span className="text-green-600 dark:text-green-400 font-medium">
+                                  {deal.metadata.amount}
+                                </span>
+                                <span>📊 {deal.metadata.pipeline}</span>
+                                {deal.metadata.close_date && (
+                                  <span>📅 {deal.metadata.close_date}</span>
+                                )}
+                              </div>
+
+                              {/* Evidence Count & Navigation */}
+                              {progress?.evidences && progress.evidences.length > 0 && (
+                                <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                                    {progress.evidences.length} discussion point{progress.evidences.length !== 1 ? 's' : ''} found
+                                  </span>
+                                  {progress.total_evidence_count > 1 && (
+                                    <div className="flex items-center space-x-1">
+                                      <button
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          navigateEvidence(deal.id, 'prev');
+                                        }}
+                                        className="p-1 rounded hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                                        disabled={progress.current_evidence_index === 0}
+                                      >
+                                        <ChevronDown className="w-3 h-3 rotate-90" />
+                                      </button>
+                                      <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                                        {progress.current_evidence_index + 1}/{progress.total_evidence_count}
+                                      </span>
+                                      <button
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          navigateEvidence(deal.id, 'next');
+                                        }}
+                                        className="p-1 rounded hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                                        disabled={progress.current_evidence_index >= progress.total_evidence_count - 1}
+                                      >
+                                        <ChevronDown className="w-3 h-3 -rotate-90" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                             
-                            {/* Right side: Action buttons */}
                             <div className="flex items-center space-x-2 ml-4">
-                              {/* Analyze Button */}
                               <button
                                 onClick={(e) => {
                                   e.preventDefault();
@@ -6132,65 +6071,97 @@ const refreshAllMedpicSummaries = async () => {
                                   analyzeDeal(deal.id, deal.title);
                                 }}
                                 disabled={isLoading || !canRegenerate}
-                                className={`p-2 rounded-lg transition-colors ${
+                                className={`p-1.5 rounded-full transition-all ${
                                   isLoading
-                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                    : hasAnalysis
-                                    ? 'bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300'
-                                    : 'bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-300'
+                                    ? "bg-blue-100 dark:bg-blue-900/50 cursor-wait"
+                                    : !canRegenerate
+                                    ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50"
+                                    : "bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-800/50"
                                 }`}
-                                title={hasAnalysis ? "Regenerate analysis" : "Generate AI analysis"}
+                                title={
+                                  isLoading 
+                                    ? "Generating analysis..." 
+                                    : !canRegenerate
+                                    ? "Wait 1 minute before regenerating"
+                                    : hasAnalysis 
+                                    ? "Regenerate analysis" 
+                                    : "Generate analysis"
+                                }
                               >
                                 {isLoading ? (
-                                  <Loader className="w-4 h-4 animate-spin" />
+                                  <Loader className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
                                 ) : (
-                                  <Sparkles className="w-4 h-4" />
+                                  <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                 )}
                               </button>
                               
-                              {/* Untrack Button */}
                               <button
                                 onClick={async (e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  if (confirm(`Stop tracking "${deal.title}"?`)) {
-                                    try {
-                                      const response = await fetch(
-                                        `${service_url_recall}/integrations/hubspot/deals/${deal.id}/untrack`,
-                                        {
-                                          method: 'DELETE',
-                                          headers: { Authorization: `Bearer ${session?.access_token}` }
-                                        }
-                                      );
-                                      if (response.ok) {
-                                        await fetchTrackedHubSpotDeals();
+                                  try {
+                                    const response = await fetch(
+                                      `${service_url_recall}/integrations/hubspot/deals/${deal.id}/untrack`,
+                                      {
+                                        method: 'DELETE',
+                                        headers: { Authorization: `Bearer ${session?.access_token}` }
                                       }
-                                    } catch (error) {
-                                      console.error('Error untracking deal:', error);
+                                    );
+                                    
+                                    if (response.ok) {
+                                      await fetchTrackedHubSpotDeals();
+                                      console.log(`✓ Untracked HubSpot deal: ${deal.title}`);
                                     }
+                                  } catch (error) {
+                                    console.error('Error untracking deal:', error);
                                   }
                                 }}
-                                className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 transition-colors"
+                                className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors group"
                                 title="Stop tracking this deal"
                               >
-                                <Eye className="w-4 h-4" />
+                                <Eye className="w-4 h-4 text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400" />
                               </button>
                               
-                              {/* Expand Arrow */}
-                              <ChevronRight className="w-5 h-5 text-gray-400 transition-transform group-open:rotate-90" />
+                              <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
                             </div>
                           </div>
                         </summary>
                         
                         {/* Expanded Content */}
                         <div className="p-4 mt-2 border-t border-gray-200 dark:border-gray-700 space-y-3">
-
+                          {/* Current Evidence Display */}
+                          {progress?.evidences && progress.evidences.length > 0 && (
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2">
+                                📝 Discussion Evidence ({progress.current_evidence_index + 1}/{progress.total_evidence_count}):
+                              </p>
+                              {(() => {
+                                const currentEvidence = progress.evidences[progress.current_evidence_index];
+                                return (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between text-xs text-blue-600 dark:text-blue-400">
+                                      <span className="font-medium">{currentEvidence.primary_speaker}</span>
+                                      <span>{currentEvidence.timestamp}</span>
+                                    </div>
+                                    <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
+                                      {currentEvidence.text}
+                                    </p>
+                                    <div className="flex items-center justify-between pt-2 border-t border-blue-200 dark:border-blue-800">
+                                      <span className="text-xs text-blue-600 dark:text-blue-400">
+                                        Relevance: {(currentEvidence.relevance_score * 100).toFixed(0)}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
                           
                           {/* AI Analysis */}
                           {hasAnalysis && (
                             <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
                               <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                                AI Analysis:
+                                🤖 AI Analysis:
                               </p>
                               <div 
                                 className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
@@ -6207,125 +6178,7 @@ const refreshAllMedpicSummaries = async () => {
                               )}
                             </div>
                           )}
-                          {/* Associated Tasks Section */}
-                          <div className="mt-4 pt-2 border-t border-gray-200 dark:border-gray-700">
-                            <div className="flex items-center justify-between mb-2">
-                              <h5 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                                Associated Tasks
-                              </h5>
-                              <button 
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  fetchTasksForDeal(deal.id);
-                                }}
-                                className="text-xs text-blue-600 hover:underline"
-                              >
-                                {dealTasks[deal.id] ? "Refresh" : "Load Tasks"}
-                              </button>
-                            </div>
-
-                            {loadingDealTasks.has(deal.id) && (
-                              <div className="text-center py-2">
-                                <Loader className="w-4 h-4 animate-spin mx-auto"/>
-                              </div>
-                            )}
-                            {dealTasks[deal.id] && (() => {
-                              // DEBUG LOGGING
-                              console.log('=== TASK FILTERING DEBUG ===');
-                              console.log('Deal ID:', deal.id);
-                              console.log('All deal tasks:', dealTasks[deal.id].map(t => ({ id: t.task_id, title: t.title })));
-                              console.log('Tracked HubSpot tasks list:', trackedHubSpotTasksList.map(t => ({ key: t.task_key, title: t.title })));
-                              
-                              // Filter to show ONLY tracked tasks
-                              const trackedTasksForDeal = dealTasks[deal.id].filter((task: any) => {
-                                const isTracked = trackedHubSpotTasksList.some(t => t.task_key === task.task_id);
-                                console.log(`Task ${task.task_id} (${task.title}): ${isTracked ? 'TRACKED ✓' : 'NOT TRACKED ✗'}`);
-                                return isTracked;
-                              });
-                              
-                              console.log('Filtered tracked tasks:', trackedTasksForDeal.length);
-                              console.log('=== END DEBUG ===');
-
-                              // Show message if no tracked tasks
-                              if (trackedTasksForDeal.length === 0) {
-                                return (
-                                  <p className="text-xs text-gray-400 italic">
-                                    No tracked tasks for this deal.
-                                  </p>
-                                );
-                              }
-
-                              // Show only tracked tasks
-                              return trackedTasksForDeal.map((task: any) => {
-                                const analysis = trackedTaskAnalyses[task.task_id];
-                                const isLoadingAnalysis = loadingTrackedTasks.has(task.task_id);
-                                const hasAnalysis = analysis && analysis !== 'Generating analysis...' && !analysis.startsWith('Error');
-
-                                return (
-                                  <div key={task.task_id} className="mb-3">
-                                    {/* Task Header Row */}
-                                    <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-900/30 rounded border border-gray-100 dark:border-gray-800">
-                                      <div className="flex-1 min-w-0 mr-2">
-                                        <div className="flex items-center space-x-2">
-                                          <span className="text-xs">✅</span>
-                                          <p className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">
-                                            {task.title}
-                                          </p>
-                                        </div>
-                                        <p className="text-xs text-gray-500">
-                                          {task.status} • Due: {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No date'}
-                                        </p>
-                                      </div>
-                                      
-                                      <button
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          analyzeTrackedTask(task.task_id, {
-                                            title: task.title,
-                                            description: task.description,
-                                            status: task.status,
-                                            project_name: "HubSpot Task"
-                                          });
-                                        }}
-                                        disabled={isLoadingAnalysis}
-                                        className={`p-1.5 rounded-full transition-colors ${
-                                          isLoadingAnalysis 
-                                            ? "bg-gray-200 text-gray-400" 
-                                            : "bg-blue-100 text-blue-600 hover:bg-blue-200"
-                                        }`}
-                                        title="Generate AI Summary for this Task"
-                                      >
-                                        {isLoadingAnalysis ? (
-                                          <Loader className="w-3.5 h-3.5 animate-spin"/>
-                                        ) : (
-                                          <Sparkles className="w-3.5 h-3.5"/>
-                                        )}
-                                      </button>
-                                    </div>
-
-                                    {/* Task Analysis Box */}
-                                    {(hasAnalysis || isLoadingAnalysis) && (
-                                      <div className="ml-4 mt-1 p-2 bg-blue-50/50 dark:bg-blue-900/10 border-l-2 border-blue-400 rounded-r text-xs">
-                                        {isLoadingAnalysis ? (
-                                          <span className="text-gray-500 italic">Generating task update...</span>
-                                        ) : (
-                                          <div 
-                                            className="text-gray-700 dark:text-gray-300"
-                                            dangerouslySetInnerHTML={{ 
-                                              __html: analysis
-                                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                                .replace(/\n/g, '<br/>') 
-                                            }}
-                                          />
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              });
-                            })()}
-                          </div>
-                          {/* 🔴 END OF NEW CODE 🔴 */}
+                          
                           {!progress && !hasAnalysis && (
                             <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
                               Click the ✨ icon to generate AI analysis
@@ -6908,7 +6761,7 @@ const refreshAllMedpicSummaries = async () => {
                 >
                   Conversational AI Platform{" "}
                   <span className="ml-2 px-2 py-0.5 rounded bg-cerulean/10 text-cerulean text-xs">
-                    v1.7
+                    v2.1
                   </span>
                 </p>
               </div>
@@ -6935,7 +6788,7 @@ const refreshAllMedpicSummaries = async () => {
               )}
             </div>
             <button
-              onClick={isBotRunning ? stopBot : startBot} // MODIFIED: Changed function call to simpler `startBot`
+              onClick={isBotRunning ?stopBot : handleConnectClick} // Use the new wrapper function 
               disabled={
                 !meetingUrl ||
                 botStatus === "starting" ||
@@ -6963,50 +6816,15 @@ const refreshAllMedpicSummaries = async () => {
                   : botStatus === "stopping"
                   ? "Disconnecting..."
                   : isBotRunning
-                  ? "Stop Bot"
+                  ? "Stop"
                   : "Connect Meet"}
               </span>
             </button>
           </div>
           <div className="flex items-center space-x-2">
-            <div
-              className={`flex items-center space-x-2 px-4 py-2 rounded-xl ${
-                isTranscribing
-                  ? "bg-red-pantone/10 border border-red-pantone/30"
-                  : "bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/30"
-              }`}
-            >
-              {isTranscribing ? (
-                <Mic className="w-4 h-4 text-red-pantone animate-pulse" />
-              ) : (
-                <MicOff className="w-4 h-4 text-slate-400" />
-              )}
-              <span
-                className={`text-sm font-medium ${
-                  isTranscribing
-                    ? "text-red-pantone"
-                    : "text-slate-500 dark:text-slate-400"
-                }`}
-              >
-                {isTranscribing ? "Recording" : "Paused"}
-              </span>
-            </div>
+            
 
-            <button
-              onClick={toggleTranscription}
-              disabled={!isConnected}
-              className={`p-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 ${
-                isTranscribing
-                  ? "bg-gradient-to-r from-red-pantone to-red-500 text-white hover:from-red-500 hover:to-red-pantone shadow-lg"
-                  : "bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 shadow-lg"
-              }`}
-            >
-              {isTranscribing ? (
-                <Pause className="w-5 h-5" />
-              ) : (
-                <Play className="w-5 h-5" />
-              )}
-            </button>
+           
 
             <div className="flex items-center space-x-2 relative">
               <div className="h-8 w-px bg-slate-300 dark:bg-slate-600"></div>
@@ -7064,7 +6882,7 @@ const refreshAllMedpicSummaries = async () => {
                         : "bg-slate-800 text-slate-100"
                     }`}
                 >
-                  Documents
+                  Content
                   <div
                     className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
                       isDarkMode ? "bg-slate-200" : "bg-slate-800"
@@ -7129,7 +6947,7 @@ const refreshAllMedpicSummaries = async () => {
                         : "bg-slate-800 text-slate-100"
                     }`}
                 >
-                  Note Taker
+                  Analyser
                   <div
                     className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
                       isDarkMode ? "bg-slate-200" : "bg-slate-800"
@@ -7220,7 +7038,7 @@ const refreshAllMedpicSummaries = async () => {
                         : "bg-slate-800 text-slate-100"
                     }`}
                 >
-                  Profile
+                  Admin
                   <div
                     className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
                       isDarkMode ? "bg-slate-200" : "bg-slate-800"
@@ -7501,7 +7319,7 @@ const refreshAllMedpicSummaries = async () => {
                       >
                         {isHotMicActive
                           ? "Hot Transcribe"
-                          : "Live Transcription"}
+                          : "Live-Assist"}
                       </h2>
                       <p
                         className={`text-xs ${
@@ -7779,7 +7597,7 @@ const refreshAllMedpicSummaries = async () => {
                       isDarkMode ? "text-white" : "text-berkeley-blue"
                     }`}
                   >
-                    AI Copilot
+                    Answer-Assist
                   </h2>
                   <span
                     className={`ml-2 px-2 py-0.5 rounded-lg text-xs font-semibold shadow-sm ${
@@ -7791,6 +7609,16 @@ const refreshAllMedpicSummaries = async () => {
                   >
                     Document: {documents.length}
                   </span>
+                  <span
+                    className={`ml-2 px-2 py-0.5 rounded-lg text-xs font-semibold shadow-sm ${
+                      isDarkMode
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                        : "bg-emerald-100/50 text-emerald-700 border border-emerald-500/40"
+                    }`}
+                    style={{ minWidth: 48, textAlign: "center" }}
+                  >
+                    Web Crawls: {webCrawlCount}
+                  </span>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
@@ -7799,65 +7627,14 @@ const refreshAllMedpicSummaries = async () => {
                 {/* Auto-Mode Toggle and Manual Trigger */}
                 <div className="flex items-center space-x-2">
                   {/* Auto/Manual Mode Toggle */}
-                  <button
-                    onClick={() => setIsAutoMode(!isAutoMode)}
-                    className={`px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-200 ease-in-out hover:shadow-sm ${
-                      isAutoMode
-                        ? "bg-green-500 text-white hover:bg-green-600"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                    }`}
-                  >
-                    {isAutoMode ? "Auto Mode ON" : "Manual Mode ON"}
-                  </button>
+                  
 
                   {/* Manual Question Trigger */}
-                  <button
-                    onClick={handleManualQuestionDetection}
-                    disabled={
-                      isTyping || isAutoMode || suggestedQuestions.length === 0
-                    }
-                    title={
-                      isAutoMode
-                        ? "Disable Auto-Mode to trigger manually"
-                        : "Generate question from recent transcript"
-                    }
-                    className={`relative px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-200 ease-in-out hover:shadow-sm ${
-                      isTyping || isAutoMode || suggestedQuestions.length === 0
-                        ? "bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-not-allowed"
-                        : "bg-blue-500 text-white hover:bg-blue-600"
-                    }`}
-                  >
-                    {suggestedQuestions.length > 0 &&
-                      !isAutoMode &&
-                      !isTyping && (
-                        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full animate-pulse border-2 border-white dark:border-blue-500"></span>
-                      )}
-                    <RefreshCw
-                      className={`w-3.5 h-3.5 ${
-                        isTyping ? "animate-spin" : ""
-                      }`}
-                    />
-                    <span>
-                      {isTyping ? "Answering..." : "Generate Question"}
-                    </span>
-                  </button>
+                  
+                  
                 </div>
 
-                <button
-                  onClick={() => setAutoAnswerEnabled(!autoAnswerEnabled)}
-                  className={`px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1.5 text-sm transition-all duration-300 transform hover:scale-105 ${
-                    autoAnswerEnabled
-                      ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 shadow-lg"
-                      : "bg-gradient-to-r from-slate-400 to-slate-500 text-white hover:from-slate-500 hover:to-slate-600 shadow-lg"
-                  }`}
-                  title={
-                    autoAnswerEnabled ? "Auto-Answer: ON" : "Auto-Answer: OFF"
-                  }
-                >
-                  <span>
-                    {autoAnswerEnabled ? "Auto-Answer ON" : "Auto-Answer OFF"}
-                  </span>
-                </button>
+                
 
                 <button
                   onClick={() => setShowHistory(!showHistory)}
@@ -8733,7 +8510,7 @@ const refreshAllMedpicSummaries = async () => {
                       isDarkMode ? "text-white" : "text-berkeley-blue"
                     }`}
                   >
-                    Smart Suggestions
+                    Intelli-Assist
                   </h2>
                   <p
                     className={`text-xs ${

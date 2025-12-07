@@ -742,6 +742,28 @@ const HubSpotDashboard = () => {
                         </span>
                       </div>
 
+                      {/* [ADD] Owner Name, Priority, Due Date Row */}
+                      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1">
+                          <div className="flex justify-between text-xs text-gray-500">
+                              <span>Owner:</span>
+                              <span className="font-medium text-gray-700 dark:text-gray-300">{deal.owner_name || 'Unassigned'}</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-500">
+                              <span>Priority:</span>
+                              <span className={`font-medium ${
+                                  deal.priority?.toLowerCase() === 'high' ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'
+                              }`}>
+                                  {deal.priority || 'Low'}
+                              </span>
+                          </div>
+                           <div className="flex justify-between text-xs text-gray-500">
+                              <span>Due:</span>
+                              <span className={`${isOverdue(deal.close_date) ? 'text-red-500 font-bold' : ''}`}>
+                                   {formatCloseDate(deal.close_date)}
+                              </span>
+                          </div>
+                      </div>
+
                       {/* Deal Metadata */}
                       <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-slate-700">
                         {/* Contact */}
@@ -837,26 +859,29 @@ const HubSpotDashboard = () => {
                                         : 'bg-white border-gray-100 hover:bg-gray-50 dark:bg-slate-700 dark:border-slate-600'
                                     }`}
                                   >
-                                    <div className="flex-1">
-                                       <p className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                                         {task.title}
-                                       </p>
-                                       <div className="flex items-center space-x-2 mt-1 text-gray-500">
-                                          <span className={`px-1.5 py-0.5 rounded text-[10px] ${
-                                            task.priority === 'HIGH' ? 'bg-red-100 text-red-700' : 'bg-gray-100'
-                                          }`}>
-                                            {task.priority || 'NORMAL'}
-                                          </span>
-                                          <span>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No date'}</span>
-                                          {/* Show assignee name if available */}
-                                          {task.assignee_name && task.assignee_name !== 'Unassigned' && (
-                                              <span className="flex items-center">
-                                                  <User className="w-3 h-3 mr-0.5" />
-                                                  {task.assignee_name}
-                                              </span>
-                                          )}
-                                       </div>
+
+
+                                  <div className="flex-1">
+                                    <p className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                                      {task.title}
+                                    </p>
+                                    
+                                    {/* [UPDATE] Single line for Task Owner, Priority, Due Date */}
+                                    <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500">
+                                        <span className="flex items-center">
+                                            <User className="w-3 h-3 mr-1" />
+                                            {task.assignee_name || 'Unassigned'}
+                                        </span>
+                                        <span>•</span>
+                                        <span className={`${
+                                            task.priority === 'HIGH' ? 'text-red-600 font-bold' : ''
+                                        }`}>
+                                            {task.priority || 'Low'}
+                                        </span>
+                                        <span>•</span>
+                                        <span>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No date'}</span>
                                     </div>
+                                  </div>
                                     
                                     <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
                                        selectedTaskMap[task.task_id] ? 'bg-green-500 border-green-500' : 'border-gray-300'

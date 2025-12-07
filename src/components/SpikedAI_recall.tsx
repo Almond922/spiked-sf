@@ -57,7 +57,7 @@ import { useBotId } from '../BotIdContext';
 import { useTheme } from '../ThemeContext';
 
 const service_url_recall =
-  "http://localhost:8000";
+  "https://recall-backend-production-409019309412.us-central1.run.app";
 const service_url_base =
   "https://spikedai-production-application-409019309412.us-central1.run.app";
 const BASE_URL_PROD =

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import RecallLogo from "/recall.png";
 import VexaLogo from "/vexa.png";
@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import HelpChatWidget from "../pages/HelpChatWidget";
+import SuccessNotification from './SuccessNotification';
 import {
   Maximize2,
   Play,
@@ -131,6 +132,12 @@ interface Transcript {
   start_time: string;
   end_time: string | null;
   segments: TranscriptSegment[];
+}
+
+interface NotificationState {
+    show: boolean;
+    message: string;
+    type: 'success' | 'error'; // Added type for future error notification
 }
 
 // MODIFIED: This interface is simplified as follow-ups are no longer in this response.
@@ -1225,6 +1232,10 @@ useEffect(() => {
   }
 };
 
+const handleCloseNotification = useCallback(() => {
+        setNotification({ show: false, message: '', type: 'success' }); // Reset state
+    }, []);
+
 useEffect(() => {
         if (botId) {
             establishSseConnections(botId);
@@ -1292,12 +1303,15 @@ useEffect(() => {
             await establishSseConnections(newBotId);
 
             // 🌟 ADDED POP-UP LOGIC HERE 🌟
-            alert("The bot has started and transcription is active. Click the 'Analyser' button (Notebook 📝 symbol) at the top right of the website to view real-time analysis."); 
-            // 🌟 ------------------------ 🌟
-
-            setTimeout(() => {
-                fetchSentimentDataStaggered();
-            }, 5000);
+            setNotification({
+                    show: true,
+                    message: "The bot has started and transcription is active. Click the 'Analyser' button (Notebook 📝 symbol) at the top right of the website to view real-time analysis.",
+                    type: 'success', 
+                }); 
+                
+                setTimeout(() => {
+                    // fetchSentimentDataStaggered();
+                }, 5000);
 
         } else {
             throw new Error("No valid bot ID received from backend");
@@ -1330,7 +1344,11 @@ const handleConnectClick = () => {
   // 1. Check if the user has been notified
   if (!hasBeenNotifiedOfFocus) {
     // 2. Display the required notification/alert
-   alert("Before connecting the bot, please ensure that the meeting focus has been added to get relevant, topic-based questions.");
+    setNotification({
+      show: true,
+      message: "Please click again to confirm bot connection.",
+      type: 'error', 
+    });
 
     // 3. Set the state to true so the next click will proceed
     setHasBeenNotifiedOfFocus(true);
@@ -1790,6 +1808,11 @@ const handleAskTranscript = async (segmentText: string) => {
   await askQuestion(question, false); // false = not auto-generated
 };
 
+const [notification, setNotification] = useState<NotificationState>({
+        show: false,
+        message: '',
+        type: 'success', 
+    });
 
   const extractMeetingIdAndPlatform = (
     meetingUrl: string
@@ -6787,6 +6810,15 @@ const refreshAllMedpicSummaries = async () => {
                 </div>
               )}
             </div>
+            {/* 4. RENDER THE NOTIFICATION COMPONENT */}
+            {notification.show && notification.type === 'success' && (
+                <SuccessNotification 
+                    message={notification.message}
+                    onClose={handleCloseNotification}
+                    duration={5000} 
+                />
+            )}
+            {/* You would render ErrorNotification here if implemented */}
             <button
               onClick={isBotRunning ?stopBot : handleConnectClick} // Use the new wrapper function 
               disabled={

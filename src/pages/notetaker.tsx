@@ -1170,8 +1170,6 @@ Based on the meeting transcript provided, please generate a meeting summary foll
     const allTemplates = useMemo(() => [...customTemplates, ...templates], [customTemplates, templates]);
     
     const generatePDF = () => {
-        if (chatMessages.length === 0) return;
-        
         try {
             setIsGeneratingPDF(true);
             const { jsPDF } = (window as any).jspdf;
@@ -1776,7 +1774,7 @@ Based on the meeting transcript provided, please generate a meeting summary foll
                     <div className="flex items-center space-x-2">
                         <button
                             onClick={() => setIsPdfDialogOpen(true)}
-                            disabled={isGeneratingPDF || chatMessages.length === 0}
+                            disabled={isGeneratingPDF}
                             className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${
                                 isDarkMode
                                     ? 'bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-600'
@@ -1798,7 +1796,6 @@ Based on the meeting transcript provided, please generate a meeting summary foll
                         </button>
                         <button
                             onClick={handleShareClick}
-                            disabled={chatMessages.length === 0}
                             className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${
                                 isDarkMode
                                     ? 'bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-600'

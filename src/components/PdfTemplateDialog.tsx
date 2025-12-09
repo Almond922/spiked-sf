@@ -14,11 +14,11 @@ interface Template {
 interface Props {
 	isOpen: boolean;
 	onClose: () => void;
-	templates: Template[]; // includes both prebuilt and custom (allTemplates)
-	transcriptText: string; // pre-joined transcript string
+	templates: Template[]; 
+	transcriptText: string; 
 	sessionToken?: string | null;
 	isDarkMode?: boolean;
-	backendUrl?: string; // optional override for API endpoint
+	backendUrl?: string;
 }
 
 const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transcriptText, sessionToken, isDarkMode, backendUrl }) => {
@@ -91,17 +91,16 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 
 			setProgressText('Generating PDF...');
 
-				// build pdf using jspdf (same global used elsewhere)
+		
 				try {
 					const { jsPDF } = (window as any).jspdf || {};
 					if (!jsPDF) throw new Error('jspdf not found on window');
 					const doc = new jsPDF();
 
-					// Visual constants copied from meeting-prep report for consistent branding
 					const accentRed = '#F44336';
 					const textPrimary = '#212121';
 					const textSecondary = '#757575';
-					const logoBase64 = 'data:image/jpeg;base64,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';
+					const logoBase64 = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wgARCADIAMgDASIAAhEBAxEB/8QAGgABAAMBAQEAAAAAAAAAAAAAAAUHCAQGA//EABoBAQADAQEBAAAAAAAAAAAAAAAEBQcGCAP/2gAMAwEAAhADEAAAAfPjn/RoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADSGb9dTeFgeL3UfO4HIwpN4AAAAAAAAAAa6yLrqfn3fHyEfYZxkYUHogAAAAAAAAABrrIuup+fd8fIR9hnGRhQeiAAAAAAAAAAGusi66n593x8hH2GcZGFB6IAAAAAAAAAAa6yLaUrkL3j6f8AhM4yrRU7EAAAAAAAAAAvGjtby+L8Jy2vHzuFyMKbbgAAAAAAAAAF70Q+lVoPloZ9qgIvWAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf/EAB4QAAEFAQEBAQEAAAAAAAAAAAQAAwU0QAYWcBc1/9oACAEBAAEFAvkIfLxbgnk4lGcvFth5gKCkKGYCgpChmAoKQoZgKCkKGYCgpChmAoKQoZgKCkKGYCgpChmY719hn9CfT/ePvsZhOGCIE8ACiuFCZGzRn81SFDMH20ewJ7yNRXbx7wvyH//EACgRAAADCAECBwAAAAAAAAAAAAECAwAEBQYRMDNxMVDBEhMjQVKRof/aAAgBAwEBPwHpk0rrIES8o4l54GjJRB8FQvrG5+Q3Jvxo7HsyOQu7k340dj2ZHIXdyb8aOx7MjkLu5MUOeIgRMHcK0qycuREpwESfoXJmfF3RNMUD+GoiyUZiAnKArDcf4ahEQKVf2YssuBRqFfvp3//EAB4RAAEEAwEBAQAAAAAAAAAAAAEAAgMxBBEwUBIU/9oACAECAQE/AfMxgCTtFjdV0xbKNdMWyjXTFso10gkazf0jkR9MdocTtGFmq6MkMdL9L/O//8QAKhAAAQIEBAUEAwAAAAAAAAAAAgEDBEBzsQAQERIUUXGS0SIyNHAxM5H/2gACAEDAQE/EOmO7Cykl8GsJRAww/Te56HFOyebnocU7J5uehxTsnm4E1NMoahGqYopkCPNvcTcpEfcBULApjO1yXiGpDGtDSmM8OOnf//EAB4RAAEEAgMBAAAAAAAAAAAAAAEAETAxIbFBUJGh/9oACAECAQE/EOsbw9J2x8EmqrJNVWSaqskMkVogEP8ADIPBdAljIaJ5olDY867/xAAgEAEBAAEEAQUAAAAAAAAAAAABESEAEEFwMUBQYcHw/9oACAEBAAE/EOoXxc46BccldhB6O09QOYwh2/GPRj0Y9GPRj0Y9GPRjwBmCkFTj41+S+tOqYAQyTHF9OYN+MKAvhXZxbaguWBnhT3AoeStd1UiPCmxAwNwNRFeFeov/2Q==';
 
 					const pageWidth = doc.internal.pageSize.getWidth();
 					const margin = 20;
@@ -118,7 +117,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 						try {
 							if (logoBase64) doc.addImage(logoBase64, 'PNG', margin, 15, 8, 8);
 						} catch (err) {
-							// ignore image errors
+							
 						}
 						doc.setFont('helvetica', 'bold');
 						doc.setFontSize(18);
@@ -141,7 +140,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 						doc.text('Confidential & Proprietary. All right reserved to SpikedAI', margin, 290);
 					};
 
-					// Helper function to parse and render markdown
+					
 					const renderMarkdown = (text: string, leftMargin: number = margin): void => {
 						const lines = text.split('\n');
 						let inList = false;
@@ -149,7 +148,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 						for (let line of lines) {
 							const trimmedLine = line.trim();
 							
-							// Skip empty lines
+					
 							if (!trimmedLine) {
 								yPosition += 3;
 								continue;
@@ -157,7 +156,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 
 							checkPageBreak(15);
 
-							// Heading levels (##, ###, ####)
+							
 							const h1Match = line.match(/^#\s+(.+)$/);
 							const h2Match = line.match(/^##\s+(.+)$/);
 							const h3Match = line.match(/^###\s+(.+)$/);
@@ -201,7 +200,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 								continue;
 							}
 
-							// Bullet points (* or -)
+						
 							const bulletMatch = line.match(/^(\s*)([\*\-])\s+(.+)$/);
 							if (bulletMatch) {
 								const indent = bulletMatch[1].length;
@@ -215,19 +214,19 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 								
 								checkPageBreak(10);
 								
-								// Render bullet
+								
 								doc.setFont('helvetica', 'normal');
 								doc.setFontSize(10);
 								doc.setTextColor(textPrimary);
 								doc.text('•', bulletX, yPosition);
 								
-								// Render content with bold/italic support
+						
 								const processedContent = renderInlineFormatting(content, bulletX + 5, yPosition, contentWidth - (bulletX - margin) - 5);
 								yPosition += processedContent.height;
 								continue;
 							}
 
-							// Numbered lists
+				
 							const numberedMatch = line.match(/^(\s*)(\d+)\.\s+(.+)$/);
 							if (numberedMatch) {
 								const indent = numberedMatch[1].length;
@@ -252,7 +251,6 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 								continue;
 							}
 
-							// Regular paragraph
 							if (inList) {
 								yPosition += 3;
 								inList = false;
@@ -264,17 +262,17 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 						}
 					};
 
-					// Helper to handle bold (**text**) and italic (*text*)
+					
 					const renderInlineFormatting = (text: string, x: number, y: number, maxWidth: number): { height: number } => {
 						doc.setFontSize(10);
 						
-						// Split text by bold and italic markers
+					
 						const segments: Array<{ text: string; bold: boolean; italic: boolean }> = [];
 						let remaining = text;
 
-						// Simple parser for **bold** and *italic*
+	
 						while (remaining.length > 0) {
-							// Check for bold
+					
 							const boldMatch = remaining.match(/^\*\*([^*]+)\*\*/);
 							if (boldMatch) {
 								segments.push({ text: boldMatch[1], bold: true, italic: false });
@@ -282,7 +280,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 								continue;
 							}
 
-							// Check for italic
+		
 							const italicMatch = remaining.match(/^\*([^*]+)\*/);
 							if (italicMatch) {
 								segments.push({ text: italicMatch[1], bold: false, italic: true });
@@ -290,7 +288,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 								continue;
 							}
 
-							// Regular text until next marker
+				
 							const nextMarker = remaining.search(/\*+/);
 							if (nextMarker === -1) {
 								segments.push({ text: remaining, bold: false, italic: false });
@@ -301,7 +299,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 							}
 						}
 
-						// Render segments with word wrapping
+			
 						let currentX = x;
 						let currentY = y;
 						let lineHeight = 5;
@@ -335,14 +333,11 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 					addHeader();
 					yPosition = 40;
 
-					// Title
+	
 					doc.setFont('helvetica', 'bold');
 					doc.setFontSize(20);
 					doc.setTextColor(textPrimary);
-					//doc.text('Selected Templates Output', margin, yPosition);
-					//yPosition += 12;
 
-					// timestamp
 					doc.setFont('helvetica', 'normal');
 					doc.setFontSize(9);
 					doc.setTextColor(textSecondary);
@@ -359,12 +354,10 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 						doc.text(item.template.name, margin, yPosition);
 						yPosition += 8;
 
-						// Render markdown content
 						renderMarkdown(item.response, margin);
 						yPosition += 8;
 					}
 
-					// Transcript section (optional)
 					if (includeTranscript && transcriptText && transcriptText.trim()) {
 						checkPageBreak(30);
 						doc.setFont('helvetica', 'bold');
@@ -373,31 +366,43 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 						doc.text('Transcript', margin, yPosition);
 						yPosition += 8;
 						
-						// Render transcript as plain text with compact formatting
 						doc.setFont('helvetica', 'normal');
 						doc.setFontSize(8);
 						doc.setTextColor(textPrimary);
-						doc.setLineHeightFactor(1.15); // Reduce line spacing
+						doc.setLineHeightFactor(1.15); 
 						
-						// Use margins for transcript content
+				
 						const transcriptMargin = margin + 2;
 						const transcriptWidth = contentWidth - 4;
 						const transcriptLines = doc.splitTextToSize(transcriptText, transcriptWidth);
-						
-						for (let line of transcriptLines) {
-							// Check if we need a new page (leaving 10mm bottom margin)
-							if (yPosition + 3.5 > 270) {
+
+						const MAX_TRANSCRIPT_PAGES = 2;
+						let pagesUsedForTranscript = 0;
+						const lineHeight = 3.5;
+
+						for (let idx = 0; idx < transcriptLines.length; idx++) {
+							const line = transcriptLines[idx];
+							
+							if (yPosition + lineHeight > 270) {
 								addFooter(); 
 								doc.addPage(); 
 								addHeader(); 
 								yPosition = 40;
+								pagesUsedForTranscript += 1;
+							
+								if (pagesUsedForTranscript >= MAX_TRANSCRIPT_PAGES) {
+									
+									doc.text('[Transcript truncated — full transcript omitted to keep PDF size reasonable]', transcriptMargin, yPosition);
+									yPosition += lineHeight + 2;
+									break;
+								}
 							}
+					
 							doc.text(line, transcriptMargin, yPosition);
-							yPosition += 3.5;
+							yPosition += lineHeight;
 						}
 						yPosition += 4;
-						
-						// Reset line height
+				
 						doc.setLineHeightFactor(1.0);
 					}
 
@@ -418,7 +423,6 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 			setIsRunning(false);
 		}
 
-		// (transcript is added inside the PDF generation scope above)
 	};
 
 	if (!isOpen) return null;
@@ -427,8 +431,6 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 		<div className="fixed inset-0 z-50 flex items-center justify-center">
 			<div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { if (!isRunning) onClose(); }} />
 			<div className={`relative w-[min(800px,95%)] max-h-[90vh] rounded-xl shadow-2xl overflow-hidden ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
-				
-				{/* Header */}
 				<div className={`px-6 py-4 border-b ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
 					<div className="flex items-center justify-between">
 						<div>
@@ -450,10 +452,8 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 					</div>
 				</div>
 
-				{/* Content */}
 				<div className="px-6 py-4 max-h-[calc(90vh-240px)] overflow-y-auto">
 					
-					{/* Prebuilt Templates */}
 					<div className="mb-6">
 						<div className="flex items-center justify-between mb-3">
 							<h4 className={`text-sm font-semibold uppercase tracking-wide ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -488,7 +488,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 										<div className="font-semibold text-sm">{t.name}</div>
 										{t.description && (
 											<div className={`text-xs mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-												{t.description}
+											{t.description}
 											</div>
 										)}
 									</div>
@@ -497,7 +497,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 						</div>
 					</div>
 
-					{/* Custom Templates */}
+					
 					<div>
 						<div className="flex items-center justify-between mb-3">
 							<h4 className={`text-sm font-semibold uppercase tracking-wide ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -529,7 +529,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 												: isDarkMode 
 													? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
 													: 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
-										} ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
+									} ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
 									>
 										<input 
 											type="checkbox" 
@@ -542,7 +542,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 											<div className="font-semibold text-sm">{t.name}</div>
 											{t.description && (
 												<div className={`text-xs mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-													{t.description}
+												{t.description}
 												</div>
 											)}
 										</div>
@@ -553,9 +553,9 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 					</div>
 				</div>
 
-				{/* Footer */}
+			
 				<div className={`px-6 py-4 border-t ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
-					{/* Progress indicator */}
+					
 					{isRunning && (
 						<div className="mb-3 flex items-center space-x-2">
 							<div className="animate-spin rounded-full h-4 w-4 border-2 border-red-600 border-t-transparent"></div>
@@ -563,7 +563,6 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 						</div>
 					)}
 
-					{/* PDF Ready download */}
 					{pdfUrl && (
 						<div className={`mb-3 p-3 rounded-lg flex items-center justify-between ${isDarkMode ? 'bg-green-900/20 border border-green-500/50' : 'bg-green-50 border border-green-300'}`}>
 							<div className="flex items-center space-x-2">
@@ -583,7 +582,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 					)}
 
 					<div className="flex items-center justify-between">
-						{/* Left side - Include Transcript */}
+						
 						<label className={`flex items-center space-x-2 cursor-pointer ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}>
 							<input 
 								type="checkbox" 
@@ -595,7 +594,7 @@ const PdfTemplateDialog: React.FC<Props> = ({ isOpen, onClose, templates, transc
 							<span className="text-sm font-medium">Include Transcript</span>
 						</label>
 
-						{/* Right side - Action buttons */}
+					
 						<div className="flex items-center space-x-2">
 							<button 
 								onClick={() => { setSelectedIds(new Set(templates.map(t => t.id))); }} 

@@ -2315,6 +2315,612 @@ console: {
 }
   ]
 },
+   content:{
+  cardId:'Content',
+  cardTitle: 'Content',
+  cardDescription:
+    'Manage and configure your content hubs with AI-powered tools.',
+ icon: <FileText style={{ width: '20px', height: '20px' }} />,
+ // ✔ only component reference
+  emoji: '📄',
+
+  items: [
+    
+      {
+  id: 'knowledge-hub-upload-section',
+  title: 'Knowledge Hub AI - Document Upload',
+  description: 'Upload and manage documents for intelligent information retrieval during meetings.',
+  questions: [
+    {
+      id: 'knowledge-hub-upload-features',
+      title: 'Knowledge Hub AI',
+      emoji: '📁',
+      description: 'Upload documents and configure intelligent retrieval settings',
+      subQuestions: [
+        {
+          id: 'what-is-knowledge-hub-upload',
+          question: 'What is Knowledge Hub AI document upload?',
+          answer: `
+            <div style="line-height:1.8;color:#374151;font-size:15px;">
+              <p style="margin-bottom:20px;"><strong>Knowledge Hub AI</strong> allows you to upload documents that can be intelligently searched and referenced during meetings. When you have questions during a meeting, the system retrieves answers from your uploaded documents automatically.</p>
+              
+              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🎯 INTELLIGENT DOCUMENT RETRIEVAL</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Upload your documents once and let AI find relevant information automatically during your meetings, making your knowledge instantly accessible.</p>
+              </div>
+
+              <img 
+                src="/tutorial/knowledge-hub-main.png" 
+                alt="Knowledge Hub AI Interface"
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-bottom:24px;image-rendering:-webkit-optimize-contrast;"
+              />
+
+              <p style="margin-bottom:12px;font-weight:600;">Supported document types:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>PDF:</strong> Standard PDF documents up to 20 MB</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>DOCX:</strong> Microsoft Word documents</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>TXT:</strong> Plain text files</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Maximum size:</strong> 20 MB per document</li>
+              </ul>
+
+              <p style="margin-bottom:12px;font-weight:600;">How it works:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;">Upload documents to your Knowledge Hub</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Add description and spaces to improve retrieval accuracy</li>
+                <li style="margin-bottom:10px;padding-left:8px;">During meetings, ask questions related to your documents</li>
+                <li style="margin-bottom:10px;padding-left:8px;">AI automatically retrieves relevant information from uploaded content</li>
+                <li style="margin-bottom:0;padding-left:8px;">Get instant answers with source citations</li>
+              </ul>
+
+              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+                <strong>Example:</strong> Upload your product documentation, and during a sales call when someone asks about a feature, the system automatically retrieves and presents the relevant information from your docs.
+              </p>
+            </div>
+          `
+        },
+        {
+          id: 'how-to-upload-documents',
+          question: 'How do I upload documents to Knowledge Hub?',
+          answer: `
+            <div style="line-height:1.8;color:#374151;font-size:15px;">
+              <p style="margin-bottom:20px;">Uploading documents to Knowledge Hub is simple and takes just a few steps. Each document can be enhanced with descriptions and spaces for better retrieval.</p>
+              
+              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">📤 UPLOAD PROCESS</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Follow these steps to upload and configure your documents for optimal AI retrieval during meetings.</p>
+              </div>
+
+              <img 
+                src="/tutorial/knowledge-hub-upload.png" 
+                alt="Document Upload Interface"
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-bottom:24px;image-rendering:-webkit-optimize-contrast;"
+              />
+
+              <p style="margin-bottom:12px;font-weight:600;">Upload steps:</p>
+              <ol style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;">Navigate to Knowledge Hub AI section</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Click the "Upload Document" button</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Select your file (PDF, DOCX, or TXT, max 20 MB)</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Add a description explaining the document content</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Assign spaces (categories) to organize your documents</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Click "Upload" to process the document</li>
+                <li style="margin-bottom:0;padding-left:8px;">Wait for processing to complete</li>
+              </ol>
+
+              <p style="margin-bottom:12px;font-weight:600;">Description best practices:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Be specific:</strong> Clearly describe what the document contains</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Include keywords:</strong> Add terms that might be used in questions</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Mention topics:</strong> List main subjects covered in the document</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Keep it concise:</strong> 2-3 sentences that capture the essence</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Add context:</strong> Explain when this document should be referenced</li>
+              </ul>
+
+              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+                <strong>Pro Tip:</strong> Good descriptions help the AI understand your document's content and retrieve the right information when needed during meetings.
+              </p>
+            </div>
+          `
+        },
+        {
+          id: 'what-are-spaces',
+          question: 'What are Spaces and why are they important?',
+          answer: `
+            <div style="line-height:1.8;color:#374151;font-size:15px;">
+              <p style="margin-bottom:20px;"><strong>Spaces</strong> are categories or tags that help organize your documents and improve retrieval accuracy. When you add spaces to documents, the AI can better match meeting topics with relevant content.</p>
+              
+              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🏷️ SMART ORGANIZATION</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Spaces make content easily recognizable, ensuring that even if the meeting covers a specific topic, the system can quickly retrieve the most relevant documents.</p>
+              </div>
+
+              <p style="margin-bottom:12px;font-weight:600;">Why spaces matter:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Better retrieval:</strong> AI can quickly identify relevant documents based on meeting topic</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Organization:</strong> Keep documents grouped by subject, department, or use case</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Context matching:</strong> Link documents to specific types of meetings or discussions</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Faster search:</strong> Narrow down search scope to relevant categories</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Team efficiency:</strong> Everyone knows where to find specific information</li>
+              </ul>
+
+              <p style="margin-bottom:12px;font-weight:600;">Example space categories:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Product Documentation:</strong> Technical specs, features, user guides</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Sales Materials:</strong> Pricing, proposals, case studies</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Company Policies:</strong> HR policies, procedures, guidelines</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Customer Support:</strong> FAQs, troubleshooting guides, solutions</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Legal & Compliance:</strong> Contracts, terms, regulatory documents</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Training Materials:</strong> Onboarding docs, training guides, tutorials</li>
+              </ul>
+
+              <p style="margin-bottom:12px;font-weight:600;">How to use spaces effectively:</p>
+              <ol style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;">Create logical categories based on your business needs</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Assign multiple spaces to documents that span topics</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Use consistent naming conventions across your team</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Review and update spaces as your content evolves</li>
+                <li style="margin-bottom:0;padding-left:8px;">Train team members on space organization system</li>
+              </ol>
+
+              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+                <strong>Key Benefit:</strong> Combining descriptions and spaces ensures the AI can accurately identify and retrieve the right document at the right time during your meetings.
+              </p>
+            </div>
+          `
+        },
+        {
+          id: 'managing-uploaded-documents',
+          question: 'How do I manage my uploaded documents?',
+          answer: `
+            <div style="line-height:1.8;color:#374151;font-size:15px;">
+              <p style="margin-bottom:20px;">Once documents are uploaded, you can view, edit, update, and delete them from your Knowledge Hub. Keep your document library organized and up-to-date for best results.</p>
+              
+              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">⚙️ DOCUMENT MANAGEMENT</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Maintain an organized, current knowledge base by regularly managing your uploaded documents.</p>
+              </div>
+
+              <p style="margin-bottom:12px;font-weight:600;">Available actions:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>View details:</strong> See document information, description, and assigned spaces</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Edit metadata:</strong> Update description and spaces without re-uploading</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Replace document:</strong> Upload a new version to replace outdated content</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Delete document:</strong> Remove documents that are no longer needed</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Filter by space:</strong> View documents in specific categories</li>
+              </ul>
+
+              <p style="margin-bottom:12px;font-weight:600;">Best practices for management:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Regular reviews:</strong> Audit your documents quarterly to ensure relevance</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Update promptly:</strong> Replace outdated documents immediately when new versions are available</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Consistent naming:</strong> Use clear, descriptive file names</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Remove duplicates:</strong> Delete redundant or superseded documents</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Verify accuracy:</strong> Ensure descriptions and spaces remain accurate</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Team coordination:</strong> Communicate document changes to relevant team members</li>
+              </ul>
+
+              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+                <strong>Important:</strong> Keeping your Knowledge Hub current ensures the AI always retrieves the most accurate and relevant information during meetings.
+              </p>
+            </div>
+          `
+        }
+      ]
+    }
+  ]
+},
+
+    {
+      id: 'web-agent-ai',
+      title: 'Web Agent AI',
+      description: 'Configure AI web browsing and data extraction.',
+      questions: [
+        {
+          id: 'web-browse-chunks',
+          title: 'Web Browse Chunks',
+          emoji: '🌐',
+          description: 'Learn how content is split into chunks.',
+          subQuestions: [
+            {
+                id: 'what-is-web-agent-ai',
+          question: 'What is Web Agent AI?',
+          answer: `
+            <div style="line-height:1.8;color:#374151;font-size:15px;">
+              <p style="margin-bottom:20px;"><strong>Web Agent AI</strong> allows you to add websites that can be intelligently crawled and indexed for automatic information retrieval during meetings. The system fetches and processes website content, making it searchable and accessible when you need it.</p>
+              
+              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🎯 INTELLIGENT WEBSITE INDEXING</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Add website URLs once and let AI automatically crawl, index, and retrieve relevant information during your meetings.</p>
+              </div>
+
+              <img 
+                src="/tutorial/web-agent-main.png" 
+                alt="Web Agent AI Interface"
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-bottom:24px;image-rendering:-webkit-optimize-contrast;"
+              />
+
+              <p style="margin-bottom:12px;font-weight:600;">How it works:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;">Add website URLs with descriptions and spaces</li>
+                <li style="margin-bottom:10px;padding-left:8px;">System crawls and indexes the website content automatically</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Schedule automatic re-crawls to keep content up-to-date</li>
+                <li style="margin-bottom:10px;padding-left:8px;">During meetings, AI retrieves relevant information from indexed websites</li>
+                <li style="margin-bottom:0;padding-left:8px;">Get instant answers with source citations from your added websites</li>
+              </ul>
+
+              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+                <strong>Example:</strong> Add your company's knowledge base website, and during customer calls, the system automatically retrieves relevant information from your indexed pages to answer questions.
+              </p>
+            </div>
+          `
+        },
+        {
+          id: 'how-to-add-website',
+          question: 'How do I add a website to Web Agent AI?',
+          answer: `
+            <div style="line-height:1.8;color:#374151;font-size:15px;">
+              <p style="margin-bottom:20px;">Adding a website to Web Agent AI is simple and requires just a few key details. Each website can be enhanced with descriptions and spaces for better content retrieval.</p>
+              
+              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🔗 ADD WEBSITE</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Follow these steps to add and configure websites for optimal AI indexing and retrieval.</p>
+              </div>
+
+              <img 
+                src="/tutorial/web-agent-add-website.png" 
+                alt="Add Website Interface"
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-bottom:24px;image-rendering:-webkit-optimize-contrast;"
+              />
+
+              <p style="margin-bottom:12px;font-weight:600;">Steps to add a website:</p>
+              <ol style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;">Navigate to Web Agent AI section</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Click the "Add Website" button</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Enter the complete website URL (e.g., https://example.com)</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Add a clear description explaining the website content</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Assign spaces (categories) to organize your websites</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Click "Add" to start the crawling process</li>
+                <li style="margin-bottom:0;padding-left:8px;">Wait for the system to index the website content</li>
+              </ol>
+
+              <p style="margin-bottom:12px;font-weight:600;">Description best practices:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Be specific:</strong> Clearly describe what the website contains</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Include keywords:</strong> Add terms that might be used in questions</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Mention purpose:</strong> Explain when this website should be referenced</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Keep it concise:</strong> 2-3 sentences that capture the website's value</li>
+              </ul>
+
+              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+                <strong>Pro Tip:</strong> Good descriptions and proper space assignment help the AI understand your website's content and retrieve the right information when needed.
+              </p>
+            </div>
+          `
+        },
+        {
+          id: 'recrawl-schedule-website',
+          question: 'How do I re-crawl or schedule automatic updates for websites?',
+          answer: `
+            <div style="line-height:1.8;color:#374151;font-size:15px;">
+              <p style="margin-bottom:20px;">Keep your website content up-to-date by scheduling automatic re-crawls or triggering immediate updates. This ensures the AI always retrieves the latest information from your indexed websites.</p>
+              
+              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🔄 RE-CRAWL & SCHEDULING</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Set up automatic re-crawls to keep your website content fresh and accurate for AI retrieval.</p>
+              </div>
+
+              <img 
+                src="/tutorial/web-agent-recrawl.png" 
+                alt="Re-crawl and Schedule Interface"
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-bottom:24px;image-rendering:-webkit-optimize-contrast;"
+              />
+
+              <p style="margin-bottom:12px;font-weight:600;">Re-crawl options:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Re-crawl Now:</strong> Initiate an immediate re-index of the website. This action will not change your recurring schedule.</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Schedule Automatic Re-crawl:</strong> Set a recurring schedule for the system to fetch and re-index content automatically.</li>
+              </ul>
+
+              <p style="margin-bottom:12px;font-weight:600;">Re-crawl frequency options:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Daily:</strong> Website is re-crawled every day (ideal for frequently updated content)</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Weekly:</strong> Website is re-crawled once per week</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Monthly:</strong> Website is re-crawled once per month</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>One Time Only:</strong> No recurring schedule, manual re-crawl only</li>
+              </ul>
+
+              <p style="margin-bottom:12px;font-weight:600;">How to set up scheduling:</p>
+              <ol style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;">Find your website in the Web Agent AI list</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Click the three-dot menu (⋮) next to the website</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Select "Schedule Re-crawl" from the menu</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Choose your preferred frequency (Daily, Weekly, Monthly, or One Time)</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Save your schedule settings</li>
+                <li style="margin-bottom:0;padding-left:8px;">Use "Re-crawl Now" anytime for immediate updates</li>
+              </ol>
+ <img 
+                src="/tutorial/web-agent-recrawl-loc.png" 
+                alt="Re-crawl and Schedule Interface"
+                style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-bottom:24px;image-rendering:-webkit-optimize-contrast;"
+              />
+              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+                <strong>Important:</strong> Choose a re-crawl frequency that matches how often your website content updates. Daily schedules are best for blogs and news sites, while monthly works well for stable documentation.
+              </p>
+            </div>
+          `
+        },
+        {
+          id: 'managing-websites',
+          question: 'How do I manage my added websites?',
+          answer: `
+            <div style="line-height:1.8;color:#374151;font-size:15px;">
+              <p style="margin-bottom:20px;">Once websites are added, you can view, edit, update, and delete them from your Web Agent AI dashboard. Keep your website library organized and current for optimal AI retrieval.</p>
+              
+              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">⚙️ WEBSITE MANAGEMENT</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Maintain an organized, current collection of indexed websites for accurate information retrieval.</p>
+              </div>
+
+              <p style="margin-bottom:12px;font-weight:600;">Available actions:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>View details:</strong> See website information, description, and assigned spaces</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Edit metadata:</strong> Update description and spaces without re-adding the website</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Re-crawl settings:</strong> Adjust automatic re-crawl schedules through the three-dot menu</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Delete website:</strong> Remove websites that are no longer needed</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Filter by space:</strong> View websites in specific categories</li>
+              </ul>
+
+              <p style="margin-bottom:12px;font-weight:600;">Best practices for management:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Regular reviews:</strong> Audit your websites quarterly to ensure relevance</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Update schedules:</strong> Adjust re-crawl frequency based on content update patterns</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Remove outdated sites:</strong> Delete websites that are no longer active or relevant</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Verify accuracy:</strong> Ensure descriptions and spaces remain accurate</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Monitor indexing:</strong> Check that websites are being crawled successfully</li>
+              </ul>
+
+              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+                <strong>Key Benefit:</strong> Well-managed websites with proper scheduling ensure the AI always has access to the most current and relevant information during meetings.
+              </p>
+            </div>
+          `
+            }
+          ]
+        },
+ {
+  id: 'browse-chunks',
+  title: 'Browse Chunks',
+  emoji: '🧩',
+  description: 'View and verify chunked content from documents and websites.',
+  subQuestions: [
+    {
+      id: 'what-is-browse-chunks',
+      question: 'What is Browse Chunks?',
+      answer: `
+        <div style="line-height:1.8;color:#374151;font-size:15px;">
+          <p style="margin-bottom:20px;"><strong>Browse Chunks</strong> allows you to view and verify the chunked content from your uploaded documents and indexed websites. When content is processed, it's divided into smaller chunks for efficient AI retrieval during meetings.</p>
+          
+          <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+            <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🎯 CONTENT VERIFICATION</p>
+            <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Browse Chunks confirms that your documents and websites have been successfully processed and are ready for intelligent retrieval.</p>
+          </div>
+
+          <img 
+            src="/tutorial/browsechunks-main.png" 
+            alt="Browse Chunks Interface"
+            style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-bottom:24px;image-rendering:-webkit-optimize-contrast;"
+          />
+
+          <p style="margin-bottom:12px;font-weight:600;">How it works:</p>
+          <ul style="margin:0 0 24px 0;padding-left:24px;">
+            <li style="margin-bottom:10px;padding-left:8px;">Upload documents or add websites to the system</li>
+            <li style="margin-bottom:10px;padding-left:8px;">Content is automatically processed and divided into smaller chunks</li>
+            <li style="margin-bottom:10px;padding-left:8px;">Chunks appear in Browse Chunks list confirming successful processing</li>
+            <li style="margin-bottom:10px;padding-left:8px;">During meetings, AI retrieves relevant chunks to answer questions</li>
+            <li style="margin-bottom:0;padding-left:8px;">View and verify chunks to ensure content was extracted correctly</li>
+          </ul>
+
+          <p style="margin-bottom:12px;font-weight:600;">What are chunks?</p>
+          <ul style="margin:0 0 24px 0;padding-left:24px;">
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Chunks:</strong> Smaller segments of content extracted from your documents and websites</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Optimized retrieval:</strong> Breaking content into chunks makes it easier for AI to find relevant information quickly</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Better accuracy:</strong> Smaller chunks allow more precise matching to meeting questions</li>
+            <li style="margin-bottom:0;padding-left:8px;"><strong>Efficient processing:</strong> Chunked content is faster to search and retrieve during meetings</li>
+          </ul>
+
+          <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+            <strong>Important:</strong> Seeing your content in Browse Chunks list confirms that your document or website is successfully added and ready for AI retrieval during meetings.
+          </p>
+        </div>
+      `
+    },
+    {
+      id: 'how-to-view-chunks',
+      question: 'How do I view chunks?',
+      answer: `
+        <div style="line-height:1.8;color:#374151;font-size:15px;">
+          <p style="margin-bottom:20px;">Viewing chunks is simple and allows you to see all the processed content from your uploaded documents and indexed websites in one place.</p>
+          
+          <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+            <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">👁️ VIEW CHUNKS</p>
+            <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Navigate to Browse Chunks to see all processed content and verify successful uploads.</p>
+          </div>
+
+          <img 
+            src="/tutorial/browsechunks-list.png" 
+            alt="Browse Chunks List View"
+            style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-bottom:24px;image-rendering:-webkit-optimize-contrast;"
+          />
+
+          <p style="margin-bottom:12px;font-weight:600;">Steps to view chunks:</p>
+          <ol style="margin:0 0 24px 0;padding-left:24px;">
+            <li style="margin-bottom:10px;padding-left:8px;">Navigate to the Browse Chunks section from the main menu</li>
+            <li style="margin-bottom:10px;padding-left:8px;">View the complete list of all chunked content</li>
+            <li style="margin-bottom:10px;padding-left:8px;">See chunks from both uploaded documents and indexed websites</li>
+            <li style="margin-bottom:10px;padding-left:8px;">Click on any chunk to view its detailed content</li>
+            <li style="margin-bottom:0;padding-left:8px;">Use filters to find specific chunks by source or space</li>
+          </ol>
+
+          <p style="margin-bottom:12px;font-weight:600;">What you'll see in Browse Chunks:</p>
+          <ul style="margin:0 0 24px 0;padding-left:24px;">
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Source information:</strong> Document name or website URL that the chunk came from</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Chunk content:</strong> The actual text segment extracted from your content</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Metadata:</strong> Associated spaces and descriptions</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Processing status:</strong> Confirmation that content is ready for retrieval</li>
+            <li style="margin-bottom:0;padding-left:8px;"><strong>Chunk size:</strong> Length and scope of each content segment</li>
+          </ul>
+
+          <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+            <strong>Pro Tip:</strong> After uploading a document or adding a website, check Browse Chunks to confirm the content has been properly processed and chunked for AI retrieval.
+          </p>
+        </div>
+      `
+    },
+    {
+      id: 'chunk-differences',
+      question: 'Why do chunks differ between documents and websites?',
+      answer: `
+        <div style="line-height:1.8;color:#374151;font-size:15px;">
+          <p style="margin-bottom:20px;">Chunks may appear differently depending on whether they come from uploaded documents (PDFs, DOCX, TXT) or indexed websites. This is because different content types are processed in ways optimized for their structure.</p>
+          
+          <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+            <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">📊 CONTENT VARIATIONS</p>
+            <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Different content types are chunked differently to optimize AI retrieval based on their structure and format.</p>
+          </div>
+
+          <p style="margin-bottom:12px;font-weight:600;">Document chunks (PDF, DOCX, TXT):</p>
+          <ul style="margin:0 0 24px 0;padding-left:24px;">
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Structured content:</strong> Chunks follow document structure like paragraphs, sections, and pages</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Text-focused:</strong> Pure text extraction without HTML or formatting elements</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Sequential flow:</strong> Chunks maintain the document's natural reading order</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Consistent sizing:</strong> More uniform chunk sizes based on text length</li>
+            <li style="margin-bottom:0;padding-left:8px;"><strong>Complete sections:</strong> Chunks often represent complete paragraphs or sections</li>
+          </ul>
+
+          <p style="margin-bottom:12px;font-weight:600;">Website chunks:</p>
+          <ul style="margin:0 0 24px 0;padding-left:24px;">
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Web structure:</strong> Chunks based on HTML elements and page structure</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Variable sizing:</strong> Chunk size varies based on web page layout and content organization</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Navigation-aware:</strong> May include context from headers, menus, and page hierarchy</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Dynamic content:</strong> Reflects the way content is organized on web pages</li>
+            <li style="margin-bottom:0;padding-left:8px;"><strong>Link context:</strong> May include information about related pages and navigation</li>
+          </ul>
+
+          <p style="margin-bottom:12px;font-weight:600;">Why these differences matter:</p>
+          <ul style="margin:0 0 24px 0;padding-left:24px;">
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Optimized retrieval:</strong> Each chunking method is designed for the best AI performance with that content type</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Context preservation:</strong> Maintains important context specific to documents or web pages</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Better accuracy:</strong> Improves the AI's ability to find and return relevant information</li>
+            <li style="margin-bottom:0;padding-left:8px;"><strong>Format-appropriate:</strong> Respects the natural structure of each content type</li>
+          </ul>
+
+          <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+            <strong>Note:</strong> Despite differences in chunking, both document and website chunks are equally effective for AI retrieval during meetings. The system automatically handles these variations to provide accurate answers.
+          </p>
+        </div>
+      `
+    },
+    {
+      id: 'verify-chunk-quality',
+      question: 'How do I verify chunks are correct?',
+      answer: `
+        <div style="line-height:1.8;color:#374151;font-size:15px;">
+          <p style="margin-bottom:20px;">Verifying chunk quality ensures your content is properly processed and ready for accurate AI retrieval. Browse Chunks provides all the tools you need to check your content.</p>
+          
+          <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+            <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">✅ QUALITY VERIFICATION</p>
+            <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Check your chunks to ensure content was extracted and processed correctly for optimal meeting support.</p>
+          </div>
+
+          <img 
+            src="/tutorial/browsechunks-detail.png" 
+            alt="Browse Chunks Detail View"
+            style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-bottom:24px;image-rendering:-webkit-optimize-contrast;"
+          />
+
+          <p style="margin-bottom:12px;font-weight:600;">Verification checklist:</p>
+          <ul style="margin:0 0 24px 0;padding-left:24px;">
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Presence check:</strong> Confirm that chunks from your uploaded document or website appear in the list</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Content review:</strong> Click on chunks to verify the text was extracted correctly</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Completeness:</strong> Ensure all important sections of your content are represented</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Readability:</strong> Check that chunks contain meaningful, readable text</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Source accuracy:</strong> Verify that chunks are correctly attributed to the right document or website</li>
+            <li style="margin-bottom:0;padding-left:8px;"><strong>Metadata check:</strong> Confirm that spaces and descriptions are properly associated</li>
+          </ul>
+
+          <p style="margin-bottom:12px;font-weight:600;">Signs of successful chunking:</p>
+          <ul style="margin:0 0 24px 0;padding-left:24px;">
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Multiple chunks:</strong> Your document or website has been divided into multiple searchable segments</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Clear text:</strong> Content is clean and readable without formatting errors</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Logical breaks:</strong> Chunks break at natural points (paragraphs, sections, topics)</li>
+            <li style="margin-bottom:10px;padding-left:8px;"><strong>Complete information:</strong> Each chunk contains enough context to be useful on its own</li>
+            <li style="margin-bottom:0;padding-left:8px;"><strong>Proper attribution:</strong> Source information is accurate and complete</li>
+          </ul>
+
+          <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+            <strong>Best Practice:</strong> Always check Browse Chunks after uploading new content. This quick verification step ensures your knowledge base is ready to support your meetings effectively.
+          </p>
+        </div>
+      `
+    }
+  ]
+},
+        {
+          id: 'retrieval-config',
+          title: 'Retrieval Configuration',
+          emoji: '🔍',
+          description: 'Set how search ranking works.',
+          subQuestions: [
+            {
+              id: 'retrieval-what',
+              question: 'What is retrieval configuration?',
+              answer: `
+                <p>Controls how the AI picks and ranks answers.</p>
+                <p>Settings like Top-K affect accuracy.</p>
+              `
+            }
+          ]
+        },
+
+        {
+          id: 'business-config',
+          title: 'Business Configuration',
+          emoji: '💼',
+          description: 'Manage workflows and business rules.',
+          subQuestions: [
+            {
+              id: 'business-what',
+              question: 'What is business configuration?',
+              answer: `
+                <p>Defines permissions and workflow rules.</p>
+                <p>Aligns AI with your organization needs.</p>
+              `
+            }
+          ]
+        },
+
+        {
+          id: 'answer-config',
+          title: 'Answer Configuration',
+          emoji: '💬',
+          description: 'Control tone and style of AI responses.',
+          subQuestions: [
+            {
+              id: 'answer-what',
+              question: 'What is answer configuration?',
+              answer: `
+                <p>Lets you set tone, style, and length of AI answers.</p>
+                <p>Ensures consistency across your team.</p>
+              `
+            }
+          ]
+        }
+      ]
+    }
+  ]
+},
+
+ 
 livePlaybook: {
   cardId: 'card-liveplaybook',
   cardTitle: 'Live Playbook',

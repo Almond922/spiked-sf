@@ -16,18 +16,6 @@ const BASE_URL = import.meta.env.VITE_API_URL || "https://recall-backend-product
 
 
 
-// Placeholder function for Gain Sights (kept from new UI)
-
-const handleGainSightsConnect = async () => {
-
-    console.log('Attempting to connect to Gain Sights...');
-
-    return new Promise(resolve => setTimeout(resolve, 1500));
-
-};
-
-
-
 type Integration = {
 
     title: string;
@@ -41,6 +29,8 @@ type Integration = {
     onConnect: () => Promise<void> | void;
 
     isConnecting: boolean;
+
+    isComingSoon?: boolean;
 
 };
 
@@ -68,43 +58,25 @@ type IntegrationCardProps = {
 
     description: string;
 
-    buttonColor: 'blue' | 'orange' | 'purple';
+    buttonColor: 'blue' | 'orange' | 'purple' | 'gray';
 
     onConnect: () => Promise<void> | void;
 
     isConnecting: boolean;
 
+    isComingSoon?: boolean;
+
 };
 
 
 
-const IntegrationCard = ({ title, iconUrl, description, buttonColor, onConnect, isConnecting }: IntegrationCardProps) => {
+const IntegrationCard = ({ title, iconUrl, description, buttonColor, onConnect, isConnecting, isComingSoon }: IntegrationCardProps) => {
 
     const { isDarkMode } = useTheme();
 
 
 
-    // Custom icon logic for Gain Sights
-
     const getIcon = () => {
-
-        if (title === 'Gain Sights') {
-
-            return (
-
-                <div className="w-12 h-12 flex items-center justify-center bg-purple-600 rounded-xl shadow-lg p-2">
-
-                    <svg className="w-full h-full text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 8v8m-4-5v5m-4-2v2m-2-1V7a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2z"></path>
-
-                    </svg>
-
-                </div>
-
-            );
-
-        }
 
         return <img src={iconUrl} alt={title} className="w-12 h-12 rounded-xl object-contain shadow-md" />;
 
@@ -121,6 +93,8 @@ const IntegrationCard = ({ title, iconUrl, description, buttonColor, onConnect, 
         ${buttonColor === 'orange' ? 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-500/50' : ''}
 
         ${buttonColor === 'purple' ? 'bg-purple-600 hover:bg-purple-700 focus:ring-purple-500/50' : ''}
+
+        ${buttonColor === 'gray' ? 'bg-gray-500 hover:bg-gray-600 focus:ring-gray-400/50 cursor-not-allowed' : ''}
 
     `;
 
@@ -174,13 +148,17 @@ const IntegrationCard = ({ title, iconUrl, description, buttonColor, onConnect, 
 
                 onClick={onConnect}
 
-                disabled={isConnecting}
+                disabled={isConnecting || isComingSoon}
 
                 className={buttonClass}
 
             >
 
-                {isConnecting ? (
+                {isComingSoon ? (
+
+                    <span>Coming Soon</span>
+
+                ) : isConnecting ? (
 
                     <>
 
@@ -218,11 +196,28 @@ const Integrations = () => {
 
     const [connectingJira, setConnectingJira] = useState(false);
 
+    const [connectingAsana, setConnectingAsana] = useState(false);
+
+    const [connectingSalesforce, setConnectingSalesforce] = useState(false);
+
     const [connectingHubSpot, setConnectingHubSpot] = useState(false);
 
-    const [connectingGainSights, setConnectingGainSights] = useState(false);
+    const [connectingNotion, setConnectingNotion] = useState(false);
 
+    const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+    
+    const [allTasksSelected, setAllTasksSelected] = useState(false);
 
+    // Handle select all tasks
+    const handleSelectAllTasks = (tasks: any[]) => {
+    if (allTasksSelected) {
+        setSelectedTasks(new Set());
+        setAllTasksSelected(false);
+    } else {
+        setSelectedTasks(new Set(tasks.map(t => t.task_id)));
+        setAllTasksSelected(true);
+    }
+    };
 
     const handleJiraConnect = async () => {
 
@@ -248,8 +243,6 @@ const Integrations = () => {
 
             const data = await response.json();
 
-            // Perform actual redirect
-
             window.location.href = data.auth_url;
 
         } catch (error) {
@@ -259,6 +252,86 @@ const Integrations = () => {
             alert('Failed to connect to Jira. Please try again.');
 
             setConnectingJira(false);
+
+        }
+
+    };
+
+
+
+    const handleAsanaConnect = async () => {
+
+        try {
+
+            setConnectingAsana(true);
+
+            const response = await fetch(`${BASE_URL}/integrations/asana/auth/initiate`, {
+
+                headers: { Authorization: `Bearer ${session?.access_token}` }
+
+            });
+
+
+
+            if (!response.ok) {
+
+                throw new Error('Failed to initiate Asana OAuth');
+
+            }
+
+
+
+            const data = await response.json();
+
+            window.location.href = data.auth_url;
+
+        } catch (error) {
+
+            console.error('Error connecting to Asana:', error);
+
+            alert('Failed to connect to Asana. Please try again.');
+
+            setConnectingAsana(false);
+
+        }
+
+    };
+
+
+
+    const handleSalesforceConnect = async () => {
+
+        try {
+
+            setConnectingSalesforce(true);
+
+            const response = await fetch(`${BASE_URL}/integrations/salesforce/auth/initiate`, {
+
+                headers: { Authorization: `Bearer ${session?.access_token}` }
+
+            });
+
+
+
+            if (!response.ok) {
+
+                throw new Error('Failed to initiate Salesforce OAuth');
+
+            }
+
+
+
+            const data = await response.json();
+
+            window.location.href = data.auth_url;
+
+        } catch (error) {
+
+            console.error('Error connecting to Salesforce:', error);
+
+            alert('Failed to connect to Salesforce. Please try again.');
+
+            setConnectingSalesforce(false);
 
         }
 
@@ -290,8 +363,6 @@ const Integrations = () => {
 
             const data = await response.json();
 
-            // Perform actual redirect
-
             window.location.href = data.auth_url;
 
         } catch (error) {
@@ -306,25 +377,41 @@ const Integrations = () => {
 
     };
 
-    
 
-    const handleGainSightsConnection = async () => {
+
+    const handleNotionConnect = async () => {
 
         try {
 
-            setConnectingGainSights(true);
+            setConnectingNotion(true);
 
-            await handleGainSightsConnect(); 
+            const response = await fetch(`${BASE_URL}/integrations/notion/auth/initiate`, {
 
-            setConnectingGainSights(false);
+                headers: { Authorization: `Bearer ${session?.access_token}` }
 
-            console.log("Gain Sights connection simulated successfully.");
+            });
+
+
+
+            if (!response.ok) {
+
+                throw new Error('Failed to initiate Notion OAuth');
+
+            }
+
+
+
+            const data = await response.json();
+
+            window.location.href = data.auth_url;
 
         } catch (error) {
 
-            console.error('Error connecting to Gain Sights:', error);
+            console.error('Error connecting to Notion:', error);
 
-            setConnectingGainSights(false);
+            alert('Failed to connect to Notion. Please try again.');
+
+            setConnectingNotion(false);
 
         }
 
@@ -338,7 +425,7 @@ const Integrations = () => {
 
             title: "Technical", 
 
-            description: "Tools for engineering, product management, and development tracking.",
+            description: "Tools for project management, task tracking, and development workflows.",
 
             integrations: [
 
@@ -350,11 +437,31 @@ const Integrations = () => {
 
                     description: "Track your Jira tasks during meetings and sync updates automatically.",
 
-                    buttonColor: 'blue',
+                    buttonColor: 'gray',
 
                     onConnect: handleJiraConnect,
 
                     isConnecting: connectingJira,
+
+                    isComingSoon: true,
+
+                },
+
+                {
+
+                    title: "Asana",
+
+                    iconUrl: "https://cdn.worldvectorlogo.com/logos/asana-1.svg",
+
+                    description: "Manage Asana projects and tasks, sync meeting action items directly.",
+
+                    buttonColor: 'gray',
+
+                    onConnect: handleAsanaConnect,
+
+                    isConnecting: connectingAsana,
+
+                    isComingSoon: true,
 
                 },
 
@@ -364,9 +471,9 @@ const Integrations = () => {
 
         { 
 
-            title: "Sales", 
+            title: "CRM", 
 
-            description: "Tools for CRM, deal tracking, and prospect management.",
+            description: "Tools for sales, deal tracking, and customer relationship management.",
 
             integrations: [
 
@@ -384,6 +491,26 @@ const Integrations = () => {
 
                     isConnecting: connectingHubSpot,
 
+                    isComingSoon: false,
+
+                },
+
+                {
+
+                    title: "Salesforce",
+
+                    iconUrl: "https://cdn.worldvectorlogo.com/logos/salesforce-2.svg",
+
+                    description: "Track deals and customer interactions with Salesforce integration.",
+
+                    buttonColor: 'gray',
+
+                    onConnect: handleSalesforceConnect,
+
+                    isConnecting: connectingSalesforce,
+
+                    isComingSoon: true,
+
                 },
 
             ]
@@ -392,25 +519,27 @@ const Integrations = () => {
 
         { 
 
-            title: "Customer Support", 
+            title: "Documentation", 
 
-            description: "Tools for customer success, health monitoring, and account management.",
+            description: "Tools for knowledge management, documentation, and information sharing.",
 
             integrations: [
 
                 {
 
-                    title: "Gain Sights",
+                    title: "Notion",
 
-                    iconUrl: "placeholder",
+                    iconUrl: "https://cdn.worldvectorlogo.com/logos/notion-2.svg",
 
-                    description: "Connect customer health scores and engagement data to enrich meeting insights.",
+                    description: "Sync meeting notes and insights to Notion databases automatically.",
 
-                    buttonColor: 'purple',
+                    buttonColor: 'gray',
 
-                    onConnect: handleGainSightsConnection,
+                    onConnect: handleNotionConnect,
 
-                    isConnecting: connectingGainSights,
+                    isConnecting: connectingNotion,
+
+                    isComingSoon: true,
 
                 },
 
@@ -530,6 +659,8 @@ const Integrations = () => {
 
                                     isConnecting={integration.isConnecting}
 
+                                    isComingSoon={integration.isComingSoon}
+
                                 />
 
                             ))}
@@ -591,8 +722,6 @@ const Integrations = () => {
     );
 
 };
-
-
 
 
 

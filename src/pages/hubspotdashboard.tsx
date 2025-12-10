@@ -28,6 +28,7 @@ const HubSpotDashboard = () => {
   const [dealTasks, setDealTasks] = useState<Record<string, HubSpotTask[]>>({});
   const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({});
   const [selectedTaskMap, setSelectedTaskMap] = useState<Record<string, HubSpotTask>>({}); 
+  const [allTasksSelectedPerDeal, setAllTasksSelectedPerDeal] = useState<Record<string, boolean>>({});
   const [taskFilters, setTaskFilters] = useState({
     priority: 'all',
     assignee: '', // This will now store the Name, not the ID
@@ -94,6 +95,34 @@ const HubSpotDashboard = () => {
       }
       return newMap;
     });
+  };
+
+  // NEW: Handle select all tasks for a deal
+  const handleSelectAllTasks = (dealId: string, tasks: HubSpotTask[]) => {
+    const filteredTasks = getFilteredTasks(tasks);
+    const dealTaskIds = new Set(filteredTasks.map(t => t.task_id));
+    const allSelected = allTasksSelectedPerDeal[dealId] || false;
+
+    setSelectedTaskMap(prev => {
+      const newMap = { ...prev };
+      
+      if (allSelected) {
+        // Deselect all tasks for this deal
+        dealTaskIds.forEach(taskId => delete newMap[taskId]);
+      } else {
+        // Select all tasks for this deal
+        filteredTasks.forEach(task => {
+          newMap[task.task_id] = task;
+        });
+      }
+      
+      return newMap;
+    });
+
+    setAllTasksSelectedPerDeal(prev => ({
+      ...prev,
+      [dealId]: !allSelected
+    }));
   };
 
   const getFilteredTasks = (tasks: HubSpotTask[]) => {
@@ -806,44 +835,60 @@ const HubSpotDashboard = () => {
                         {expandedDealId === deal.deal_id && (
                           <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200 cursor-default">
                             
-                            {/* Task Filters */}
-                            <div className={`p-3 mb-3 rounded-lg text-xs grid grid-cols-3 gap-2 ${
+                            {/* Task Filters + Select All */}
+                            <div className={`p-3 mb-3 rounded-lg text-xs space-y-2 ${
                                isDarkMode ? 'bg-slate-800' : 'bg-gray-50'
                             }`}>
-                               {/* Priority Filter */}
-                               <select 
-                                 className={`p-1 rounded border bg-transparent ${isDarkMode ? 'border-gray-600 text-gray-200 [&>option]:bg-slate-800' : 'border-gray-300 text-gray-800'}`}
-                                 value={taskFilters.priority}
-                                 onChange={(e) => setTaskFilters(prev => ({...prev, priority: e.target.value}))}
-                               >
-                                 <option value="all">Priority</option>
-                                 <option value="HIGH">High</option>
-                                 <option value="MEDIUM">Medium</option>
-                                 <option value="LOW">Low</option>
-                               </select>
+                              {/* Select All Tasks Checkbox */}
+                              <div className="flex items-center p-2 rounded border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20">
+                                <input
+                                  type="checkbox"
+                                  checked={allTasksSelectedPerDeal[deal.deal_id] || false}
+                                  onChange={() => handleSelectAllTasks(deal.deal_id, dealTasks[deal.deal_id] || [])}
+                                  className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                                />
+                                <label className="ml-2 font-semibold text-blue-700 dark:text-blue-300 cursor-pointer flex-1">
+                                  Select All Tasks
+                                </label>
+                              </div>
 
-                               {/* Assignee Filter - NOW A DROPDOWN */}
-                               <select 
-                                   className={`p-1 rounded border bg-transparent ${isDarkMode ? 'border-gray-600 text-gray-200 [&>option]:bg-slate-800' : 'border-gray-300 text-gray-800'}`}
-                                   value={taskFilters.assignee}
-                                   onChange={(e) => setTaskFilters(prev => ({...prev, assignee: e.target.value}))}
-                                 >
-                                   <option value="">All Assignees</option>
-                                   {getUniqueAssignees(dealTasks[deal.deal_id]).map(name => (
-                                     <option key={name} value={name}>{name}</option>
-                                   ))}
-                               </select>
+                              {/* Filter dropdowns */}
+                              <div className="grid grid-cols-3 gap-2">
+                                {/* Priority Filter */}
+                                <select 
+                                  className={`p-1 rounded border bg-transparent ${isDarkMode ? 'border-gray-600 text-gray-200 [&>option]:bg-slate-800' : 'border-gray-300 text-gray-800'}`}
+                                  value={taskFilters.priority}
+                                  onChange={(e) => setTaskFilters(prev => ({...prev, priority: e.target.value}))}
+                                >
+                                  <option value="all">Priority</option>
+                                  <option value="HIGH">High</option>
+                                  <option value="MEDIUM">Medium</option>
+                                  <option value="LOW">Low</option>
+                                </select>
 
-                               {/* Due Date Filter */}
-                               <div className={`flex items-center border rounded px-1 ${isDarkMode ? 'bg-slate-700 border-gray-600' : 'bg-white border-gray-300'}`}>
-                                 <Clock className="w-3 h-3 mr-1 opacity-50"/>
-                                 <input 
-                                   type="date"
-                                   className="w-full bg-transparent outline-none p-1 text-xs"
-                                   value={taskFilters.dueDate}
-                                   onChange={(e) => setTaskFilters(prev => ({...prev, dueDate: e.target.value}))}
-                                 />
-                               </div>
+                                {/* Assignee Filter - NOW A DROPDOWN */}
+                                <select 
+                                    className={`p-1 rounded border bg-transparent ${isDarkMode ? 'border-gray-600 text-gray-200 [&>option]:bg-slate-800' : 'border-gray-300 text-gray-800'}`}
+                                    value={taskFilters.assignee}
+                                    onChange={(e) => setTaskFilters(prev => ({...prev, assignee: e.target.value}))}
+                                  >
+                                    <option value="">All Assignees</option>
+                                    {getUniqueAssignees(dealTasks[deal.deal_id]).map(name => (
+                                      <option key={name} value={name}>{name}</option>
+                                    ))}
+                                </select>
+
+                                {/* Due Date Filter */}
+                                <div className={`flex items-center border rounded px-1 ${isDarkMode ? 'bg-slate-700 border-gray-600' : 'bg-white border-gray-300'}`}>
+                                  <Clock className="w-3 h-3 mr-1 opacity-50"/>
+                                  <input 
+                                    type="date"
+                                    className="w-full bg-transparent outline-none p-1 text-xs"
+                                    value={taskFilters.dueDate}
+                                    onChange={(e) => setTaskFilters(prev => ({...prev, dueDate: e.target.value}))}
+                                  />
+                                </div>
+                              </div>
                             </div>
 
                             {/* Tasks List */}

@@ -5553,7 +5553,7 @@ const refreshAllMedpicSummaries = async () => {
           selectedCategories.includes("playbook")) && (
           <React.Fragment>
             <div className="space-y-4">
-              <h4
+            <h4
                 className={`text-base font-semibold mb-3 flex items-center justify-between ${
                   isDarkMode ? "text-purple-400" : "text-purple-600"
                 }`}
@@ -5562,7 +5562,15 @@ const refreshAllMedpicSummaries = async () => {
                   <TrendingUp className="w-5 h-5" />
                   <span>Live Playbook</span>
                 </div>
+                {/* GLOBAL SETTINGS BUTTON ADDED HERE */}
                 <div className="flex items-center space-x-2">
+                  <button
+                      onClick={() => setShowGoalSettingsModal(true)}
+                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                      title="Analysis Settings"
+                    >
+                      <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  </button>
                   <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2.5 py-1 rounded-full font-medium">
                     Sales Qualification
                   </span>
@@ -5682,20 +5690,6 @@ const refreshAllMedpicSummaries = async () => {
                             <RefreshCw className="w-4 h-4" />
                         )}
                     </button>
-
-                    {/* --- ADD THIS BUTTON --- */}
-                    <button
-                      onClick={() => setShowGoalSettingsModal(true)}
-                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-                      title="Analysis Settings"
-                    >
-                      <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                    </button>
-                    {/* --- END OF ADDED BUTTON --- */}
-                    
-                    <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
-                        Sales Framework
-                    </span>
                 </div>
     </div>
 
@@ -5842,13 +5836,7 @@ const refreshAllMedpicSummaries = async () => {
                         <RefreshCw className="w-4 h-4" />
                       )}
                     </button>
-                    <button
-                      onClick={() => setShowGoalSettingsModal(true)}
-                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-                      title="Analysis Settings"
-                    >
-                      <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                    </button>
+
                     <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
                       {customGoals.length} active
                     </span>

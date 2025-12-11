@@ -24,7 +24,10 @@ const HubSpotDashboard = () => {
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [expandedDealId, setExpandedDealId] = useState<string | null>(null);
+  
+  // CHANGED: Use a Set to track multiple expanded deals instead of a single string
+  const [expandedDealIds, setExpandedDealIds] = useState<Set<string>>(new Set());
+  
   const [dealTasks, setDealTasks] = useState<Record<string, HubSpotTask[]>>({});
   const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({});
   const [selectedTaskMap, setSelectedTaskMap] = useState<Record<string, HubSpotTask>>({}); 
@@ -63,14 +66,28 @@ const HubSpotDashboard = () => {
     }
   }, [searchParams, connected]);
 
+  // CHANGED: Toggle logic to support multiple open deals
+  const toggleDealTasks = async (dealId: string) => {
+    setExpandedDealIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(dealId)) {
+        newSet.delete(dealId);
+      } else {
+        newSet.add(dealId);
+        // Fetch tasks if opening and not already loaded
+        if (!dealTasks[dealId]) {
+          fetchTasksForDeal(dealId);
+        }
+      }
+      return newSet;
+    });
+  };
+
   const fetchTasksForDeal = async (dealId: string) => {
-    if (dealTasks[dealId]) {
-      setExpandedDealId(expandedDealId === dealId ? null : dealId);
-      return;
-    }
+    // If we already have tasks, don't re-fetch immediately (optional optimization)
+    if (dealTasks[dealId]) return;
 
     setLoadingTasks(prev => ({ ...prev, [dealId]: true }));
-    setExpandedDealId(dealId);
 
     try {
       const response = await fetch(`${BASE_URL}/integrations/hubspot/deals/${dealId}/tasks`, {
@@ -820,19 +837,19 @@ const HubSpotDashboard = () => {
                       {/* TASKS SECTION FOOTER */}
                       <div onClick={(e) => e.stopPropagation()} className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
                         <button 
-                          onClick={() => fetchTasksForDeal(deal.deal_id)}
+                          onClick={() => toggleDealTasks(deal.deal_id)}
                           className={`flex items-center space-x-2 text-sm font-medium transition-colors ${
-                            expandedDealId === deal.deal_id ? 'text-blue-500' : 'text-gray-500 hover:text-gray-700'
+                            expandedDealIds.has(deal.deal_id) ? 'text-blue-500' : 'text-gray-500 hover:text-gray-700'
                           }`}
                         >
-                          {expandedDealId === deal.deal_id ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
+                          {expandedDealIds.has(deal.deal_id) ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
                           <span>
                              {loadingTasks[deal.deal_id] ? 'Loading Tasks...' : 'Show Tasks'}
                           </span>
                         </button>
 
                         {/* EXPANDED TASK LIST & FILTERS */}
-                        {expandedDealId === deal.deal_id && (
+                        {expandedDealIds.has(deal.deal_id) && (
                           <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200 cursor-default">
                             
                             {/* Task Filters + Select All */}

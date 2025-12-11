@@ -1204,21 +1204,6 @@ Format as readable text with **bold** headers.`;
   }
 };
 
-useEffect(() => {
-  let intervalId: NodeJS.Timeout;
-
-  if (isBotRunning && (trackedHubSpotDeals.length > 0 || trackedHubSpotTasksList.length > 0)) {
-      intervalId = setInterval(() => {
-          console.log("⚡ Auto-syncing progress to HubSpot...");
-          syncProgressToHubSpot(); // This uses the new OVERRIDE logic in backend
-          setLastAutoSync(new Date());
-      }, 30000); // 30 Seconds Interval
-  }
-
-  return () => {
-      if (intervalId) clearInterval(intervalId);
-  };
-}, [isBotRunning, trackedHubSpotDeals.length, trackedHubSpotTasksList.length]);
 
 useEffect(() => {
   if (transcript.length > 0) {

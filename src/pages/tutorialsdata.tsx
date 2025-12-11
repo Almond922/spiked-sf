@@ -1244,22 +1244,33 @@ console: {
       emoji: '🤖',
       description: 'Everything you need to know about connecting your SpikedAI bot to meetings.',
       subQuestions: [
-    {
-      id: 'how-to-connect-bot',
-      question: 'How do I connect the bot to my meeting?',
-      answer: `
-        <div style="line-height:1.8;color:#374151;font-size:15px;">
-          <p style="margin-bottom:20px;">Connecting your SpikedAI bot to a meeting is simple and takes just a few steps.</p>
-          
-          <p style="margin-bottom:12px;font-weight:600;">Steps to connect:</p>
-          <ol style="margin:0 0 24px 0;padding-left:24px;">
-            <li style="margin-bottom:12px;padding-left:8px;">Copy your meeting URL from <strong>Google Meet</strong>, <strong>Microsoft Teams</strong>, or <strong>Zoom</strong></li>
-            <li style="margin-bottom:12px;padding-left:8px;">Go to the <strong>Console</strong> in SpikedAI</li>
-            <li style="margin-bottom:12px;padding-left:8px;">Paste the meeting URL in the <strong>Meeting URL</strong> section</li>
-            <li style="margin-bottom:12px;padding-left:8px;">Click the <strong>Connect Meet</strong> button</li>
-            <li style="margin-bottom:12px;padding-left:8px;">In your meeting platform, you'll receive a request to <strong>admit the SpikedAI bot</strong></li>
-            <li style="margin-bottom:0;padding-left:8px;">Click <strong>Admit</strong> to allow the bot to join</li>
-          </ol>
+    { 
+  id: 'how-to-connect-bot', 
+  question: 'How do I connect the bot to my meeting?', 
+  answer: ` 
+    <div style="line-height:1.8;color:#374151;font-size:15px;"> 
+      <p style="margin-bottom:20px;">Connecting your SpikedAI bot to a meeting is simple and takes just a few steps.</p>
+      
+      <div style="padding:20px;background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:8px;margin-bottom:24px;">
+        <p style="margin:0;font-weight:600;color:#92400E;font-size:15px;">⚠️ IMPORTANT: ADD MEETING FOCUS FIRST</p>
+        <p style="margin:8px 0 0 0;color:#78350F;font-size:14px;">Before clicking the "Connect Meet" button, make sure you have added a <strong>Meeting Focus</strong>. A default custom goal will be added automatically, but if you don't see it, please add it manually. This is crucial for the bot to function properly.</p>
+      </div>
+       
+      <p style="margin-bottom:12px;font-weight:600;">Steps to connect:</p> 
+      <ol style="margin:0 0 24px 0;padding-left:24px;"> 
+        <li style="margin-bottom:12px;padding-left:8px;">Copy your meeting URL from <strong>Google Meet</strong>, <strong>Microsoft Teams</strong>, or <strong>Zoom</strong></li> 
+        <li style="margin-bottom:12px;padding-left:8px;">Go to the <strong>Console</strong> in SpikedAI</li> 
+        <li style="margin-bottom:12px;padding-left:8px;">Paste the meeting URL in the <strong>Meeting URL</strong> section</li>
+        <li style="margin-bottom:12px;padding-left:8px;"><strong>Add a Meeting Focus</strong> - Before proceeding, ensure you have added a Meeting Focus. A default custom goal will be automatically added. If you don't see a default custom goal, please make sure to add it manually</li>
+        <li style="margin-bottom:12px;padding-left:8px;">Click the <strong>Connect Meet</strong> button</li> 
+        <li style="margin-bottom:12px;padding-left:8px;">In your meeting platform, you'll receive a request to <strong>admit the SpikedAI bot</strong></li> 
+        <li style="margin-bottom:0;padding-left:8px;">Click <strong>Admit</strong> to allow the bot to join</li> 
+      </ol>
+
+      <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+        <strong>Pro Tip:</strong> Always verify that your Meeting Focus and custom goal are configured before connecting the bot to ensure optimal performance during your meeting.
+      </p>
+    
 
           <img 
             src="/tutorial/meeting link.png" 

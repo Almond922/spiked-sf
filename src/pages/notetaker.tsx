@@ -1825,6 +1825,9 @@ Based on the meeting transcript provided, please generate a meeting summary foll
                             sessionToken={session?.access_token}
                             isDarkMode={isDarkMode}
                             backendUrl={SALES_ASSISTANT_BASE_URL}
+                            customGoalsProgress={customGoalsProgress}
+                            goalAnalysis={goalAnalysis}
+                            customGoals={customGoals}
                         />
                     </div>
                 </div>

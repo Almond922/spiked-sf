@@ -1042,7 +1042,9 @@ const removeTrackedDeal = async (dealId: string) => {
   }
 };
 
-// Function 1: analyzeDeal (for the main deals section)
+// In SpikedAI_recall.tsx
+
+// Function 1: analyzeDeal (Updated to match PDF structure)
 const analyzeDeal = async (dealId: string, dealName: string) => {
   if (!session || loadingDealAnalyses.has(dealId) || isTyping) return;
   
@@ -1061,35 +1063,43 @@ const analyzeDeal = async (dealId: string, dealName: string) => {
   }
   
   setLoadingDealAnalyses(prev => new Set([...prev, dealId]));
-  setDealAnalyses(prev => ({ ...prev, [dealId]: 'Generating MEDPIC analysis...' }));
-
-  const startTime = Date.now();
+  setDealAnalyses(prev => ({ ...prev, [dealId]: 'Generating analysis...' }));
 
   try {
     const transcriptText = sentimentData.transcript
       .map((t: any) => `[${Math.floor(t.start)}s] ${t.speaker}: ${t.text}`)
       .join('\n');
 
-    const prompt = `Analyze this meeting transcript for MEDPIC sales qualification criteria related to the deal "${dealName}".
-
-MEDPIC Framework:
-- **Metrics (M)**: Quantifiable ROI, cost savings, KPIs mentioned (score 0-100%)
-- **Economic Buyer (E)**: Decision-maker with budget authority identified (score 0-100%)
-- **Decision Criteria (D)**: Must-haves, evaluation criteria discussed (score 0-100%)
-- **Decision Process (D)**: Approval steps, timeline, stakeholders (score 0-100%)
-- **Identify Pain (I)**: Pain points, challenges, problems (score 0-100%)
-- **Champion (C)**: Internal advocate identified (score 0-100%)
+    // UPDATED PROMPT: Matches the structure of "SpikedAI_Selected_Templates_2025-12-11 (3).pdf"
+    const prompt = `Analyze this meeting transcript regarding the deal "${dealName}" and generate a report following the structure below.
 
 Transcript:
 ${transcriptText}
 
-Provide a structured analysis with:
-1. Score for each MEDPIC criterion (0-100%)
-2. Key evidence/quotes for each criterion
-3. Overall qualification status
-4. Next steps to improve qualification
+Output Format:
 
-Format as readable text with **bold** headers.`;
+**Summary of Discussion**
+Create sub-headings for key topics discussed (e.g., Introduction, Technical Discussion, Pricing).
+* **[Topic Name]**: [Brief summary of the discussion]
+* **[Topic Name]**: [Brief summary of the discussion]
+
+**Decisions Made**
+List specific decisions or agreements reached during the call.
+* [Decision 1]
+* [Decision 2]
+
+**Next Steps**
+List actionable items assigned to specific people. Format exactly as: "Name - Action".
+* [Person Name] - [Action Item]
+* [Person Name] - [Action Item]
+
+**Follow-up questions**
+List 3 strategic questions that should be asked based on this discussion.
+1. [Question 1]
+2. [Question 2]
+3. [Question 3]
+
+Keep the tone professional, concise, and factual.`;
 
     const response = await fetch(`${service_url_recall}/api/process-template`, {
       method: 'POST',
@@ -5897,7 +5907,7 @@ const refreshAllMedpicSummaries = async () => {
                         <div className="flex items-center space-x-2">
                             {hasAnalysis && (
                             <span className="text-xs bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300 px-2 py-0.5 rounded-full">
-                                Analysis Ready
+                                Discussed
                             </span>
                             )}
                             {isLoading && (

@@ -1078,7 +1078,7 @@ ${transcriptText}
 
 Output Format:
 
-*Participants*
+**Participants**
 List all unique speakers identified in the transcript as a numbered list.
 1. [Name]
 2. [Name]

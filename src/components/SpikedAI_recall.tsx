@@ -1078,6 +1078,13 @@ ${transcriptText}
 
 Output Format:
 
+*Participants*
+List all unique speakers identified in the transcript as a numbered list.
+1. [Name]
+2. [Name]
+
+
+
 **Summary of Discussion**
 Create sub-headings for key topics discussed (e.g., Introduction, Technical Discussion, Pricing).
 * **[Topic Name]**: [Brief summary of the discussion]

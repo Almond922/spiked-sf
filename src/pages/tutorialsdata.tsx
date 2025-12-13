@@ -79,7 +79,7 @@ export const topics: Topics = {
   gettingStarted: {
     cardId: 'card-getting-started',
     cardTitle: 'Getting Started',
-    cardDescription: 'Set up your SpikedAI workspace — personalize your AI, upload essential documents, and prepare your environment before starting your first meeting.',
+    cardDescription: 'Set up your Spiked AI workspace — personalize your AI, upload essential documents, and prepare your environment before starting your first meeting.',
     icon: <Rocket style={{ width: '20px', height: '20px' }} />,
     emoji: '🚀',
    items: [
@@ -87,22 +87,22 @@ export const topics: Topics = {
           id: 'signup',
        
           title: 'Sign Up',
-          description: 'Create your spikedAI account and start exploring personalized meeting insights.',
+          description: 'Create your Spiked AI account and start exploring personalized meeting insights.',
           questions: [
             {
               id: 'signup-flow',
               title: 'Sign Up Process',
               emoji: '🆕',
      
-              description: 'Simple steps to create your spikedAI account.',
+              description: 'Simple steps to create your Spiked AI account.',
               subQuestions: [
                 {
                   id: 'signup-process',
-                  question: 'How do I sign up for spikedAI?',
+                  question: 'How do I sign up for Spiked AI?',
          
                   answer: `
                     <div style="line-height:1.8;color:#374151;font-size:15px;">
-                      <p style="margin-bottom:20px;">The sign-up process in <strong>spikedAI</strong> is quick and straightforward.
+                      <p style="margin-bottom:20px;">The sign-up process in <strong>Spiked AI</strong> is quick and straightforward.
 Follow these steps to get started:</p>
                       
                       <ol style="margin:0 0 24px 0;padding-left:24px;">
@@ -124,7 +124,7 @@ Follow these steps to get started:</p>
                         <li style="margin-bottom:0;padding-left:8px;">Click <strong>Verify Email</strong> to activate your account</li>
                       </ol>
 
-                      <p style="margin-bottom:24px;">After verification, you can immediately log in to your <strong>spikedAI workspace</strong> and start using all features.</p>
+                      <p style="margin-bottom:24px;">After verification, you can immediately log in to your <strong>Spiked AI workspace</strong> and start using all features.</p>
                       
          
                       <img 
@@ -145,11 +145,11 @@ Follow these steps to get started:</p>
                   answer: `
                     <div 
 style="line-height:1.8;color:#374151;font-size:15px;">
-                      <p style="margin-bottom:20px;">Email verification is a crucial step to activate your spikedAI account.
+                      <p style="margin-bottom:20px;">Email verification is a crucial step to activate your Spiked AI account.
 Here's what you need to do:</p>
                       
                       <ol style="margin:0 0 24px 0;padding-left:24px;">
-                        <li style="margin-bottom:12px;padding-left:8px;">Open the email from <strong>spikedAI</strong> (usually arrives within 1-2 minutes)</li>
+                        <li style="margin-bottom:12px;padding-left:8px;">Open the email from <strong>Spiked AI</strong> (usually arrives within 1-2 minutes)</li>
              
                         <li style="margin-bottom:12px;padding-left:8px;">Click on the <strong>Verify Email</strong> button in the message</li>
                         <li style="margin-bottom:0;padding-left:8px;">Your account will be activated instantly</li>
@@ -175,7 +175,7 @@ Here's what you need to do:</p>
                   question: 'What are the password requirements?',
                   answer: `
                     <div style="line-height:1.8;color:#374151;font-size:15px;">
-                      <p style="margin-bottom:20px;"><strong>spikedAI</strong> allows flexible 
+                      <p style="margin-bottom:20px;"><strong>Spiked AI</strong> allows flexible 
 password creation, but we strongly recommend following security best practices.</p>
                       
                       <p style="margin-bottom:12px;font-weight:600;">Recommended password guidelines:</p>
@@ -190,7 +190,7 @@ password creation, but we strongly recommend following security best practices.<
 
                       <p style="margin-bottom:8px;font-weight:600;">Examples:</p>
                       <ul style="margin:0;padding-left:24px;list-style-type:none;">
-                        <li style="margin-bottom:8px;padding-left:8px;font-family:monospace;">✓ SpikedAI2025!
+                        <li style="margin-bottom:8px;padding-left:8px;font-family:monospace;">✓ Spiked AI2025!
  — <span style="color:#059669;">Strong</span></li>
                         <li style="margin-bottom:8px;padding-left:8px;font-family:monospace;">✓ Sales#Track24 — <span style="color:#059669;">Strong</span></li>
                         <li style="margin-bottom:0;padding-left:8px;font-family:monospace;">✗ password123 — <span style="color:#dc2626;">Weak</span></li>
@@ -229,7 +229,7 @@ Wait a few moments before requesting a resend.
                   question: 'Can I create multiple accounts with the same email?',
                   answer: `
                     <div style="line-height:1.8;color:#374151;font-size:15px;">
-                      <p style="margin-bottom:20px;"><strong>No</strong>, each email address can only be linked to <strong>one spikedAI account</strong>.</p>
+                      <p style="margin-bottom:20px;"><strong>No</strong>, each email address can only be linked to <strong>one Spiked AI account</strong>.</p>
 
   
                       <p style="margin-bottom:20px;">This policy ensures account security and prevents duplicate registrations.
@@ -255,21 +255,21 @@ If you need to create another account, you'll need to use a different email addr
 {
   id: 'signin',
   title: 'Sign In',
-  description: 'Learn how to access your SpikedAI account securely and quickly.',
+  description: 'Learn how to access your Spiked AI account securely and quickly.',
   questions: [
     {
  
       id: 'signin-main',
       title: 'Sign In Process',
       emoji: '🔐',
-      description: 'Everything you need to know about logging in to SpikedAI.',
+      description: 'Everything you need to know about logging in to Spiked AI.',
       subQuestions: [
         {
           id: 'signin-email',
           question: 'How do I login using my email and password?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin:0 0 20px 0;">Access your SpikedAI workspace with your credentials:</p>
+              <p style="margin:0 0 20px 0;">Access your Spiked AI workspace with your credentials:</p>
               
               <ol style="margin:0 0 20px 0;padding-left:20px;">
                 <li style="margin:0 0 12px 0;">Navigate to the <strong>Sign In</strong> page</li>
@@ -379,7 +379,7 @@ If you need to create another account, you'll need to use a different email addr
 {
   id: 'setup-profile',
   title: 'Setup Profile',
-  description: 'Learn how to configure your personal profile settings, update your information, and manage your account details in spikedAI.',
+  description: 'Learn how to configure your personal profile settings, update your information, and manage your account details in Spiked AI.',
   questions: [
     {
       id: 'setup-profile-main',
@@ -416,7 +416,7 @@ If you need to create another account, you'll need to use a different email addr
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
               <div style="margin:0 0 20px 0;">
-                <p style="margin:0 0 20px 0;">Updating your name in SpikedAI is simple and takes just a few seconds:</p>
+                <p style="margin:0 0 20px 0;">Updating your name in Spiked AI is simple and takes just a few seconds:</p>
                 
                 <ol style="margin:0 0 20px 0;padding-left:20px;">
                   <li style="margin:0 0 12px 0;">Go to <strong>Settings → Profile</strong></li>
@@ -433,7 +433,7 @@ If you need to create another account, you'll need to use a different email addr
                 style="width:100%;height:auto;display:block;border-radius:8px;object-fit:contain;margin-top:12px;image-rendering:-webkit-optimize-contrast;"
               />
 
-              <p style="margin:20px 0 0 0;">Your updated name will be reflected immediately across your SpikedAI workspace and in all future meetings.</p>
+              <p style="margin:20px 0 0 0;">Your updated name will be reflected immediately across your Spiked AI workspace and in all future meetings.</p>
             </div>
           `
         },
@@ -443,7 +443,7 @@ If you need to create another account, you'll need to use a different email addr
           question: 'Can I change my email address?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin:0 0 20px 0;">Your registered email address is permanently linked to your SpikedAI account for security purposes and cannot be changed directly through the settings.</p>
+              <p style="margin:0 0 20px 0;">Your registered email address is permanently linked to your Spiked AI account for security purposes and cannot be changed directly through the settings.</p>
             
   
               <p style="margin:0 0 12px 0;font-weight:600;">To update your email address:</p>
@@ -592,7 +592,7 @@ your browser</li>
               
               <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">Current settings:</p>
               <ul style="margin:0 0 28px 0;padding-left:24px;list-style-type:disc;">
-                <li style="margin:0 0 10px 0;">Default name: <strong>SpikedAI</strong></li>
+                <li style="margin:0 0 10px 0;">Default name: <strong>Spiked AI</strong></li>
                 <li style="margin:0;">Name customization is <strong>currently not available</strong> but will be implemented in future updates</li>
               </ul>
 
@@ -653,7 +653,7 @@ your browser</li>
           question: 'What is Meeting Focus and why is it important?',
           answer: `
             <div style="line-height:1.9;color:#374151;font-size:15px;">
-              <p style="margin:0 0 24px 0;"><strong>Meeting Focus</strong> is one of the most critical features in SpikedAI. It tells your AI what to prioritize and track during the meeting.</p>
+              <p style="margin:0 0 24px 0;"><strong>Meeting Focus</strong> is one of the most critical features in Spiked AI. It tells your AI what to prioritize and track during the meeting.</p>
               
               <div style="padding:16px 20px;background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:8px;margin:0 0 28px 0;">
                 <p style="margin:0;font-weight:600;color:#92400E;font-size:14px;">⚠️ IMPORTANT</p>
@@ -912,7 +912,7 @@ your browser</li>
           question: 'Where can I upload my documents?',
           answer: `
             <div style="line-height:1.9;color:#374151;font-size:15px;">
-              <p style="margin:0 0 24px 0;">You can access and upload documents from <strong>two different locations</strong> in SpikedAI:</p>
+              <p style="margin:0 0 24px 0;">You can access and upload documents from <strong>two different locations</strong> in Spiked AI:</p>
               
               <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">📋 Method 1: Main Console (Quick Access)</p>
               
@@ -965,7 +965,7 @@ your browser</li>
           question: 'What file types can I upload?',
           answer: `
             <div style="line-height:1.9;color:#374151;font-size:15px;">
-              <p style="margin:0 0 24px 0;">SpikedAI supports a variety of document formats to accommodate different types of business materials:</p>
+              <p style="margin:0 0 24px 0;">Spiked AI supports a variety of document formats to accommodate different types of business materials:</p>
               
               <p style="margin:0 0 12px 0;font-weight:600;font-size:16px;">Supported File Formats:</p>
               
@@ -1174,7 +1174,7 @@ your browser</li>
         },
         {
           id: 'two-factor',
-          question: 'Does SpikedAI support two-factor authentication?',
+          question: 'Does Spiked AI support two-factor authentication?',
           answer: `
             <div style="line-height:1.9;color:#374151;font-size:15px;">
               <p style="margin:0 0 24px 0;">Two-factor authentication (2FA) is coming soon as part of our advanced security update.</p>
@@ -1194,7 +1194,7 @@ your browser</li>
           question: 'What are the best practices for account security?',
           answer: `
             <div style="line-height:1.9;color:#374151;font-size:15px;">
-              <p style="margin:0 0 24px 0;">Follow these security best practices to keep your SpikedAI account safe:</p>
+              <p style="margin:0 0 24px 0;">Follow these security best practices to keep your Spiked AI account safe:</p>
               
               <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">🔐 Use a Strong Password</p>
               <p style="margin:0 0 20px 0;">Create a password with at least 8 characters, mixing uppercase, lowercase, numbers, and special characters. Avoid using common words or personal information.</p>
@@ -1203,7 +1203,7 @@ your browser</li>
               <p style="margin:0 0 20px 0;">Update your password every 3-6 months or immediately if you suspect unauthorized access.</p>
 
               <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">🚫 Never Share Credentials</p>
-              <p style="margin:0 0 20px 0;">Keep your login information private. SpikedAI support will never ask for your password.</p>
+              <p style="margin:0 0 20px 0;">Keep your login information private. Spiked AI support will never ask for your password.</p>
 
               <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">💻 Use Trusted Devices</p>
               <p style="margin:0 0 20px 0;">Only log in from secure, trusted devices. Enable "Keep me signed in" only on personal devices.</p>
@@ -1212,7 +1212,7 @@ your browser</li>
               <p style="margin:0 0 20px 0;">Always log out when using shared or public computers.</p>
 
               <p style="margin:0 0 8px 0;font-weight:600;font-size:15px;">📧 Verify Email Communications</p>
-              <p style="margin:0 0 28px 0;">Be cautious of phishing attempts. Always verify that emails claiming to be from SpikedAI are legitimate.</p>
+              <p style="margin:0 0 28px 0;">Be cautious of phishing attempts. Always verify that emails claiming to be from Spiked AI are legitimate.</p>
 
               <div style="padding:20px;background:#FEE2E2;border-left:4px solid #DC2626;border-radius:8px;">
                 <p style="margin:0;font-weight:600;color:#991B1B;font-size:14px;">⚠️ Security Alert</p>
@@ -1242,14 +1242,14 @@ console: {
       id: 'connect-bot-setup',
       title: 'Bot Connection',
       emoji: '🤖',
-      description: 'Everything you need to know about connecting your SpikedAI bot to meetings.',
+      description: 'Everything you need to know about connecting your Spiked AI bot to meetings.',
       subQuestions: [
     { 
   id: 'how-to-connect-bot', 
   question: 'How do I connect the bot to my meeting?', 
   answer: ` 
     <div style="line-height:1.8;color:#374151;font-size:15px;"> 
-      <p style="margin-bottom:20px;">Connecting your SpikedAI bot to a meeting is simple and takes just a few steps.</p>
+      <p style="margin-bottom:20px;">Connecting your Spiked AI bot to a meeting is simple and takes just a few steps.</p>
       
       <div style="padding:20px;background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:8px;margin-bottom:24px;">
         <p style="margin:0;font-weight:600;color:#92400E;font-size:15px;">⚠️ IMPORTANT: ADD MEETING FOCUS FIRST</p>
@@ -1259,11 +1259,11 @@ console: {
       <p style="margin-bottom:12px;font-weight:600;">Steps to connect:</p> 
       <ol style="margin:0 0 24px 0;padding-left:24px;"> 
         <li style="margin-bottom:12px;padding-left:8px;">Copy your meeting URL from <strong>Google Meet</strong>, <strong>Microsoft Teams</strong>, or <strong>Zoom</strong></li> 
-        <li style="margin-bottom:12px;padding-left:8px;">Go to the <strong>Console</strong> in SpikedAI</li> 
+        <li style="margin-bottom:12px;padding-left:8px;">Go to the <strong>Console</strong> in Spiked AI</li> 
         <li style="margin-bottom:12px;padding-left:8px;">Paste the meeting URL in the <strong>Meeting URL</strong> section</li>
         <li style="margin-bottom:12px;padding-left:8px;"><strong>Add a Meeting Focus</strong> - Before proceeding, ensure you have added a Meeting Focus. A default custom goal will be automatically added. If you don't see a default custom goal, please make sure to add it manually</li>
         <li style="margin-bottom:12px;padding-left:8px;">Click the <strong>Connect Meet</strong> button</li> 
-        <li style="margin-bottom:12px;padding-left:8px;">In your meeting platform, you'll receive a request to <strong>admit the SpikedAI bot</strong></li> 
+        <li style="margin-bottom:12px;padding-left:8px;">In your meeting platform, you'll receive a request to <strong>admit the Spiked AI bot</strong></li> 
         <li style="margin-bottom:0;padding-left:8px;">Click <strong>Admit</strong> to allow the bot to join</li> 
       </ol>
 
@@ -1300,7 +1300,7 @@ console: {
       question: 'Which meeting platforms are supported?',
       answer: `
         <div style="line-height:1.8;color:#374151;font-size:15px;">
-          <p style="margin-bottom:20px;">SpikedAI currently supports the three most popular meeting platforms for bot connection.</p>
+          <p style="margin-bottom:20px;">Spiked AI currently supports the three most popular meeting platforms for bot connection.</p>
           
           <p style="margin-bottom:12px;font-weight:600;">Supported Platforms:</p>
           <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:24px;">
@@ -1330,16 +1330,16 @@ console: {
       question: 'What happens when the bot joins my meeting?',
       answer: `
         <div style="line-height:1.8;color:#374151;font-size:15px;">
-          <p style="margin-bottom:20px;">When you connect the SpikedAI bot, here's what happens step by step:</p>
+          <p style="margin-bottom:20px;">When you connect the Spiked AI bot, here's what happens step by step:</p>
           
           <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px;background:#fefefe;">
             <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:16px;">1️⃣ Bot Request Appears</p>
-            <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Your meeting platform will show a request notification that <strong>"SpikedAI"</strong> wants to join the meeting. This appears to all meeting participants with host/co-host permissions.</p>
+            <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Your meeting platform will show a request notification that <strong>"Spiked AI"</strong> wants to join the meeting. This appears to all meeting participants with host/co-host permissions.</p>
           </div>
 
           <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px;background:#fefefe;">
             <p style="margin:0 0 12px 0;font-weight:600;color:#111827;font-size:16px;">2️⃣ Admit the Bot</p>
-            <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Click <strong>Admit</strong> to allow the bot into your meeting. The bot will appear as a participant named "SpikedAI".</p>
+            <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Click <strong>Admit</strong> to allow the bot into your meeting. The bot will appear as a participant named "Spiked AI".</p>
           </div>
 
           <div style="border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px;background:#fefefe;">
@@ -1398,7 +1398,7 @@ console: {
       question: 'How do I disconnect the bot from a meeting?',
       answer: `
         <div style="line-height:1.8;color:#374151;font-size:15px;">
-          <p style="margin-bottom:20px;">You can disconnect the SpikedAI bot at any time during or after your meeting.</p>
+          <p style="margin-bottom:20px;">You can disconnect the Spiked AI bot at any time during or after your meeting.</p>
           
           <p style="margin-bottom:12px;font-weight:600;">Method 1: Stop the bot in Console</p>
           <ol style="margin:0 0 24px 0;padding-left:24px;">
@@ -1409,7 +1409,7 @@ console: {
 
           <p style="margin-bottom:12px;font-weight:600;">Method 2: Kick from meeting platform</p>
           <ol style="margin:0 0 24px 0;padding-left:24px;">
-            <li style="margin-bottom:10px;padding-left:8px;">Locate <strong>"SpikedAI"</strong> in your participants list</li>
+            <li style="margin-bottom:10px;padding-left:8px;">Locate <strong>"Spiked AI"</strong> in your participants list</li>
             <li style="margin-bottom:10px;padding-left:8px;">Click on the bot participant</li>
             <li style="margin-bottom:0;padding-left:8px;">Select <strong>Remove</strong> or <strong>Kick</strong> from the menu</li>
           </ol>
@@ -1446,7 +1446,7 @@ console: {
           question: 'What is Live Transcription?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;"><strong>Live Transcription</strong> is SpikedAI's real-time meeting analysis feature that captures every spoken word and provides instant insights during your calls.</p>
+              <p style="margin-bottom:20px;"><strong>Live Transcription</strong> is Spiked AI's real-time meeting analysis feature that captures every spoken word and provides instant insights during your calls.</p>
               
               <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
                 <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🎯 KEY CAPABILITY</p>
@@ -1469,7 +1469,7 @@ console: {
               />
 
               <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;margin-top:24px;">
-                <strong>Recording Starts:</strong> Live Transcription begins automatically 5-10 seconds after you admit the SpikedAI bot to your meeting.
+                <strong>Recording Starts:</strong> Live Transcription begins automatically 5-10 seconds after you admit the Spiked AI bot to your meeting.
               </p>
             </div>
           `
@@ -1479,7 +1479,7 @@ console: {
           question: 'What languages are supported for transcription?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Currently, SpikedAI Live Transcription supports <strong>English language only</strong>.</p>
+              <p style="margin-bottom:20px;">Currently, Spiked AI Live Transcription supports <strong>English language only</strong>.</p>
               
               <div style="border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin-bottom:24px;background:#fefefe;">
                 <p style="margin:0 0 10px 0;font-weight:600;color:#111827;font-size:15px;">🗣️ Current Language Support</p>
@@ -1500,7 +1500,7 @@ console: {
           question: 'How accurate is the Live Transcription?',
           answer: `
             <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">SpikedAI uses advanced AI models to provide high-accuracy transcriptions in real-time.</p>
+              <p style="margin-bottom:20px;">Spiked AI uses advanced AI models to provide high-accuracy transcriptions in real-time.</p>
               
               <p style="margin-bottom:12px;font-weight:600;">Factors affecting accuracy:</p>
               <ul style="margin:0 0 24px 0;padding-left:24px;">
@@ -4335,6 +4335,297 @@ Analyser: {
   icon: <Layout style={{ width: '20px', height: '20px' }} />,
   emoji: '🧾',
   items: [
+    
+    {
+  id: 'live-transcription-section',
+  title: 'Live Transcription',
+  description: 'Real-time meeting transcription that captures every word as your conversation unfolds.',
+  questions: [
+    {
+      id: 'live-transcription-features',
+      title: 'Live Transcription Features',
+      emoji: '📝',
+      description: 'Automatic speech-to-text conversion for your entire meeting.',
+      subQuestions: [
+        {
+          id: 'what-is-live-transcription',
+          question: 'What is Live Transcription?',
+          answer: `
+           <div style="padding:20px;background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:8px;margin-bottom:24px;">
+  <p style="margin:0;font-weight:600;color:#92400E;font-size:15px;">
+    ⚠️ Important: Open Convo Assist as soon as you connect
+  </p>
+  <p style="margin:8px 0 0 0;color:#78350F;font-size:14px;">
+    once you connect the bot, open convoassist and wait until you see the transcription start. after transcription is visible, you can switch between the console tab and the convoassist tab as needed during your meeting.
+  </p>
+</div>
+
+
+            <div style="line-height:1.8;color:#374151;font-size:15px;">
+              <p style="margin-bottom:20px;"><strong>Live Transcription</strong> automatically converts spoken words into text in real-time during your meetings. It captures everything that's said and displays it as the conversation unfolds.</p>
+              
+              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🎙️ REAL-TIME SPEECH-TO-TEXT</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Live Transcription works automatically to convert every spoken word into written text, creating a complete record of your meeting as it happens.</p>
+              </div>
+
+              <p style="margin-bottom:12px;font-weight:600;">Key features:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Automatic transcription:</strong> Starts recording text as soon as activated</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Real-time display:</strong> See words appear as they're being spoken</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Speaker identification:</strong> Identifies who said what</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Complete coverage:</strong> Captures the entire meeting conversation</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Searchable text:</strong> Easy to search and reference later</li>
+              </ul>
+
+              <p style="margin-bottom:12px;font-weight:600;">How it works:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;">Click on Analyser when the bot joins the meeting</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Transcription starts with a 10-15 second delay</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Words appear in real-time as people speak</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Continues recording throughout the entire meeting</li>
+                <li style="margin-bottom:0;padding-left:8px;">Complete transcript available after the meeting ends</li>
+              </ul>
+
+              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+                <strong>Important:</strong> Live Transcription works the same as the live transcriptions in the main console, providing consistent and reliable text capture.
+              </p>
+            </div>
+          `
+        },
+        {
+          id: 'how-to-start-transcription',
+          question: 'How do I start Live Transcription?',
+          answer: `
+            <div style="line-height:1.8;color:#374151;font-size:15px;">
+              <p style="margin-bottom:20px;">Live Transcription starts automatically when you click on the Analyser after the bot joins your meeting.</p>
+              
+              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">▶️ QUICK START</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Simply click on Analyser as soon as the bot joins to ensure you capture the complete meeting from the very beginning.</p>
+              </div>
+
+             
+
+              <p style="margin-bottom:12px;font-weight:600;">Step-by-step guide:</p>
+              <ol style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;">Wait for the bot to join your meeting</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Click on the <strong>Analyser</strong> option</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Wait 10-15 seconds for transcription to initialize</li>
+                <li style="margin-bottom:10px;padding-left:8px;">Transcription begins and text starts appearing</li>
+                <li style="margin-bottom:0;padding-left:8px;">Continue your meeting normally while transcription runs</li>
+              </ol>
+
+              <p style="margin-bottom:12px;font-weight:600;">Initial delay explained:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>10-15 second delay:</strong> Normal initialization time for the transcription service</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Processing setup:</strong> System prepares audio processing and speech recognition</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>One-time delay:</strong> Only occurs at the start, then runs continuously</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Expected behavior:</strong> This delay is normal and doesn't indicate an issue</li>
+              </ul>
+
+              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+                <strong>Pro Tip:</strong> Click on Analyser immediately when the bot joins to ensure no content is missed from the beginning of your meeting. Then you can freely switch between Console and ConvoAssist tabs.
+              </p>
+            </div>
+          `
+        },
+        {
+          id: 'transcription-delay',
+          question: 'Why is there a delay when starting transcription?',
+          answer: `
+            <div style="line-height:1.8;color:#374151;font-size:15px;">
+              <p style="margin-bottom:20px;">Live Transcription has a 10-15 second delay at the start. This is a normal initialization period required to set up the speech recognition system.</p>
+              
+              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">⏱️ INITIALIZATION TIME</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">The delay allows the system to properly set up audio processing, speaker identification, and real-time transcription capabilities.</p>
+              </div>
+
+              <p style="margin-bottom:12px;font-weight:600;">What happens during the delay:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Audio connection setup:</strong> Establishes connection to meeting audio stream</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Speech recognition initialization:</strong> Prepares AI models for transcription</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Speaker detection setup:</strong> Configures speaker identification system</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Quality calibration:</strong> Adjusts to audio quality and environment</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>System synchronization:</strong> Ensures all components are ready</li>
+              </ul>
+
+              <p style="margin-bottom:12px;font-weight:600;">Understanding the delay:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Duration:</strong> Typically 10-15 seconds</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Frequency:</strong> Only occurs once at the start</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Normal behavior:</strong> Expected and not a technical issue</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>One-time only:</strong> After initialization, transcription is continuous</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Cannot be skipped:</strong> Required for proper functionality</li>
+              </ul>
+
+              <p style="margin-bottom:12px;font-weight:600;">How to minimize missed content:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Click immediately:</strong> Activate Analyser as soon as the bot joins</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Wait before starting:</strong> Give the system 15 seconds to initialize before important discussions</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Use introductions:</strong> Allow delay time for greetings and small talk</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Plan accordingly:</strong> Factor in initialization time when scheduling</li>
+              </ul>
+
+              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+                <strong>Important:</strong> The 10-15 second delay is a necessary technical requirement and ensures high-quality, accurate transcription once it begins.
+              </p>
+            </div>
+          `
+        },
+        {
+          id: 'capture-from-beginning',
+          question: 'How do I ensure transcription captures from the beginning?',
+          answer: `
+            <div style="line-height:1.8;color:#374151;font-size:15px;">
+              <p style="margin-bottom:20px;">To capture your meeting from the very beginning, it's crucial to click on Analyser immediately when the bot joins, before any important discussion starts.</p>
+              
+              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🎬 COMPLETE CAPTURE</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Activating Analyser immediately ensures no transcriptions are missing and you have a complete record of your entire meeting.</p>
+              </div>
+
+              <p style="margin-bottom:12px;font-weight:600;">Best practices for complete capture:</p>
+              <ol style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:12px;padding-left:8px;">
+                  <strong>Click immediately when bot joins</strong><br>
+                  <span style="font-size:14px;color:#6B7280;">Don't wait - activate Analyser the moment the bot enters the meeting</span>
+                </li>
+                <li style="margin-bottom:12px;padding-left:8px;">
+                  <strong>Account for 10-15 second delay</strong><br>
+                  <span style="font-size:14px;color:#6B7280;">Remember transcription takes a few seconds to start, so click early</span>
+                </li>
+                <li style="margin-bottom:12px;padding-left:8px;">
+                  <strong>Start with introductions</strong><br>
+                  <span style="font-size:14px;color:#6B7280;">Use initial greetings and introductions to allow initialization time</span>
+                </li>
+                <li style="margin-bottom:12px;padding-left:8px;">
+                  <strong>Wait for confirmation</strong><br>
+                  <span style="font-size:14px;color:#6B7280;">See that transcription has started before diving into important topics</span>
+                </li>
+                <li style="margin-bottom:0;padding-left:8px;">
+                  <strong>Verify it's running</strong><br>
+                  <span style="font-size:14px;color:#6B7280;">Check that text is appearing before proceeding with key discussions</span>
+                </li>
+              </ol>
+
+              <p style="margin-bottom:12px;font-weight:600;">What happens if you click late:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Missing content:</strong> Any conversation before activation won't be captured</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Incomplete record:</strong> Your transcript will start from when you clicked</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Gap in documentation:</strong> Important early discussions may be lost</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Cannot retrieve:</strong> Past audio cannot be recovered once missed</li>
+              </ul>
+
+              <p style="margin-bottom:12px;font-weight:600;">Meeting preparation tips:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Schedule bot early:</strong> Have the bot join a minute before meeting start</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Be ready to click:</strong> Know where the Analyser button is located</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Brief participants:</strong> Let others know you're waiting for transcription to start</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Buffer time:</strong> Build in 20-30 seconds before agenda items begin</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Visual confirmation:</strong> Always verify transcription is running before proceeding</li>
+              </ul>
+
+              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+                <strong>Critical:</strong> To ensure no transcriptions are missing, click on Analyser immediately when the bot joins the meeting. This is the most important step for complete capture.
+              </p>
+            </div>
+          `
+        },
+        {
+          id: 'transcription-vs-main-console',
+          question: 'How does Live Transcription compare to main console transcription?',
+          answer: `
+            <div style="line-height:1.8;color:#374151;font-size:15px;">
+              <p style="margin-bottom:20px;">Live Transcription in Analyser works the same as the live transcriptions in the main console, providing consistent functionality and quality across both interfaces.</p>
+              
+              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🔄 CONSISTENT EXPERIENCE</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Both transcription views use the same underlying technology and provide identical transcription quality and features.</p>
+              </div>
+
+              <p style="margin-bottom:12px;font-weight:600;">Similarities:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Same technology:</strong> Both use identical speech recognition systems</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Equal accuracy:</strong> Transcription quality is the same in both views</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Real-time updates:</strong> Text appears at the same speed in both locations</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Speaker identification:</strong> Both identify and label speakers</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Complete coverage:</strong> Both capture the entire meeting</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Same content:</strong> Transcript text is identical in both views</li>
+              </ul>
+
+              <p style="margin-bottom:12px;font-weight:600;">Key differences:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Interface location:</strong> Analyser provides integrated view with other meeting tools</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Layout:</strong> May be displayed differently based on available space</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Context:</strong> Analyser shows transcription alongside goals, chat, and AI features</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Workflow integration:</strong> Better integrated with other Analyser features</li>
+              </ul>
+
+              <p style="margin-bottom:12px;font-weight:600;">Why use Analyser transcription:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>All-in-one view:</strong> Access transcription alongside other features</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Contextual reference:</strong> See transcription while using Custom Goals or AI Templates</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Simplified workflow:</strong> Everything you need in one place</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Efficient multi-tasking:</strong> View multiple features simultaneously</li>
+              </ul>
+
+              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+                <strong>Bottom Line:</strong> Live Transcription works exactly the same as main console transcription - you're getting the same quality and features, just in a more integrated interface.
+              </p>
+            </div>
+          `
+        },
+        {
+          id: 'viewing-transcription',
+          question: 'How do I view Live Transcription during a meeting?',
+          answer: `
+            <div style="line-height:1.8;color:#374151;font-size:15px;">
+              <p style="margin-bottom:20px;">Once activated, Live Transcription appears in the transcription panel where you can see the conversation being converted to text in real-time.</p>
+              
+              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">👀 VIEWING EXPERIENCE</p>
+                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Watch your meeting unfold in written form as the transcription captures every word spoken by participants.</p>
+              </div>
+
+              <p style="margin-bottom:12px;font-weight:600;">What you'll see:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Real-time text:</strong> Words appear as they're being spoken</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Speaker labels:</strong> Each statement identified by speaker name or label</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Continuous scroll:</strong> Transcript automatically scrolls as new text appears</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Timestamps:</strong> Time markers showing when statements were made</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Formatted text:</strong> Clear, readable format with proper spacing</li>
+              </ul>
+
+              <p style="margin-bottom:12px;font-weight:600;">Transcription features:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Auto-scroll:</strong> Follows along with the conversation automatically</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Manual scroll:</strong> Scroll back to review earlier content</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Searchable:</strong> Can search through transcript content</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Copyable:</strong> Select and copy text as needed</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Persistent:</strong> Stays visible throughout the meeting</li>
+              </ul>
+
+              <p style="margin-bottom:12px;font-weight:600;">Using transcription during meetings:</p>
+              <ul style="margin:0 0 24px 0;padding-left:24px;">
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Reference tool:</strong> Look back at what was just said</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Clarity check:</strong> Verify understanding of complex points</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Note-taking aid:</strong> Copy important sections for your own notes</li>
+                <li style="margin-bottom:10px;padding-left:8px;"><strong>Accessibility:</strong> Helps those who prefer reading to listening</li>
+                <li style="margin-bottom:0;padding-left:8px;"><strong>Focus support:</strong> Follow along in text while listening</li>
+              </ul>
+
+              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
+                <strong>Pro Tip:</strong> You can view the transcription while using other Analyser features like Custom Goals or AI Templates for a complete meeting management experience.
+              </p>
+            </div>
+          `
+        }
+      ]
+    }
+  ]
+},
     {
   id: 'ai-template-analyser',
   title: 'AI Template in Analyser',
@@ -5516,293 +5807,7 @@ Analyser: {
     }
   ]
 },
-   {
-  id: 'live-transcription-section',
-  title: 'Live Transcription',
-  description: 'Real-time meeting transcription that captures every word as your conversation unfolds.',
-  questions: [
-    {
-      id: 'live-transcription-features',
-      title: 'Live Transcription Features',
-      emoji: '📝',
-      description: 'Automatic speech-to-text conversion for your entire meeting.',
-      subQuestions: [
-        {
-          id: 'what-is-live-transcription',
-          question: 'What is Live Transcription?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;"><strong>Live Transcription</strong> automatically converts spoken words into text in real-time during your meetings. It captures everything that's said and displays it as the conversation unfolds.</p>
-              
-              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
-                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🎙️ REAL-TIME SPEECH-TO-TEXT</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Live Transcription works automatically to convert every spoken word into written text, creating a complete record of your meeting as it happens.</p>
-              </div>
-
-              
-
-              <p style="margin-bottom:12px;font-weight:600;">Key features:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Automatic transcription:</strong> Starts recording text as soon as activated</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Real-time display:</strong> See words appear as they're being spoken</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Speaker identification:</strong> Identifies who said what</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Complete coverage:</strong> Captures the entire meeting conversation</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Searchable text:</strong> Easy to search and reference later</li>
-              </ul>
-
-              <p style="margin-bottom:12px;font-weight:600;">How it works:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;">Click on Analyser when the bot joins the meeting</li>
-                <li style="margin-bottom:10px;padding-left:8px;">Transcription starts with a 10-15 second delay</li>
-                <li style="margin-bottom:10px;padding-left:8px;">Words appear in real-time as people speak</li>
-                <li style="margin-bottom:10px;padding-left:8px;">Continues recording throughout the entire meeting</li>
-                <li style="margin-bottom:0;padding-left:8px;">Complete transcript available after the meeting ends</li>
-              </ul>
-
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Important:</strong> Live Transcription works the same as the live transcriptions in the main console, providing consistent and reliable text capture.
-              </p>
-            </div>
-          `
-        },
-        {
-          id: 'how-to-start-transcription',
-          question: 'How do I start Live Transcription?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Live Transcription starts automatically when you click on the Analyser after the bot joins your meeting.</p>
-              
-              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
-                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">▶️ QUICK START</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Simply click on Analyser as soon as the bot joins to ensure you capture the complete meeting from the very beginning.</p>
-              </div>
-
-              <p style="margin-bottom:12px;font-weight:600;">Step-by-step guide:</p>
-              <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;">Wait for the bot to join your meeting</li>
-                <li style="margin-bottom:10px;padding-left:8px;">Click on the <strong>Analyser</strong> option</li>
-                <li style="margin-bottom:10px;padding-left:8px;">Wait 10-15 seconds for transcription to initialize</li>
-                <li style="margin-bottom:10px;padding-left:8px;">Transcription begins and text starts appearing</li>
-                <li style="margin-bottom:0;padding-left:8px;">Continue your meeting normally while transcription runs</li>
-              </ol>
-
-              
-
-              <p style="margin-bottom:12px;font-weight:600;">Initial delay explained:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>10-15 second delay:</strong> Normal initialization time for the transcription service</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Processing setup:</strong> System prepares audio processing and speech recognition</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>One-time delay:</strong> Only occurs at the start, then runs continuously</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Expected behavior:</strong> This delay is normal and doesn't indicate an issue</li>
-              </ul>
-
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Pro Tip:</strong> Click on Analyser immediately when the bot joins to ensure no content is missed from the beginning of your meeting.
-              </p>
-            </div>
-          `
-        },
-        {
-          id: 'transcription-delay',
-          question: 'Why is there a delay when starting transcription?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Live Transcription has a 10-15 second delay at the start. This is a normal initialization period required to set up the speech recognition system.</p>
-              
-              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
-                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">⏱️ INITIALIZATION TIME</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">The delay allows the system to properly set up audio processing, speaker identification, and real-time transcription capabilities.</p>
-              </div>
-
-              <p style="margin-bottom:12px;font-weight:600;">What happens during the delay:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Audio connection setup:</strong> Establishes connection to meeting audio stream</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Speech recognition initialization:</strong> Prepares AI models for transcription</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Speaker detection setup:</strong> Configures speaker identification system</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Quality calibration:</strong> Adjusts to audio quality and environment</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>System synchronization:</strong> Ensures all components are ready</li>
-              </ul>
-
-              <p style="margin-bottom:12px;font-weight:600;">Understanding the delay:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Duration:</strong> Typically 10-15 seconds</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Frequency:</strong> Only occurs once at the start</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Normal behavior:</strong> Expected and not a technical issue</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>One-time only:</strong> After initialization, transcription is continuous</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Cannot be skipped:</strong> Required for proper functionality</li>
-              </ul>
-
-              <p style="margin-bottom:12px;font-weight:600;">How to minimize missed content:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Click immediately:</strong> Activate Analyser as soon as the bot joins</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Wait before starting:</strong> Give the system 15 seconds to initialize before important discussions</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Use introductions:</strong> Allow delay time for greetings and small talk</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Plan accordingly:</strong> Factor in initialization time when scheduling</li>
-              </ul>
-
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Important:</strong> The 10-15 second delay is a necessary technical requirement and ensures high-quality, accurate transcription once it begins.
-              </p>
-            </div>
-          `
-        },
-        {
-          id: 'capture-from-beginning',
-          question: 'How do I ensure transcription captures from the beginning?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">To capture your meeting from the very beginning, it's crucial to click on Analyser immediately when the bot joins, before any important discussion starts.</p>
-              
-              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
-                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🎬 COMPLETE CAPTURE</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Activating Analyser immediately ensures no transcriptions are missing and you have a complete record of your entire meeting.</p>
-              </div>
-
-              <p style="margin-bottom:12px;font-weight:600;">Best practices for complete capture:</p>
-              <ol style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:12px;padding-left:8px;">
-                  <strong>Click immediately when bot joins</strong><br>
-                  <span style="font-size:14px;color:#6B7280;">Don't wait - activate Analyser the moment the bot enters the meeting</span>
-                </li>
-                <li style="margin-bottom:12px;padding-left:8px;">
-                  <strong>Account for 10-15 second delay</strong><br>
-                  <span style="font-size:14px;color:#6B7280;">Remember transcription takes a few seconds to start, so click early</span>
-                </li>
-                <li style="margin-bottom:12px;padding-left:8px;">
-                  <strong>Start with introductions</strong><br>
-                  <span style="font-size:14px;color:#6B7280;">Use initial greetings and introductions to allow initialization time</span>
-                </li>
-                <li style="margin-bottom:12px;padding-left:8px;">
-                  <strong>Wait for confirmation</strong><br>
-                  <span style="font-size:14px;color:#6B7280;">See that transcription has started before diving into important topics</span>
-                </li>
-                <li style="margin-bottom:0;padding-left:8px;">
-                  <strong>Verify it's running</strong><br>
-                  <span style="font-size:14px;color:#6B7280;">Check that text is appearing before proceeding with key discussions</span>
-                </li>
-              </ol>
-
-             
-              <p style="margin-bottom:12px;font-weight:600;">What happens if you click late:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Missing content:</strong> Any conversation before activation won't be captured</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Incomplete record:</strong> Your transcript will start from when you clicked</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Gap in documentation:</strong> Important early discussions may be lost</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Cannot retrieve:</strong> Past audio cannot be recovered once missed</li>
-              </ul>
-
-              <p style="margin-bottom:12px;font-weight:600;">Meeting preparation tips:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Schedule bot early:</strong> Have the bot join a minute before meeting start</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Be ready to click:</strong> Know where the Analyser button is located</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Brief participants:</strong> Let others know you're waiting for transcription to start</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Buffer time:</strong> Build in 20-30 seconds before agenda items begin</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Visual confirmation:</strong> Always verify transcription is running before proceeding</li>
-              </ul>
-
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Critical:</strong> To ensure no transcriptions are missing, click on Analyser immediately when the bot joins the meeting. This is the most important step for complete capture.
-              </p>
-            </div>
-          `
-        },
-        {
-          id: 'transcription-vs-main-console',
-          question: 'How does Live Transcription compare to main console transcription?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Live Transcription in Analyser works the same as the live transcriptions in the main console, providing consistent functionality and quality across both interfaces.</p>
-              
-              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
-                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">🔄 CONSISTENT EXPERIENCE</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Both transcription views use the same underlying technology and provide identical transcription quality and features.</p>
-              </div>
-
-              <p style="margin-bottom:12px;font-weight:600;">Similarities:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Same technology:</strong> Both use identical speech recognition systems</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Equal accuracy:</strong> Transcription quality is the same in both views</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Real-time updates:</strong> Text appears at the same speed in both locations</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Speaker identification:</strong> Both identify and label speakers</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Complete coverage:</strong> Both capture the entire meeting</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Same content:</strong> Transcript text is identical in both views</li>
-              </ul>
-
-             
-
-              <p style="margin-bottom:12px;font-weight:600;">Key differences:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Interface location:</strong> Analyser provides integrated view with other meeting tools</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Layout:</strong> May be displayed differently based on available space</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Context:</strong> Analyser shows transcription alongside goals, chat, and AI features</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Workflow integration:</strong> Better integrated with other Analyser features</li>
-              </ul>
-
-              <p style="margin-bottom:12px;font-weight:600;">Why use Analyser transcription:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>All-in-one view:</strong> Access transcription alongside other features</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Contextual reference:</strong> See transcription while using Custom Goals or AI Templates</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Simplified workflow:</strong> Everything you need in one place</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Efficient multi-tasking:</strong> View multiple features simultaneously</li>
-              </ul>
-
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Bottom Line:</strong> Live Transcription works exactly the same as main console transcription - you're getting the same quality and features, just in a more integrated interface.
-              </p>
-            </div>
-          `
-        },
-        {
-          id: 'viewing-transcription',
-          question: 'How do I view Live Transcription during a meeting?',
-          answer: `
-            <div style="line-height:1.8;color:#374151;font-size:15px;">
-              <p style="margin-bottom:20px;">Once activated, Live Transcription appears in the transcription panel where you can see the conversation being converted to text in real-time.</p>
-              
-              <div style="padding:20px;background:#DBEAFE;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
-                <p style="margin:0;font-weight:600;color:#1E40AF;font-size:15px;">👀 VIEWING EXPERIENCE</p>
-                <p style="margin:8px 0 0 0;color:#1E3A8A;font-size:14px;">Watch your meeting unfold in written form as the transcription captures every word spoken by participants.</p>
-              </div>
-
-              <p style="margin-bottom:12px;font-weight:600;">What you'll see:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Real-time text:</strong> Words appear as they're being spoken</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Speaker labels:</strong> Each statement identified by speaker name or label</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Continuous scroll:</strong> Transcript automatically scrolls as new text appears</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Timestamps:</strong> Time markers showing when statements were made</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Formatted text:</strong> Clear, readable format with proper spacing</li>
-              </ul>
-
-              
-
-              <p style="margin-bottom:12px;font-weight:600;">Transcription features:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Auto-scroll:</strong> Follows along with the conversation automatically</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Manual scroll:</strong> Scroll back to review earlier content</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Searchable:</strong> Can search through transcript content</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Copyable:</strong> Select and copy text as needed</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Persistent:</strong> Stays visible throughout the meeting</li>
-              </ul>
-
-              <p style="margin-bottom:12px;font-weight:600;">Using transcription during meetings:</p>
-              <ul style="margin:0 0 24px 0;padding-left:24px;">
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Reference tool:</strong> Look back at what was just said</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Clarity check:</strong> Verify understanding of complex points</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Note-taking aid:</strong> Copy important sections for your own notes</li>
-                <li style="margin-bottom:10px;padding-left:8px;"><strong>Accessibility:</strong> Helps those who prefer reading to listening</li>
-                <li style="margin-bottom:0;padding-left:8px;"><strong>Focus support:</strong> Follow along in text while listening</li>
-              </ul>
-
-              <p style="margin:0;padding:16px;background:#f9fafb;border-left:3px solid #2563EB;border-radius:4px;font-size:14px;">
-                <strong>Pro Tip:</strong> You can view the transcription while using other Analyser features like Custom Goals or AI Templates for a complete meeting management experience.
-              </p>
-            </div>
-          `
-        }
-      ]
-    }
-  ]
-},
+    
    {
   id: 'ai-assistant',
   title: 'AI Assistant',

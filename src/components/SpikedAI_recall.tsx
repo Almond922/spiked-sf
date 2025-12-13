@@ -670,9 +670,11 @@ useEffect(() => {
     TranscriptSegment[]
   >([]);
   const [showAskBeyondButton, setShowAskBeyondButton] = useState(false);
-  const [isMedpicOpen, setIsMedpicOpen] = useState(true); // Default open
-const [isGoalsOpen, setIsGoalsOpen] = useState(true); // Default open
-  const [lastQuestion, setLastQuestion] = useState("");
+ // ...around line 431...
+  const [isMedpicOpen, setIsMedpicOpen] = useState(false); // Default collapsed
+const [isGoalsOpen, setIsGoalsOpen] = useState(false); // Default collapsed
+  const [lastQuestion, setLastQuestion] = useState("");
+// ...
   const [searchMode, setSearchMode] = useState<
     "documents" | "beyond" | "graph"
   >("documents");
@@ -2212,6 +2214,54 @@ const fetchTrackedJiraTasks = async () => {
     console.error('Error fetching tracked Jira tasks:', error);
   }
 };
+
+
+useEffect(() => {
+    // 1. Initial refresh on mount (optional, but good practice)
+    refreshAllMedpicSummaries();
+    if (customGoals.length > 0) {
+        refreshAllCustomGoals();
+    }
+
+    // 2. Set up the interval for periodic refresh (every 60 seconds = 60000 ms)
+    const intervalId = setInterval(() => {
+        // Only run if the component is mounted and we are not already loading
+        // (The checks inside the refresh functions or on the buttons prevent multiple simultaneous refreshes)
+        refreshAllMedpicSummaries();
+        if (customGoals.length > 0) {
+            refreshAllCustomGoals();
+        }
+        
+        console.log('Auto-reloaded Sales Framework and Custom Goals.');
+    }, 60000); // 60000 milliseconds = 1 minute
+
+    // 3. Clean-up function to clear the interval when the component unmounts
+    // or when the dependencies (which are empty here, meaning run once) change.
+    return () => {
+        clearInterval(intervalId);
+    };
+}, [/* Empty dependency array: run once on mount */]);
+
+useEffect(() => {
+    // Only proceed if there are custom goals to analyze
+    if (customGoals.length === 0) {
+        return;
+    }
+
+    // 1. Initial refresh on mount
+    refreshAllCustomGoals();
+
+    // 2. Set up the interval (60 seconds)
+    const intervalId = setInterval(() => {
+        refreshAllCustomGoals();
+        console.log('Auto-reloaded Custom Goal analyses.');
+    }, 60000); // 60 seconds
+
+    // 3. Cleanup: Clear the interval on component unmount or if customGoals changes
+    return () => {
+        clearInterval(intervalId);
+    };
+}, []);
 
 const fetchTrackedHubSpotDeals = async () => {
   if (!session?.access_token) return;
@@ -5671,324 +5721,664 @@ const refreshAllMedpicSummaries = async () => {
                 </div>
               </div>
 
-              {/* MEDPIC Progress - Enhanced Card Layout */}
+           {/* MEDPIC Progress - Enhanced Card Layout */}
+
 <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+
     {/* MODIFIED: Header is clickable to toggle state */}
+
     <div 
+
         className="flex items-center justify-between mb-4 cursor-pointer"
-        onClick={() => setIsMedpicOpen(!isMedpicOpen)} // Assuming setIsMedpicOpen is defined
+
+        onClick={() => setIsMedpicOpen(!isMedpicOpen)} // Toggles collapse/expand
+
     >
+
         <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+
             <span>📋</span>
+
             <span>Sales Framework</span>
+
         </span>
+
         <div className="flex items-center space-x-2"> 
-            {/* REFRESH ALL MEDDIC BUTTON */}
+
+            {/* REFRESH ALL MEDDIC BUTTON - e.stopPropagation() ensures this button only refreshes */}
+
             <button
+
                 onClick={(e) => {
-                    e.stopPropagation(); // Prevent toggling collapse when refreshing
+
+                    e.stopPropagation(); 
+
                     refreshAllMedpicSummaries();
+
                 }}
+
                 disabled={loadingMedpicCategories.size > 0}
+
                 className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 ${
+
                     loadingMedpicCategories.size > 0
+
                         ? "bg-gray-200 dark:bg-gray-700 cursor-wait"
+
                         : "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/50"
+
                 }`}
+
                 title="Refresh all Playbook summaries"
+
             >
+
                 {loadingMedpicCategories.size > 0 ? (
+
                     <Loader className="w-4 h-4 animate-spin" />
+
                 ) : (
+
                     <RefreshCw className="w-4 h-4" />
+
                 )}
+
             </button>
-            {/* NEW: Collapse/Expand Arrow, rotates based on isMedpicOpen state */}
-            <ChevronDown 
-                className={`w-5 h-5 transition-transform ${isMedpicOpen ? 'rotate-0' : '-rotate-90'}`} 
-            />
+
+            {/* MODIFIED: Replaced ChevronDown with text/label button */}
+
+            <button
+
+                onClick={(e) => {
+
+                    e.stopPropagation(); // Stop propagation if clicked directly (though parent handles it)
+
+                    setIsMedpicOpen(!isMedpicOpen);
+
+                }}
+
+                className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded font-medium hover:bg-gray-200 dark:hover:bg-gray-600"
+
+                title={isMedpicOpen ? "Collapse Section" : "Expand Section"}
+
+            >
+
+                {isMedpicOpen ? 'Collapse' : 'Expand'}
+
+            </button>
+
         </div>
+
     </div>
 
-    {/* MODIFIED: Conditionally render the content based on isMedpicOpen state */}
+
+    {/* Conditionally render the content based on isMedpicOpen state */}
+
     {isMedpicOpen && (
+
         <div className="space-y-3">
+
             {Object.entries(MEDPIC_CATEGORIES).map(([categoryName, label]) => {
+
                 const isLoading = loadingMedpicCategories.has(categoryName);
+
                 const summary = medpicSummaries[categoryName];
+
                 const error = medpicErrors[categoryName];
+
                 const lastGenerated = medpicGenerationTimes[categoryName];
+
                 const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 60000;
+
                 
+
                 return (
+
                     <details key={categoryName} className="group">
+
                         <summary 
+
                             className={`p-3 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between ${
+
                                 summary?.discussed 
+
                                     ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50" 
+
                                     : summary
+
                                     ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50"
+
                                     : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+
                             }`}
+
                         >
+
                             <div className="flex items-center space-x-2 flex-1 text-gray-700 dark:text-gray-100">
+
                                 <span>{label}</span>
+
                                 {summary?.discussed && (
+
                                     <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 px-2 py-0.5 rounded-full">
+
                                         Discussed
+
                                     </span>
+
                                 )}
+
                                 {summary && !summary.discussed && (
+
                                     <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
+
                                         Analyzed
+
                                     </span>
+
                                 )}
+
                             </div>
+
                             <div className="flex items-center space-x-2">
+
                                 <button
+
                                     onClick={(e) => {
+
                                         e.preventDefault();
+
                                         e.stopPropagation();
+
                                         loadMedpicCategorySummary(categoryName);
+
                                     }}
+
                                     disabled={isLoading || !canRegenerate}
+
                                     className={`p-1.5 rounded-full transition-all ${
+
                                         isLoading
+
                                             ? "bg-blue-100 dark:bg-blue-900/50 cursor-wait"
+
                                             : !canRegenerate
+
                                             ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50"
+
                                             : "bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-800/50"
+
                                     }`}
+
                                     title={
+
                                         isLoading 
+
                                             ? "Generating summary..." 
+
                                             : !canRegenerate
+
                                             ? "Wait 1 minute before regenerating"
+
                                             : summary 
+
                                             ? "Regenerate summary" 
+
                                             : "Generate summary"
+
                                     }
+
                                 >
+
                                     {isLoading ? (
+
                                         <Loader className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
+
                                     ) : (
+
                                         <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+
                                     )}
+
                                 </button>
+
                                 <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
+
                             </div>
+
                         </summary>
+
                         
+
                         <div className="p-3 mt-2 border-t border-gray-200 dark:border-gray-700">
+
                             {error && (
+
                                 <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+
                                     <div className="flex items-center justify-between">
+
                                         <div className="flex items-center space-x-2">
+
                                             <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+
                                             <p className="text-sm text-red-600 dark:text-red-400">
+
                                                 {error}
+
                                             </p>
+
                                         </div>
+
                                         <button
+
                                             onClick={(e) => {
+
                                                 e.preventDefault();
+
                                                 e.stopPropagation();
+
                                                 loadMedpicCategorySummary(categoryName);
+
                                             }}
+
                                             className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+
                                         >
+
                                             Retry
+
                                         </button>
+
                                     </div>
+
                                 </div>
+
                             )}
+
                             
+
                             {summary ? (
+
                                 <div className="space-y-2">
+
                                     <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+
                                         <div 
+
                                             className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line"
+
                                             dangerouslySetInnerHTML={{ __html: formatSummary(summary.summary) }}
+
                                         />
+
                                     </div>
+
                                     <p className="text-xs text-gray-400">
+
                                         Generated {summary.analyzed_at ? new Date(summary.analyzed_at).toLocaleTimeString() : "Unknown"}
+
                                     </p>
+
                                 </div>
+
                             ) : (
+
                                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+
                                     Click the ✨ icon to generate AI summary
+
                                 </p>
+
                             )}
+
                         </div>
+
                     </details>
+
                 );
+
             })}
+
         </div>
+
     )}
+
 </div>
 
-            {/* Custom Goals Progress - Enhanced Version */}
+
+{/* Custom Goals Progress - Enhanced Version */}
+
 {customGoals.length > 0 && (
+
     <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+
         
+
         {/* MODIFIED: Header is clickable to toggle state */}
+
         <div 
+
             className="flex items-center justify-between mb-4 cursor-pointer"
-            onClick={() => setIsGoalsOpen(!isGoalsOpen)} // Assuming setIsGoalsOpen is defined
+
+            onClick={() => setIsGoalsOpen(!isGoalsOpen)} // Toggles collapse/expand
+
         >
+
             <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+
                 <span>🎯 Custom Goals</span>
+
             </span>
 
+
             <div className="flex items-center space-x-2">
+
             <button
+
                 onClick={(e) => {
-                    e.stopPropagation(); // Prevent toggling collapse when refreshing
+
+                    e.stopPropagation(); // Prevents toggling collapse when clicking refresh
+
                     refreshAllCustomGoals();
+
                   }}
+
                 disabled={isAnalyzingGoals || loadingCustomGoals.size > 0}
+
                 className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 ${
+
                     isAnalyzingGoals || loadingCustomGoals.size > 0
+
                         ? "bg-gray-200 dark:bg-gray-700 cursor-wait"
+
                         : "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/50"
+
                 }`}
+
                 title="Refresh all Custom Goal analyses"
+
             >
+
                 {isAnalyzingGoals || loadingCustomGoals.size > 0 ? (
+
                     <Loader className="w-4 h-4 animate-spin" />
+
                 ) : (
+
                     <RefreshCw className="w-4 h-4" />
+
                 )}
+
             </button>
 
+
                 <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full font-medium">
+
                   {customGoals.length} active
+
                 </span>
 
-                {/* NEW: Collapse/Expand Arrow, rotates based on isGoalsOpen state */}
-                <ChevronDown 
-                    className={`w-5 h-5 transition-transform ${isGoalsOpen ? 'rotate-0' : '-rotate-90'}`} 
-                />
+
+                {/* MODIFIED: Replaced ChevronDown with text/label button */}
+
+                <button
+
+                    onClick={(e) => {
+
+                        e.stopPropagation(); // Stop propagation if clicked directly
+
+                        setIsGoalsOpen(!isGoalsOpen);
+
+                    }}
+
+                    className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded font-medium hover:bg-gray-200 dark:hover:bg-gray-600"
+
+                    title={isGoalsOpen ? "Collapse Section" : "Expand Section"}
+
+                >
+
+                    {isGoalsOpen ? 'Collapse' : 'Expand'}
+
+                </button>
+
             </div>
+
         </div>
 
-        {/* MODIFIED: Conditionally render the content based on isGoalsOpen state */}
+
+        {/* Conditionally render the content based on isGoalsOpen state */}
+
         {isGoalsOpen && (
+
             <div className="space-y-3">
+
             {customGoals.map((goal, goalIndex) => {
+
                 const analysis = goalAnalysis[goal.id];
+
                 const hasAnalysis = analysis && analysis !== 'Generating analysis...' && !analysis.startsWith('Error');
+
                 const isLoading = loadingCustomGoals.has(goal.id);
+
                 
+
                 // Define cooldown check INSIDE the map
+
                 const lastGenerated = customGoalGenerationTimes[goal.id];
+
                 const canRegenerate = !lastGenerated || (Date.now() - lastGenerated) >= 60000;
+
                 
+
                 return (
+
                 <details key={goal.id} className="group">
+
                     <summary className={`p-4 cursor-pointer font-medium rounded-lg border transition-all list-none flex items-center justify-between ${
+
                     hasAnalysis
+
                         ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700/50" 
+
                         : analysis
+
                         ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700/50"
+
                         : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+
                     }`}>
+
                     <div className="flex items-center space-x-3 flex-1">
+
                         <div className={`flex items-center justify-center p-2 rounded-lg flex-shrink-0 w-8 h-8 ${
+
                         hasAnalysis ? "bg-green-100 dark:bg-green-800/50" : "bg-gray-100 dark:bg-gray-800/50"
+
                         }`}>
+
                         {hasAnalysis ? (
+
                             <span className="text-green-600 dark:text-green-400">✓</span>
+
                         ) : (
+
                             <span className="font-bold text-gray-600 dark:text-gray-400">
+
                             {goalIndex + 1}
+
                             </span>
+
                         )}
+
                         </div>
+
                         
+
                         <div className="flex-1 min-w-0">
+
                         <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1 leading-snug">
+
                             {goal.goal_description}
+
                         </h4>
+
                         <div className="flex items-center space-x-2">
+
                             {hasAnalysis && (
+
                             <span className="text-xs bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-300 px-2 py-0.5 rounded-full">
+
                                 Discussed
+
                             </span>
+
                             )}
+
                             {isLoading && (
+
                             <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">
+
                                 Analyzing...
+
                             </span>
+
                             )}
+
                         </div>
+
                         </div>
+
                     </div>
+
                     
+
                     <div className="flex items-center space-x-2">
+
                         <button
+
                         onClick={(e) => {
+
                             e.preventDefault();
+
                             e.stopPropagation();
+
                             analyzeCustomGoal(goal.id);
+
                         }}
+
                         disabled={isLoading || !canRegenerate}
+
                         className={`p-1.5 rounded-full transition-all ${
+
                             isLoading
+
                             ? "bg-blue-100 dark:bg-blue-900/50 cursor-wait"
+
                             : !canRegenerate
+
                             ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50"
+
                             : "bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-800/50"
+
                         }`}
+
                         title={
+
                             isLoading 
+
                             ? "Generating analysis..." 
+
                             : !canRegenerate
+
                             ? "Wait 1 minute before regenerating"
+
                             : hasAnalysis 
+
                             ? "Regenerate analysis" 
+
                             : "Generate analysis"
+
                         }
+
                         >
+
                         {isLoading ? (
+
                             <Loader className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
+
                         ) : (
+
                             <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+
                         )}
+
                         </button>
+
                         <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
+
                     </div>
+
                     </summary>
+
                     
+
                     <div className="p-3 mt-2 border-t border-gray-200 dark:border-gray-700">
+
                     {hasAnalysis ? (
+
                         <div className="space-y-2">
+
                         <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+
                             <div 
+
                             className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+
                             dangerouslySetInnerHTML={{ 
+
                                 __html: analysis
+
                                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+
                                 .replace(/\n/g, '<br/>')
+
                             }}
+
                             />
+
                         </div>
+
                         </div>
+
                     ) : (
+
                         <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+
                         {analysis === 'Generating analysis...' 
+
                             ? 'AI is analyzing this goal...' 
+
                             : 'Click the ✨ icon to generate AI analysis'}
+
                         </p>
+
                     )}
+
                     </div>
+
                 </details>
+
                 );
+
             })}
+
             </div>
+
         )}
+
     </div>
+
 )}
             
             

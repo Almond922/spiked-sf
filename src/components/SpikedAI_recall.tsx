@@ -838,6 +838,9 @@ const fetchTrackedTasks = async () => {
     console.error('Error fetching tracked tasks:', error);
   }
 };
+
+
+
 const fetchTrackedHubSpotTasksList = async () => {
   if (!session?.access_token) return;
   try {
@@ -1508,6 +1511,35 @@ useEffect(() => {
         }`);
     }
 };
+const [showNoteTakerPrompt, setShowNoteTakerPrompt] = useState(false);
+useEffect(() => {
+  let timer: NodeJS.Timeout | undefined;
+
+  if (isBotRunning && botStatus === "running") {
+    timer = setTimeout(() => {
+      const hasOpened = sessionStorage.getItem('noteTakerOpened');
+      
+      if (!hasOpened) {
+        // Attempt to open
+        const newWindow = window.open("/note-taker", "_blank");
+
+        // Check if the browser blocked it
+        if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+          console.warn("Pop-up blocked by browser");
+          // Logic to show a small hint to the user
+          alert("Note Taker blocked. Please click the 'Pop-up Blocked' icon in your URL bar and select 'Always allow'.");
+        } else {
+          // Success!
+          sessionStorage.setItem('noteTakerOpened', 'true');
+        }
+      }
+    }, 1000);
+  }
+
+  return () => {
+    if (timer) clearTimeout(timer);
+  };
+}, [isBotRunning, botStatus]);
 // Assuming 'startBot' is your existing function to connect the bot
 
 const handleConnectClick = () => {
@@ -1542,6 +1574,7 @@ const handleConnectClick = () => {
   }
   try {
     setBotStatus("stopping");
+    sessionStorage.removeItem('noteTakerOpened');
     
     // Reset tracked tasks selection
     try {

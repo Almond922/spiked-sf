@@ -544,16 +544,13 @@ export default function Notetaker() {
         setLastFetchTime(now);
 
         try {
-            const response = await fetch(`${service_url_recall}/sentiment/custom-goals`, {
-                method: 'POST',
+            const response = await fetch(`https://recall-backend-production-409019309412.us-central1.run.app/sentiment/custom-goals`, {
+                method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${session.access_token}`,
                 },
-                body: JSON.stringify({
-                    goals: customGoals.map(g => ({ id: g.id, description: g.goal_description, criteria: g.evaluation_criteria })),
-                    transcript_segments: currentTranscript,
-                }),
+                
             });
             if (response.ok) {
                 const data = await response.json();

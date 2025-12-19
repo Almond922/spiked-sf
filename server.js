@@ -10,9 +10,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/**
- * PKCE helpers
- */
+/* ================= PKCE HELPERS ================= */
+
 function base64URLEncode(buffer) {
   return buffer
     .toString("base64")
@@ -25,25 +24,28 @@ function sha256(buffer) {
   return crypto.createHash("sha256").update(buffer).digest();
 }
 
-// Simple in-memory store (OK for demo)
-let pkceStore = {};
-let tokenStore = {};
+/* ================= TEMP STORAGE ================= */
+/* (OK for dev; use DB/session in prod) */
+
+let pkceVerifier = null;
+let tokenStore = null;
+
+/* ================= ROUTES ================= */
 
 /**
- * STEP 1: Redirect user to Salesforce login
+ * STEP 1: Start Salesforce OAuth
+ * OPEN THIS IN BROWSER
  */
 app.get("/auth/salesforce/login", (req, res) => {
-  const verifier = base64URLEncode(crypto.randomBytes(32));
-  const challenge = base64URLEncode(sha256(Buffer.from(verifier)));
-
-  pkceStore.verifier = verifier;
+  pkceVerifier = base64URLEncode(crypto.randomBytes(32));
+  const challenge = base64URLEncode(sha256(pkceVerifier));
 
   const authUrl =
     `${process.env.SF_LOGIN_URL}/services/oauth2/authorize` +
     `?response_type=code` +
     `&client_id=${process.env.SF_CLIENT_ID}` +
     `&redirect_uri=${encodeURIComponent(process.env.SF_CALLBACK)}` +
-    `&scope=api refresh_token offline_access` +
+    `&scope=openid api refresh_token` +
     `&code_challenge=${challenge}` +
     `&code_challenge_method=S256`;
 
@@ -51,25 +53,31 @@ app.get("/auth/salesforce/login", (req, res) => {
 });
 
 /**
- * STEP 2: Salesforce redirects back here
+ * STEP 2: Salesforce redirects here
  */
 app.get("/auth/salesforce/callback", async (req, res) => {
   const code = req.query.code;
-  if (!code) return res.status(400).send("Missing authorization code");
+
+  if (!code) {
+    console.error("OAuth error:", req.query);
+    return res.status(400).send("Missing authorization code");
+  }
 
   try {
     const response = await fetch(
       `${process.env.SF_LOGIN_URL}/services/oauth2/token`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
         body: new URLSearchParams({
           grant_type: "authorization_code",
           client_id: process.env.SF_CLIENT_ID,
-          client_secret: process.env.SF_CLIENT_SECRET,
+          client_secret: process.env.SF_CLIENT_SECRET, // 🔑 REQUIRED (Option A)
           redirect_uri: process.env.SF_CALLBACK,
           code,
-          code_verifier: pkceStore.verifier
+          code_verifier: pkceVerifier
         })
       }
     );
@@ -77,36 +85,33 @@ app.get("/auth/salesforce/callback", async (req, res) => {
     const tokens = await response.json();
 
     if (!tokens.access_token) {
-      console.error(tokens);
+      console.error("Token error:", tokens);
       return res.status(500).json(tokens);
     }
 
-    // Store tokens (demo only)
-    tokenStore.user = tokens;
+    tokenStore = tokens;
 
     // Redirect back to frontend
-    res.redirect(
-      `${process.env.FRONTEND_URL}/salesforce-connected`
-    );
+    res.redirect(`${process.env.FRONTEND_URL}/salesforce-connected`);
 
   } catch (err) {
-    console.error(err);
+    console.error("OAuth failed:", err);
     res.status(500).send("OAuth failed");
   }
 });
 
 /**
- * STEP 3: Test endpoint (verify connection)
+ * STEP 3: Test endpoint
  */
-app.get("/api/sf/test", async (req, res) => {
-  if (!tokenStore.user) {
+app.get("/api/sf/test", (req, res) => {
+  if (!tokenStore) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
   res.json({
     success: true,
-    instance_url: tokenStore.user.instance_url,
-    access_token_present: true
+    instance_url: tokenStore.instance_url,
+    has_access_token: true
   });
 });
 
@@ -114,11 +119,17 @@ app.get("/api/sf/test", async (req, res) => {
  * Health check
  */
 app.get("/", (req, res) => {
-  res.send("Spiked Backend running (External Client App PKCE)");
+  res.send("Spiked Backend running (Salesforce Option A OAuth)");
 });
+
+/* ================= SERVER ================= */
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);
 });
+
+
+
+
 

@@ -10,7 +10,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* ================= PKCE HELPERS ================= */
+/* ================= HELPERS ================= */
 
 function base64URLEncode(buffer) {
   return buffer
@@ -24,21 +24,22 @@ function sha256(buffer) {
   return crypto.createHash("sha256").update(buffer).digest();
 }
 
-/* ================= TEMP STORAGE ================= */
-/* (OK for dev; use DB/session in prod) */
+/* ================= IN-MEMORY STORE (DEV ONLY) ================= */
 
-let pkceVerifier = null;
+const pkceStore = new Map();
 let tokenStore = null;
 
-/* ================= ROUTES ================= */
+/* ================= AUTH ROUTES ================= */
 
 /**
  * STEP 1: Start Salesforce OAuth
- * OPEN THIS IN BROWSER
  */
 app.get("/auth/salesforce/login", (req, res) => {
-  pkceVerifier = base64URLEncode(crypto.randomBytes(32));
+  const pkceVerifier = base64URLEncode(crypto.randomBytes(32));
   const challenge = base64URLEncode(sha256(pkceVerifier));
+  const state = crypto.randomBytes(16).toString("hex");
+
+  pkceStore.set(state, pkceVerifier);
 
   const authUrl =
     `${process.env.SF_LOGIN_URL}/services/oauth2/authorize` +
@@ -47,79 +48,164 @@ app.get("/auth/salesforce/login", (req, res) => {
     `&redirect_uri=${encodeURIComponent(process.env.SF_CALLBACK)}` +
     `&scope=openid api refresh_token` +
     `&code_challenge=${challenge}` +
-    `&code_challenge_method=S256`;
+    `&code_challenge_method=S256` +
+    `&state=${state}`;
 
   res.redirect(authUrl);
 });
 
 /**
- * STEP 2: Salesforce redirects here
+ * STEP 2: OAuth Callback
  */
 app.get("/auth/salesforce/callback", async (req, res) => {
-  const code = req.query.code;
+  const { code, state, error } = req.query;
 
-  if (!code) {
-    console.error("OAuth error:", req.query);
-    return res.status(400).send("Missing authorization code");
-  }
+  if (error) return res.status(400).json(req.query);
+  if (!code || !state) return res.status(400).send("Missing code/state");
+
+  const verifier = pkceStore.get(state);
+  pkceStore.delete(state);
+
+  if (!verifier) return res.status(400).send("Invalid state");
 
   try {
     const response = await fetch(
       `${process.env.SF_LOGIN_URL}/services/oauth2/token`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
           grant_type: "authorization_code",
           client_id: process.env.SF_CLIENT_ID,
-          client_secret: process.env.SF_CLIENT_SECRET, // 🔑 REQUIRED (Option A)
+          client_secret: process.env.SF_CLIENT_SECRET,
           redirect_uri: process.env.SF_CALLBACK,
           code,
-          code_verifier: pkceVerifier
+          code_verifier: verifier
         })
       }
     );
 
     const tokens = await response.json();
-
-    if (!tokens.access_token) {
-      console.error("Token error:", tokens);
-      return res.status(500).json(tokens);
-    }
+    if (!tokens.access_token) return res.status(500).json(tokens);
 
     tokenStore = tokens;
 
-    // Redirect back to frontend
-    res.redirect(`${process.env.FRONTEND_URL}/salesforce-connected`);
-
+    res.redirect(process.env.FRONTEND_URL);
   } catch (err) {
-    console.error("OAuth failed:", err);
+    console.error(err);
     res.status(500).send("OAuth failed");
   }
 });
 
-/**
- * STEP 3: Test endpoint
- */
-app.get("/api/sf/test", (req, res) => {
-  if (!tokenStore) {
-    return res.status(401).json({ error: "Not authenticated" });
-  }
+/* ================= CORE CHECK ================= */
 
-  res.json({
-    success: true,
-    instance_url: tokenStore.instance_url,
-    has_access_token: true
+app.get("/api/sf/test", (req, res) => {
+  if (!tokenStore) return res.status(401).json({ error: "Not authenticated" });
+  res.json({ success: true, instance_url: tokenStore.instance_url });
+});
+
+/* ================= IDENTITY ================= */
+
+app.get("/api/sf/whoami", async (req, res) => {
+  if (!tokenStore) return res.status(401).json({ error: "Not authenticated" });
+
+  const r = await fetch(tokenStore.id, {
+    headers: { Authorization: `Bearer ${tokenStore.access_token}` }
   });
+
+  res.json(await r.json());
+});
+
+/* ================= CRM DATA ================= */
+
+/**
+ * ACCOUNTS
+ */
+app.get("/api/sf/accounts", async (req, res) => {
+  if (!tokenStore) return res.status(401).json({ error: "Not authenticated" });
+
+  const q = `
+    SELECT Id, Name, Industry, Type
+    FROM Account
+    ORDER BY CreatedDate DESC
+    LIMIT 10
+  `;
+
+  const r = await fetch(
+    `${tokenStore.instance_url}/services/data/v59.0/query?q=${encodeURIComponent(q)}`,
+    { headers: { Authorization: `Bearer ${tokenStore.access_token}` } }
+  );
+
+  res.json(await r.json());
 });
 
 /**
- * Health check
+ * LEADS
  */
+app.get("/api/sf/leads", async (req, res) => {
+  if (!tokenStore) return res.status(401).json({ error: "Not authenticated" });
+
+  const q = `
+    SELECT Id, Name, Company, Status
+    FROM Lead
+    ORDER BY CreatedDate DESC
+    LIMIT 10
+  `;
+
+  const r = await fetch(
+    `${tokenStore.instance_url}/services/data/v59.0/query?q=${encodeURIComponent(q)}`,
+    { headers: { Authorization: `Bearer ${tokenStore.access_token}` } }
+  );
+
+  res.json(await r.json());
+});
+
+/**
+ * OPPORTUNITIES (DEALS)
+ */
+app.get("/api/sf/opportunities", async (req, res) => {
+  if (!tokenStore) return res.status(401).json({ error: "Not authenticated" });
+
+  const q = `
+    SELECT Id, Name, StageName, Amount, CloseDate
+    FROM Opportunity
+    ORDER BY CloseDate DESC
+    LIMIT 10
+  `;
+
+  const r = await fetch(
+    `${tokenStore.instance_url}/services/data/v59.0/query?q=${encodeURIComponent(q)}`,
+    { headers: { Authorization: `Bearer ${tokenStore.access_token}` } }
+  );
+
+  res.json(await r.json());
+});
+
+/**
+ * TASKS
+ */
+app.get("/api/sf/tasks", async (req, res) => {
+  if (!tokenStore) return res.status(401).json({ error: "Not authenticated" });
+
+  const q = `
+    SELECT Id, Subject, Status, ActivityDate
+    FROM Task
+    ORDER BY ActivityDate DESC
+    LIMIT 10
+  `;
+
+  const r = await fetch(
+    `${tokenStore.instance_url}/services/data/v59.0/query?q=${encodeURIComponent(q)}`,
+    { headers: { Authorization: `Bearer ${tokenStore.access_token}` } }
+  );
+
+  res.json(await r.json());
+});
+
+/* ================= HEALTH ================= */
+
 app.get("/", (req, res) => {
-  res.send("Spiked Backend running (Salesforce Option A OAuth)");
+  res.send("Spiked Backend running (Salesforce OAuth + CRM)");
 });
 
 /* ================= SERVER ================= */
@@ -128,6 +214,7 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);
 });
+
 
 
 

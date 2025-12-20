@@ -59,7 +59,7 @@ import ReactMarkdown from 'react-markdown';
 // --- CONFIGURATION ---
 const API_BASE_URL =
   "https://spikedai-production-application-409019309412.us-central1.run.app";
-const PROFILES_API_BASE_URL = `https://spikedai-production-application-409019309412.us-central1.run.app/api/profiles`;
+const PROFILES_API_BASE_URL = `https://spikedai-old-backend-409019309412.us-central1.run.app/api/profiles`;
 
 // --- TYPESCRIPT INTERFACES ---
 type RecrawlSchedule = "NONE" | "DAILY" | "WEEKLY" | "MONTHLY" | "ONCE";

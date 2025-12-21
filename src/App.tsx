@@ -23,6 +23,7 @@ import KnowledgeBase from "./pages/knowledge_base";
 import KnowledgeContent from "./pages/knowledge_content";
 import JiraDashboard from './pages/JiraDashboard';
 import HubSpotDashboard from './pages/hubspotdashboard'; 
+import SalesforceDashboard from './pages/SalesforceDashboard';
 
 
 // ==============================================================================
@@ -269,6 +270,7 @@ function App() {
                         <Route path="/integrations" element={<Integrations />} />
                         <Route path="/integrations/jira" element={<JiraDashboard />} />
                         <Route path="/integrations/hubspot" element={<HubSpotDashboard />} />
+                        <Route path="/integrations/salesforce" element={<SalesforceDashboard/>}/>
                         
                         <Route path="/tutorial" element={<TutorialsHub />} />
                         <Route path="/knowledge_base" element={<KnowledgeBase/>}/>

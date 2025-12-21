@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 
 import { Puzzle, Loader, ExternalLink, Moon, Sun } from 'lucide-react';
 
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../ThemeContext';
 
 import { useAuth } from '../AuthContext';
@@ -191,6 +192,7 @@ const Integrations = () => {
     const { isDarkMode, toggleDarkMode } = useTheme();
 
     const { session } = useAuth();
+    const navigate = useNavigate();
 
     
 
@@ -299,43 +301,51 @@ const Integrations = () => {
 
 
 
-    const handleSalesforceConnect = async () => {
+  const handleSalesforceConnect = async () => {
+    try {
+      setConnectingSalesforce(true);
 
-        try {
+      const res = await fetch(`${BASE_URL}/integrations/salesforce/auth/initiate`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` }
+      });
 
-            setConnectingSalesforce(true);
+      if (!res.ok) {
+        // fallback to the redirect endpoint
+        console.warn('Initiate endpoint failed, falling back to redirect');
+        window.location.href = `${BASE_URL}/auth/salesforce/login`;
+        return;
+      }
 
-            const response = await fetch(`${BASE_URL}/integrations/salesforce/auth/initiate`, {
+      const data = await res.json();
 
-                headers: { Authorization: `Bearer ${session?.access_token}` }
-
-            });
-
-
-
-            if (!response.ok) {
-
-                throw new Error('Failed to initiate Salesforce OAuth');
-
-            }
-
-
-
-            const data = await response.json();
-
-            window.location.href = data.auth_url;
-
-        } catch (error) {
-
-            console.error('Error connecting to Salesforce:', error);
-
-            alert('Failed to connect to Salesforce. Please try again.');
-
-            setConnectingSalesforce(false);
-
+      // Validate the returned URL to avoid misconfigured backends redirecting to the wrong host
+      try {
+        const parsed = new URL(data.auth_url);
+        const host = parsed.hostname.toLowerCase();
+        if (!/salesforce\.com$/.test(host) && !host.includes('salesforce.com')) {
+          console.error('Rejecting non-salesforce auth_url', host, data.auth_url);
+          alert('Salesforce integration is misconfigured on the backend (invalid SF login host). Please check SF_LOGIN_URL env var.');
+          setConnectingSalesforce(false);
+          return;
         }
+      } catch (err) {
+        console.error('Invalid auth_url returned from server', err, data);
+        alert('Salesforce auth URL returned from backend is invalid. See console for details.');
+        setConnectingSalesforce(false);
+        return;
+      }
 
-    };
+      window.location.href = data.auth_url;
+    } catch (err) {
+      console.error('Error initiating Salesforce connect', err);
+      // final fallback: redirect to server login endpoint
+      window.location.href = `${BASE_URL}/auth/salesforce/login`;
+    } finally {
+      setConnectingSalesforce(false);
+    }
+  };
+
+
 
 
 
@@ -503,13 +513,13 @@ const Integrations = () => {
 
                     description: "Track deals and customer interactions with Salesforce integration.",
 
-                    buttonColor: 'gray',
+                    buttonColor: 'orange',
 
                     onConnect: handleSalesforceConnect,
 
                     isConnecting: connectingSalesforce,
 
-                    isComingSoon: true,
+                    isComingSoon: false,
 
                 },
 

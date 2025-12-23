@@ -7,6 +7,7 @@ Goal: Implement server-side OAuth + CRM wrappers so the frontend (this repo) can
 - GET /integrations/salesforce/connection     -> { connected: true|false }
 - GET /integrations/salesforce/deals          -> { deals: [...] }
 - GET /integrations/salesforce/deals/:id/tasks -> { tasks: [...] }
+- POST /integrations/salesforce/deals/:id/tasks -> create a Task on the Opportunity. Accepts { subject, activityDateTime } and returns the created task.
 
 Notes:
 - Keep all client secrets and token exchanges on the server side (do NOT put them in the browser).

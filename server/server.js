@@ -189,14 +189,13 @@ app.get('/integrations/salesforce/deals', async (req, res) => {
 
     // Map Salesforce records to the fields the frontend expects
     const deals = (data.records || []).map((rec) => ({
-      deal_id: rec.Id,
-      deal_name: rec.Name,
-      stage: rec.StageName || null,
-      amount: rec.Amount != null ? String(rec.Amount) : "0",
-      close_date: rec.CloseDate || null,
-      priority: (rec.Priority || null),
-      owner_name: null,
-    }));
+  Id: rec.Id,
+  Name: rec.Name,
+  StageName: rec.StageName || null,
+  Amount: rec.Amount || 0,
+  CloseDate: rec.CloseDate || null
+}));
+
 
     res.json({ deals });
   } catch (err) {
@@ -205,43 +204,144 @@ app.get('/integrations/salesforce/deals', async (req, res) => {
   }
 });
 
-// Return tasks for a given opportunity (deal)
-app.get('/integrations/salesforce/deals/:dealId/tasks', async (req, res) => {
-  const { dealId } = req.params;
-  if (!tokenStore) return res.status(200).json({ tasks: [] });
+// CREATE TASK FOR OPPORTUNITY (TAGGED TO THIS APP)
+app.post('/integrations/salesforce/deals/:dealId/tasks', async (req, res) => {
+  if (!tokenStore) {
+    return res.status(401).json({ error: 'Not authenticated with Salesforce' });
+  }
 
-  const q = `
-    SELECT Id, Subject, Status, ActivityDate, WhatId
-    FROM Task
-    WHERE WhatId = '${dealId}'
-    ORDER BY ActivityDate DESC
-    LIMIT 200
-  `;
+  const { dealId } = req.params;
+  const { subject, activityDateTime } = req.body;
 
   try {
-    const r = await fetch(`${tokenStore.instance_url}/services/data/v59.0/query?q=${encodeURIComponent(q)}`, {
-      headers: { Authorization: `Bearer ${tokenStore.access_token}` }
-    });
+    const payload = {
+      Subject: subject,
+      Status: 'Not Started',
+      WhatId: dealId,
+      ActivityDate: activityDateTime
+        ? activityDateTime.split('T')[0]
+        : undefined,
+
+      // 🔥 TAG USED FOR FILTERING
+      Description: '[RECALL_WEBAPP] Created from Recall WebApp'
+    };
+
+    const r = await fetch(
+      `${tokenStore.instance_url}/services/data/v59.0/sobjects/Task`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${tokenStore.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      }
+    );
+
+    const data = await r.json();
+    if (!r.ok) return res.status(400).json(data);
+
+    res.json({
+  Id: data.id,
+  Subject: subject,
+  Status: 'Not Started',
+  ActivityDate: payload.ActivityDate
+});
+
+  } catch (err) {
+    console.error('Create task error:', err);
+    res.status(500).json({ error: 'failed_to_create_task' });
+  }
+});
+
+
+// FETCH TASKS FOR OPPORTUNITY (ONLY THIS APP)
+app.get('/integrations/salesforce/deals/:dealId/tasks', async (req, res) => {
+  if (!tokenStore) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const { dealId } = req.params;
+
+  try {
+    const soql = `
+      SELECT Id, Subject, Status, ActivityDate, Description
+      FROM Task
+      WHERE WhatId = '${dealId}'
+      ORDER BY CreatedDate DESC
+      LIMIT 20
+    `;
+
+    const r = await fetch(
+      `${tokenStore.instance_url}/services/data/v59.0/query?q=${encodeURIComponent(soql)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${tokenStore.access_token}`
+        }
+      }
+    );
+
     const data = await r.json();
 
-    const tasks = (data.records || []).map((t) => ({
-      task_id: t.Id,
-      title: t.Subject,
-      description: '',
-      status: t.Status,
-      priority: 'LOW',
-      due_date: t.ActivityDate || null,
-      assignee_id: null,
-      assignee_name: null,
-      deal_id: t.WhatId || dealId,
-    }));
+    // 🔥 FILTER ONLY RECALL TASKS
+    const tasks = (data.records || []).filter(
+      t => t.Description && t.Description.includes('[RECALL_WEBAPP]')
+    );
 
-    res.json({ tasks });
+   const formattedTasks = tasks.map(t => ({
+  Id: t.Id,
+  Subject: t.Subject,
+  Status: t.Status,
+  ActivityDate: t.ActivityDate || null
+}));
+
+res.json({ tasks: formattedTasks });
+
   } catch (err) {
-    console.error('Error fetching tasks for deal', dealId, err);
+    console.error('Fetch tasks error:', err);
     res.status(500).json({ error: 'failed_to_fetch_tasks' });
   }
 });
+
+
+// Create a task for a Salesforce deal (TAGGED to this app)
+app.post('/integrations/salesforce/tasks/create', async (req, res) => {
+  if (!tokenStore) return res.status(401).json({ error: 'Not authenticated' });
+
+  const { subject, due_date, deal_id } = req.body;
+
+  try {
+    const payload = {
+      Subject: subject,
+      ActivityDate: due_date,
+      Status: "Not Started",
+      WhatId: deal_id,
+
+      // 🔥 KEY LINE — THIS IS THE MAGIC
+      Description: "[RECALL_WEBAPP] Created from Recall WebApp"
+    };
+
+    const r = await fetch(
+      `${tokenStore.instance_url}/services/data/v59.0/sobjects/Task`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${tokenStore.access_token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      }
+    );
+
+    const data = await r.json();
+    res.json(data);
+
+  } catch (err) {
+    console.error("Error creating Salesforce task", err);
+    res.status(500).json({ error: 'failed_to_create_task' });
+  }
+});
+
 
 // Mark a list of deals as selected/tracked (dev: stores in-memory)
 app.post('/integrations/salesforce/deals/select', (req, res) => {
@@ -252,14 +352,6 @@ app.post('/integrations/salesforce/deals/select', (req, res) => {
   res.json({ success: true, tracked: deal_ids.length });
 });
 
-// Accept a batch of tasks to track (dev: stores in-memory)
-app.post('/integrations/salesforce/tasks/select-batch', (req, res) => {
-  const { tasks } = req.body || {};
-  if (!Array.isArray(tasks)) return res.status(400).json({ error: 'invalid_payload' });
-
-  tasks.forEach((t) => selectedTasks.push(t));
-  res.json({ success: true, tracked: tasks.length });
-});
 
 /* ================= CORE CHECK ================= */
 app.get("/api/sf/test", (req, res) => {

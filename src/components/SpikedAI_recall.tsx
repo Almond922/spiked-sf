@@ -7474,44 +7474,9 @@ const refreshAllMedpicSummaries = async () => {
             </button>
           </div>
           <div className="flex items-center space-x-2">
-            <div
-              className={`flex items-center space-x-2 px-4 py-2 rounded-xl ${
-                isTranscribing
-                  ? "bg-red-pantone/10 border border-red-pantone/30"
-                  : "bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/30"
-              }`}
-            >
-              {isTranscribing ? (
-                <Mic className="w-4 h-4 text-red-pantone animate-pulse" />
-              ) : (
-                <MicOff className="w-4 h-4 text-slate-400" />
-              )}
-              <span
-                className={`text-sm font-medium ${
-                  isTranscribing
-                    ? "text-red-pantone"
-                    : "text-slate-500 dark:text-slate-400"
-                }`}
-              >
-                {isTranscribing ? "Recording" : "Paused"}
-              </span>
-            </div>
+            
 
-            <button
-              onClick={toggleTranscription}
-              disabled={!isConnected}
-              className={`p-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 ${
-                isTranscribing
-                  ? "bg-gradient-to-r from-red-pantone to-red-500 text-white hover:from-red-500 hover:to-red-pantone shadow-lg"
-                  : "bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 shadow-lg"
-              }`}
-            >
-              {isTranscribing ? (
-                <Pause className="w-5 h-5" />
-              ) : (
-                <Play className="w-5 h-5" />
-              )}
-            </button>
+            
 
             <div className="flex items-center space-x-2 relative">
               <div className="h-8 w-px bg-slate-300 dark:bg-slate-600"></div>

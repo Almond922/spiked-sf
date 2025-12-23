@@ -23,7 +23,7 @@ const HubSpotDashboard = () => {
   const [selectedStages, setSelectedStages] = useState<string[]>([]);
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   
   // CHANGED: Use a Set to track multiple expanded deals instead of a single string
   const [expandedDealIds, setExpandedDealIds] = useState<Set<string>>(new Set());
@@ -767,9 +767,8 @@ const HubSpotDashboard = () => {
                         </div>
                       )}
 
-                      {/* Priority Indicator */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className={`w-3 h-3 rounded-full ${getPriorityColor(deal.priority)}`} />
+                      {/* Stage Badge */}
+                      <div className="flex items-center justify-end mb-3">
                         <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${getStageStyle(deal.stage)}`}>
                           {deal.stage}
                         </span>
@@ -788,50 +787,50 @@ const HubSpotDashboard = () => {
                         </span>
                       </div>
 
-                      {/* [ADD] Owner Name, Priority, Due Date Row */}
-                      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1">
-                          <div className="flex justify-between text-xs text-gray-500">
-                              <span>Owner:</span>
-                              <span className="font-medium text-gray-700 dark:text-gray-300">{deal.owner_name || 'Unassigned'}</span>
-                          </div>
-                          <div className="flex justify-between text-xs text-gray-500">
-                              <span>Priority:</span>
-                              <span className={`font-medium ${
-                                  deal.priority?.toLowerCase() === 'high' ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'
-                              }`}>
-                                  {deal.priority || 'Low'}
-                              </span>
-                          </div>
-                           <div className="flex justify-between text-xs text-gray-500">
-                              <span>Due:</span>
-                              <span className={`${isOverdue(deal.close_date) ? 'text-red-500 font-bold' : ''}`}>
-                                   {formatCloseDate(deal.close_date)}
-                              </span>
-                          </div>
-                      </div>
-
                       {/* Deal Metadata */}
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-slate-700">
-                        {/* Contact */}
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
-                            {getContactInitials(deal.contact_name)}
-                          </div>
-                          <span className={`text-sm font-medium truncate max-w-[120px] ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            {deal.contact_name}
+                      <div className="space-y-2.5 pt-3 border-t border-gray-200 dark:border-slate-700">
+                        {/* Owner */}
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Owner:</span>
+                          <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                            {deal.owner_name || 'Unassigned'}
+                          </span>
+                        </div>
+
+                        {/* Priority */}
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Priority:</span>
+                          <span className={`text-xs font-medium capitalize ${
+                            deal.priority?.toLowerCase() === 'high' ? 'text-red-500 font-bold' : isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            {deal.priority || 'Low'}
                           </span>
                         </div>
 
                         {/* Close Date */}
-                        <div className="flex items-center space-x-1.5">
-                          <Calendar className={`w-4 h-4 ${isOverdue(deal.close_date) ? 'text-red-500' : 'text-gray-400'}`} />
-                          <span className={`text-xs font-medium ${
-                            isOverdue(deal.close_date) 
-                              ? 'text-red-500' 
-                              : isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                          }`}>
-                            {formatCloseDate(deal.close_date)}
-                          </span>
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Due:</span>
+                          <div className="flex items-center space-x-1.5">
+                            <Calendar className={`w-3.5 h-3.5 ${isOverdue(deal.close_date) ? 'text-red-500' : 'text-gray-400'}`} />
+                            <span className={`text-xs font-medium ${
+                              isOverdue(deal.close_date) ? 'text-red-500 font-bold' : isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              {formatCloseDate(deal.close_date)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Contact */}
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-slate-700">
+                          <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Contact:</span>
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
+                              {getContactInitials(deal.contact_name)}
+                            </div>
+                            <span className={`text-xs font-medium truncate max-w-[120px] ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                              {deal.contact_name}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       {/* TASKS SECTION FOOTER */}

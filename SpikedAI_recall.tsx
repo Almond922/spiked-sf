@@ -60,9 +60,6 @@ const service_url_base =
   "https://spikedai-production-application-409019309412.us-central1.run.app";
 const BASE_URL_PROD =
   "https://spikedai-production-application-409019309412.us-central1.run.app";
-
-// Local backend base (matches SalesforceDashboard's BASE_URL)
-const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 const MEDPIC_CATEGORIES = {
   "metrics": "Metrics",
   "economic_buyer": "Economic Buyer", 
@@ -2257,17 +2254,6 @@ useEffect(() => {
     };
 }, [/* Empty dependency array: run once on mount */]);
 
-// Listen for dashboard updates to refresh tracked Salesforce deals immediately
-useEffect(() => {
-  const handler = () => {
-    console.log('Event received: salesforceTrackedDealsUpdated — refreshing tracked Salesforce deals');
-    fetchTrackedSalesforceDeals();
-  };
-
-  window.addEventListener('salesforceTrackedDealsUpdated', handler);
-  return () => window.removeEventListener('salesforceTrackedDealsUpdated', handler);
-}, [session?.access_token]);
-
 useEffect(() => {
     // Only proceed if there are custom goals to analyze
     if (customGoals.length === 0) {
@@ -2326,40 +2312,34 @@ const fetchTrackedHubSpotDeals = async () => {
 
 const fetchTrackedSalesforceDeals = async () => {
   if (!session?.access_token) return;
-
+  
   try {
-    // Fetch all Salesforce deals (the server already marks tracked ones)
-    const response = await fetch(`${BACKEND_URL}/integrations/salesforce/deals`, {
-      headers: { Authorization: `Bearer ${session.access_token}` }
-    });
-
-    console.log('Requested Salesforce deals from', `${BACKEND_URL}/integrations/salesforce/deals`);
-
-    if (!response.ok) {
-      console.error('Failed to fetch Salesforce deals:', response.status);
-      return;
-    }
-
-    const data = await response.json();
-
-    // Filter only those marked as tracked by the server
-    const tracked = (data.deals || []).filter((d: any) => d.tracked);
-
-    const formattedDeals = tracked.map((deal: any) => ({
-      id: deal.Id || deal.deal_id,
-      title: deal.Name || deal.deal_name,
-      status: deal.StageName || deal.stage,
-      type: 'salesforce',
-      icon: '💼',
-      metadata: {
-        amount: deal.Amount || deal.amount,
-        close_date: deal.CloseDate || deal.close_date
+    const response = await fetch(
+      `${service_url_recall}/integrations/salesforce/deals/tracked`,
+      {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       }
-    }));
-
-    setTrackedSalesforceDeals(formattedDeals);
-    console.log(`✓ Fetched ${formattedDeals.length} tracked Salesforce deals`);
-    console.log('Tracked Salesforce deals:', formattedDeals);
+    );
+    
+    if (response.ok) {
+      const data = await response.json();
+      const formattedDeals = (data.deals || []).map((deal: any) => ({
+        id: deal.deal_id || deal.Id,
+        title: deal.deal_name || deal.Name,
+        status: deal.stage || deal.StageName,
+        type: 'salesforce',
+        icon: '💼',
+        metadata: {
+          amount: deal.amount || deal.Amount,
+          close_date: deal.close_date || deal.CloseDate
+        }
+      }));
+      setTrackedSalesforceDeals(formattedDeals);
+      console.log(`✓ Fetched ${formattedDeals.length} tracked Salesforce deals`);
+      console.log('Tracked Salesforce deals:', formattedDeals);
+    }
   } catch (error) {
     console.error('Error fetching tracked Salesforce deals:', error);
   }
